@@ -1,25 +1,33 @@
-const express = require('express');
-const cors    = require('cors');
-const bcrypt  = require('bcryptjs');
-const jwt     = require('jsonwebtoken');
-const { Pool } = require('pg');
+const express   = require('express');
+const bcrypt    = require('bcryptjs');
+const jwt       = require('jsonwebtoken');
+const { Pool }  = require('pg');
 const Anthropic = require('@anthropic-ai/sdk');
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
 
+// ── CORS — bulletproof, no cors package needed ─────────────
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Origin',  '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,PUT,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
   if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
 });
+
 app.use(express.json());
 
-const db = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+// ── DATABASE ───────────────────────────────────────────────
+const db = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
+
+// ── ANTHROPIC ──────────────────────────────────────────────
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+// ── JWT ────────────────────────────────────────────────────
 const sign = (payload) => jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
 const auth = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
@@ -28,10 +36,11 @@ const auth = (req, res, next) => {
   catch { res.status(401).json({ error: 'Invalid token' }); }
 };
 
+// ── COACH PERSONALITY ──────────────────────────────────────
 const COACH_VOICE = `
 You are the Luhv+ AI Coach — you speak EXACTLY like this coach:
 
-SIGNATURE PHRASES (use them naturally, don't force all of them):
+SIGNATURE PHRASES (use them naturally, don't force all at once):
 - "You are the MVP in your life"
 - "You're the cream of the crop"
 - "Let's get this TRIUMPH 🏆"
@@ -47,13 +56,10 @@ TONE RULES:
 - Short punchy sentences mixed with deeper insight
 - Always end with a challenge or question to keep them moving
 - Never robotic, never generic — always personal
-
-CONTEXT:
-- You know the user's name, streak, goals and recent journal entries
-- Reference their data when relevant
 - Keep responses under 4 sentences unless they ask for a detailed plan
 `;
 
+// ── AUTH ───────────────────────────────────────────────────
 app.post('/api/auth/register', async (req, res) => {
   const { name, email, password } = req.body;
   const hash = await bcrypt.hash(password, 10);
@@ -77,6 +83,7 @@ app.post('/api/auth/login', async (req, res) => {
   res.json({ token: sign({ id: user.id }), user });
 });
 
+// ── QUOTES ─────────────────────────────────────────────────
 app.get('/api/quotes', async (req, res) => {
   const { rows } = await db.query('SELECT * FROM quotes ORDER BY created_at DESC');
   res.json(rows);
@@ -90,7 +97,10 @@ app.get('/api/quotes/today', async (req, res) => {
 
 app.post('/api/quotes', auth, async (req, res) => {
   const { text, author } = req.body;
-  const { rows } = await db.query('INSERT INTO quotes (text, author) VALUES ($1,$2) RETURNING *', [text, author]);
+  const { rows } = await db.query(
+    'INSERT INTO quotes (text, author) VALUES ($1,$2) RETURNING *',
+    [text, author]
+  );
   res.json(rows[0]);
 });
 
@@ -99,8 +109,12 @@ app.delete('/api/quotes/:id', auth, async (req, res) => {
   res.json({ success: true });
 });
 
+// ── HABITS ─────────────────────────────────────────────────
 app.get('/api/habits', auth, async (req, res) => {
-  const { rows } = await db.query('SELECT * FROM habits WHERE user_id=$1 ORDER BY created_at', [req.user.id]);
+  const { rows } = await db.query(
+    'SELECT * FROM habits WHERE user_id=$1 ORDER BY created_at',
+    [req.user.id]
+  );
   res.json(rows);
 });
 
@@ -123,14 +137,21 @@ app.patch('/api/habits/:id/check', auth, async (req, res) => {
     await db.query('DELETE FROM habit_completions WHERE id=$1', [existing.rows[0].id]);
     res.json({ done: false });
   } else {
-    await db.query('INSERT INTO habit_completions (habit_id, user_id, date) VALUES ($1,$2,$3)', [req.params.id, req.user.id, today]);
+    await db.query(
+      'INSERT INTO habit_completions (habit_id, user_id, date) VALUES ($1,$2,$3)',
+      [req.params.id, req.user.id, today]
+    );
     await db.query('UPDATE users SET streak = streak + 1 WHERE id=$1', [req.user.id]);
     res.json({ done: true });
   }
 });
 
+// ── GOALS ──────────────────────────────────────────────────
 app.get('/api/goals', auth, async (req, res) => {
-  const { rows } = await db.query('SELECT * FROM goals WHERE user_id=$1 ORDER BY created_at DESC', [req.user.id]);
+  const { rows } = await db.query(
+    'SELECT * FROM goals WHERE user_id=$1 ORDER BY created_at DESC',
+    [req.user.id]
+  );
   res.json(rows);
 });
 
@@ -152,6 +173,7 @@ app.patch('/api/goals/:id/progress', auth, async (req, res) => {
   res.json(rows[0]);
 });
 
+// ── JOURNAL ────────────────────────────────────────────────
 app.get('/api/journal', auth, async (req, res) => {
   const { rows } = await db.query(
     'SELECT * FROM journal_entries WHERE user_id=$1 ORDER BY created_at DESC LIMIT 20',
@@ -183,8 +205,10 @@ app.get('/api/journal/prompt', auth, async (req, res) => {
   res.json({ prompt: prompts[idx] });
 });
 
+// ── AI COACH ───────────────────────────────────────────────
 app.post('/api/coach/chat', auth, async (req, res) => {
   const { message, history = [] } = req.body;
+
   const { rows: [user] }   = await db.query('SELECT name, streak FROM users WHERE id=$1', [req.user.id]);
   const { rows: goals }    = await db.query("SELECT title, progress, target FROM goals WHERE user_id=$1 AND status='active'", [req.user.id]);
   const { rows: [latest] } = await db.query('SELECT content FROM journal_entries WHERE user_id=$1 ORDER BY created_at DESC LIMIT 1', [req.user.id]);
@@ -193,27 +217,28 @@ app.post('/api/coach/chat', auth, async (req, res) => {
 USER CONTEXT:
 - Name: ${user.name}
 - Current streak: ${user.streak} days
-- Active goals: ${goals.map(g => `${g.title} (${Math.round((g.progress/g.target)*100)}%)`).join(', ') || 'none yet'}
+- Active goals: ${goals.map(g => `${g.title} (${Math.round((g.progress / g.target) * 100)}%)`).join(', ') || 'none yet'}
 - Latest journal: "${latest?.content?.slice(0, 120) || 'No entries yet'}"
 `;
-
-  const messages = [
-    ...history.map(m => ({ role: m.role, content: m.content })),
-    { role: 'user', content: message }
-  ];
 
   try {
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 300,
       system: COACH_VOICE + '\n\n' + userContext,
-      messages,
+      messages: [
+        ...history.map(m => ({ role: m.role, content: m.content })),
+        { role: 'user', content: message }
+      ],
     });
+
     const reply = response.content[0].text;
+
     await db.query(
       'INSERT INTO conversations (user_id, role, content) VALUES ($1,$2,$3), ($1,$4,$5)',
       [req.user.id, 'user', message, 'assistant', reply]
     );
+
     res.json({ reply });
   } catch (e) {
     console.error(e);
@@ -221,6 +246,7 @@ USER CONTEXT:
   }
 });
 
+// ── ADMIN ──────────────────────────────────────────────────
 const adminAuth = (req, res, next) => {
   auth(req, res, () => {
     if (!req.user.is_admin) return res.status(403).json({ error: 'Admins only' });
@@ -244,7 +270,9 @@ app.get('/api/admin/stats', adminAuth, async (req, res) => {
 });
 
 app.get('/api/admin/users', adminAuth, async (req, res) => {
-  const { rows } = await db.query('SELECT id, name, email, streak, last_active, created_at FROM users ORDER BY created_at DESC');
+  const { rows } = await db.query(
+    'SELECT id, name, email, streak, last_active, created_at FROM users ORDER BY created_at DESC'
+  );
   res.json(rows);
 });
 
@@ -257,6 +285,7 @@ app.get('/api/admin/conversations', adminAuth, async (req, res) => {
   res.json(rows);
 });
 
+// ── HEALTH ─────────────────────────────────────────────────
 app.get('/health', (_, res) => res.json({ status: 'ok', service: 'Luhv+ API' }));
 
 app.listen(PORT, '0.0.0.0', () => console.log(`🏆 Luhv+ API running on port ${PORT}`));

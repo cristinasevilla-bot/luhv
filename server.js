@@ -321,4 +321,4 @@ app.get('/api/admin/conversations', adminAuth, async (req, res) => {
 // ============================================================
 app.get('/health', (_, res) => res.json({ status: 'ok', service: 'Luhv+ API' }));
 
-app.listen(PORT, () => console.log(`🏆 Luhv+ API running on port ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`🏆 Luhv+ API running on port ${PORT}`));

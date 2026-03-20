@@ -12,7 +12,7 @@ const Anthropic = require('@anthropic-ai/sdk');
 const app  = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors());
+app.use(cors({ origin: ['https://luhv.netlify.app', 'http://localhost:3000'] }));
 app.use(express.json());
 
 // ── DB (Supabase / any Postgres) ──────────────────────────

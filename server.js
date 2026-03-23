@@ -3,6 +3,7 @@ const bcrypt    = require('bcryptjs');
 const jwt       = require('jsonwebtoken');
 const { Pool }  = require('pg');
 const Anthropic = require('@anthropic-ai/sdk');
+const OpenAI    = require('openai');
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
@@ -26,6 +27,7 @@ const db = new Pool({
 
 // ── ANTHROPIC ─────────────────────────────────────────────────────────────────
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // ── JWT ───────────────────────────────────────────────────────────────────────
 const sign = (payload) => jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
@@ -286,11 +288,14 @@ const SESSION_PHASES = [
 ];
 
 // ── COACH VOICE (system prompt) ───────────────────────────────────────────────
-const buildCoachSystem = (userContext = '', sessionContext = '') => `
+const buildCoachSystem = (userContext = '', sessionContext = '', retrievedKbContext = '') => `
 You are the Luhv+ AI Coach — voice of the Luhv+ Transformation platform created by Shon Crú-May.
 
-KNOWLEDGE BASE:
+STATIC KNOWLEDGE BASE:
 ${KNOWLEDGE_BASE}
+
+RETRIEVED KNOWLEDGE BASE CONTEXT:
+${retrievedKbContext || 'No additional retrieved KB context available.'}
 
 TONE & VOICE RULES:
 - Warm, personal, motivational — like a trusted coach who genuinely believes in you.
@@ -301,6 +306,8 @@ TONE & VOICE RULES:
 - Never robotic, never generic — always personal. Use the user's name.
 - Keep responses under 5 sentences unless they ask for a detailed plan.
 - Draw from the Luhv+ Knowledge Base naturally — don't quote it robotically.
+- If retrieved KB context is relevant, prioritize it.
+- Do not invent teachings that are not supported by the KB context.
 - Never use markdown, asterisks (*), or bold formatting. Plain text only
 
 SIGNATURE PHRASES (use naturally, not all at once):
@@ -317,7 +324,95 @@ SIGNATURE PHRASES (use naturally, not all at once):
 ${userContext}
 ${sessionContext}
 `;
+// ── KB SEMANTIC SEARCH HELPERS ───────────────────────────────────────────────
 
+async function createQueryEmbedding(text) {
+  const res = await openai.embeddings.create({
+    model: 'text-embedding-3-small',
+    input: text,
+    dimensions: 1536
+  });
+
+  return res.data[0].embedding;
+}
+
+function inferKbFilter(userMessage = '') {
+  const q = userMessage.toLowerCase();
+
+  if (
+    q.includes('speak') ||
+    q.includes('confidence') ||
+    q.includes('presentation') ||
+    q.includes('fear') ||
+    q.includes('public speaking')
+  ) {
+    return { category: 'communication' };
+  }
+
+  if (
+    q.includes('time') ||
+    q.includes('focus') ||
+    q.includes('productive') ||
+    q.includes('productivity') ||
+    q.includes('stuck') ||
+    q.includes('procrastination') ||
+    q.includes('overwhelm')
+  ) {
+    return { category: 'productivity' };
+  }
+
+  if (
+    q.includes('accountability') ||
+    q.includes('discipline') ||
+    q.includes('leader') ||
+    q.includes('leadership') ||
+    q.includes('consistency')
+  ) {
+    return { category: 'accountability' };
+  }
+
+  return {};
+}
+
+async function getRelevantKbChunks(userMessage) {
+  const embedding = await createQueryEmbedding(userMessage);
+  const filter = inferKbFilter(userMessage);
+
+  const { rows } = await db.query(
+    `
+    select *
+    from match_kb_chunks($1::extensions.vector, $2::int, $3::float, $4::jsonb)
+    `,
+    [
+      `[${embedding.join(',')}]`,
+      6,
+      0.72,
+      JSON.stringify(filter)
+    ]
+  );
+
+  return rows || [];
+}
+
+function buildKbContext(chunks) {
+  if (!chunks.length) {
+    return 'No highly relevant KB chunks were found.';
+  }
+
+  return chunks.map((chunk, i) => {
+    const book = chunk.metadata?.book || 'Unknown source';
+    const category = chunk.metadata?.category || 'general';
+    const similarity = Number(chunk.similarity || 0).toFixed(3);
+
+    return [
+      `[KB ${i + 1}]`,
+      `Source: ${book}`,
+      `Category: ${category}`,
+      `Similarity: ${similarity}`,
+      chunk.content
+    ].join('\n');
+  }).join('\n\n---\n\n');
+}
 // ── HELPER: Get or create active session ──────────────────────────────────────
 async function getActiveSession(userId) {
   const { rows } = await db.query(
@@ -571,14 +666,31 @@ app.post('/api/coach/session/reset', auth, async (req, res) => {
 
 // ── FREE CHAT (enriched with session context) ─────────────────────────────────
 app.post('/api/coach/chat', auth, async (req, res) => {
-  const { message, history = [] } = req.body;
+  try {
+    const { message, history = [] } = req.body;
 
-  const { rows: [user] }   = await db.query('SELECT name, streak FROM users WHERE id=$1', [req.user.id]);
-  const { rows: goals }    = await db.query("SELECT title, progress, target FROM goals WHERE user_id=$1 AND status='active'", [req.user.id]);
-  const { rows: [latest] } = await db.query('SELECT content FROM journal_entries WHERE user_id=$1 ORDER BY created_at DESC LIMIT 1', [req.user.id]);
-  const session            = await getActiveSession(req.user.id);
+    if (!message || !message.trim()) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
 
-  const userContext = `
+    const { rows: [user] } = await db.query(
+      'SELECT name, streak FROM users WHERE id=$1',
+      [req.user.id]
+    );
+
+    const { rows: goals } = await db.query(
+      "SELECT title, progress, target FROM goals WHERE user_id=$1 AND status='active'",
+      [req.user.id]
+    );
+
+    const { rows: [latest] } = await db.query(
+      'SELECT content FROM journal_entries WHERE user_id=$1 ORDER BY created_at DESC LIMIT 1',
+      [req.user.id]
+    );
+
+    const session = await getActiveSession(req.user.id);
+
+    const userContext = `
 USER CONTEXT:
 - Name: ${user.name}
 - Current streak: ${user.streak} days
@@ -586,34 +698,48 @@ USER CONTEXT:
 - Latest journal: "${latest?.content?.slice(0, 120) || 'No entries yet'}"
 `;
 
-  const sessionContext = session ? `
+    const sessionContext = session ? `
 COACHING SESSION CONTEXT:
 - Current phase: ${session.phase}
 - Identified monetization lens: ${session.lens || 'not yet determined'}
 - Key session responses: ${JSON.stringify(session.responses).slice(0, 400)}
 ` : '';
 
-  try {
+    // NEW: retrieve KB chunks from Supabase semantic search
+    const kbChunks = await getRelevantKbChunks(message);
+    const retrievedKbContext = buildKbContext(kbChunks);
+
     const response = await anthropic.messages.create({
-      model:      'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-20250514',
       max_tokens: 300,
-      system:     buildCoachSystem(userContext, sessionContext),
+      system: buildCoachSystem(userContext, sessionContext, retrievedKbContext),
       messages: [
         ...history.map(m => ({ role: m.role, content: m.content })),
         { role: 'user', content: message }
       ],
     });
 
-    const reply = response.content[0].text;
+    const reply = response.content
+      ?.filter(block => block.type === 'text')
+      ?.map(block => block.text)
+      ?.join('\n')
+      ?.trim() || 'I am here with you. Let’s take the next step together.';
 
     await db.query(
       'INSERT INTO conversations (user_id, role, content) VALUES ($1,$2,$3), ($1,$4,$5)',
       [req.user.id, 'user', message, 'assistant', reply]
     );
 
-    res.json({ reply });
+    res.json({
+      reply,
+      sources: kbChunks.map(c => ({
+        book: c.metadata?.book || null,
+        category: c.metadata?.category || null,
+        similarity: c.similarity
+      }))
+    });
   } catch (e) {
-    console.error(e);
+    console.error('Coach chat error:', e);
     res.status(500).json({ error: 'Coach is temporarily unavailable' });
   }
 });

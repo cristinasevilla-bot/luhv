@@ -1667,8 +1667,7 @@ function parseMarkdown(text) {
   return text
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/
-/g, '<br>');
+    .replace(/\n/g, '<br>');
 }
 
 function autoResize(el) {
@@ -1770,7 +1769,7 @@ async function loadFocusPage() {
   } else {
     var colors = ['b','t','y','p'];
     list.innerHTML = habits.map(function(h, i) {
-      return '<div class="hitem ' + (h.done?'done':'') + '" onclick="toggleHabit(this,'' + h.id + '')" style="margin-bottom:8px"><div class="hico ' + colors[i%4] + '">' + (h.icon||'⚡') + '</div><div class="hinfo"><div class="hn">' + h.name + '</div><div class="hs">' + (h.time||'') + '</div></div><div class="hchk">' + (h.done?'✓':'') + '</div></div>';
+      return '<div class="hitem ' + (h.done?'done':'') + '" onclick="toggleHabit(this,\'' + h.id + '\')" style="margin-bottom:8px"><div class="hico ' + colors[i%4] + '">' + (h.icon||'⚡') + '</div><div class="hinfo"><div class="hn">' + h.name + '</div><div class="hs">' + (h.time||'') + '</div></div><div class="hchk">' + (h.done?'✓':'') + '</div></div>';
     }).join('');
   }
   var qi  = Math.floor(Date.now() / 3600000) % focusQuotes.length;
@@ -1788,7 +1787,7 @@ async function loadTodayIntention() {
   var bc     = data.alignment || 'needs_adjustment';
   var labels = { aligned:'Aligned ✓', needs_adjustment:'Needs Adjustment', not_aligned:'Not Aligned ✗' };
   var colors = { aligned:'rgba(6,214,160,.3)', needs_adjustment:'rgba(251,191,36,.3)', not_aligned:'rgba(244,63,94,.3)' };
-  el.innerHTML = '<div class="intent-card" style="border-color:' + (colors[bc]||colors.needs_adjustment) + '"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:700">Today's Intention</div><span class="align-badge ' + bc + '">' + (labels[bc]||bc) + '</span></div><div style="font-size:14px;font-weight:600;margin-bottom:8px">' + data.intention + '</div><div style="font-size:13px;color:var(--muted);line-height:1.6">' + (data.coach_reply||'') + '</div></div>';
+  el.innerHTML = '<div class="intent-card" style="border-color:' + (colors[bc]||colors.needs_adjustment) + '"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:700">Today&#39;s Intention</div><span class="align-badge ' + bc + '">' + (labels[bc]||bc) + '</span></div><div style="font-size:14px;font-weight:600;margin-bottom:8px">' + data.intention + '</div><div style="font-size:13px;color:var(--muted);line-height:1.6">' + (data.coach_reply||'') + '</div></div>';
 }
 
 async function submitIntention() {
@@ -1815,7 +1814,7 @@ async function submitIntention() {
     }
   } catch(e) { result.innerHTML = 'Could not connect.'; result.style.display = 'block'; }
   btn.disabled = false;
-  btn.textContent = "Set Today's Intention";
+  btn.textContent = 'Set Today\'s Intention';
 }
 
 async function loadDecisionsLog() {

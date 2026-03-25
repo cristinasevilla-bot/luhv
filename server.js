@@ -1,16 +1,15 @@
-const express = require('express');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const { Pool } = require('pg');
+const express   = require('express');
+const bcrypt    = require('bcryptjs');
+const jwt       = require('jsonwebtoken');
+const { Pool }  = require('pg');
 const Anthropic = require('@anthropic-ai/sdk');
-const OpenAI = require('openai');
 
-const app = express();
+const app  = express();
 const PORT = process.env.PORT || 3001;
 
 // ── CORS ─────────────────────────────────────────────────────────────────────
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Origin',  '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,PUT,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
   if (req.method === 'OPTIONS') return res.sendStatus(200);
@@ -19,32 +18,38 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 
-// ── DATABASE ─────────────────────────────────────────────────────────────────
+// ── DATABASE ──────────────────────────────────────────────────────────────────
 const db = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
 });
 
-// ── AI CLIENTS ───────────────────────────────────────────────────────────────
+// ── ANTHROPIC ─────────────────────────────────────────────────────────────────
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// ── JWT ──────────────────────────────────────────────────────────────────────
+// ── JWT ───────────────────────────────────────────────────────────────────────
 const sign = (payload) => jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
-
 const auth = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) return res.status(401).json({ error: 'No token' });
-
-  try {
-    req.user = jwt.verify(token, process.env.JWT_SECRET);
-    next();
-  } catch {
-    res.status(401).json({ error: 'Invalid token' });
-  }
+  try { req.user = jwt.verify(token, process.env.JWT_SECRET); next(); }
+  catch { res.status(401).json({ error: 'Invalid token' }); }
 };
 
-// ── KNOWLEDGE BASE ───────────────────────────────────────────────────────────
+// ── SUPABASE SCHEMA (run once) ────────────────────────────────────────────────
+// CREATE TABLE IF NOT EXISTS coach_sessions (
+//   id            SERIAL PRIMARY KEY,
+//   user_id       INTEGER REFERENCES users(id) ON DELETE CASCADE,
+//   phase         TEXT    NOT NULL DEFAULT 'mindset_checkin',
+//   phase_index   INTEGER NOT NULL DEFAULT 0,
+//   responses     JSONB   NOT NULL DEFAULT '{}',
+//   lens          TEXT,
+//   completed     BOOLEAN NOT NULL DEFAULT false,
+//   created_at    TIMESTAMPTZ DEFAULT NOW(),
+//   updated_at    TIMESTAMPTZ DEFAULT NOW()
+// );
+
+// ── KNOWLEDGE BASE ────────────────────────────────────────────────────────────
 const KNOWLEDGE_BASE = `
 === LUHV+ KNOWLEDGE BASE ===
 
@@ -184,7 +189,10 @@ const KNOWLEDGE_BASE = `
 • "Let's build leaders — not followers."
 `;
 
-// ── GUIDED SESSION PHASES ────────────────────────────────────────────────────
+// ── GUIDED SESSION PHASES ─────────────────────────────────────────────────────
+// Each phase has steps. Each step = one coach question + processing of user answer.
+// The coach asks ONE question at a time, listens, then moves forward.
+
 const SESSION_PHASES = [
   {
     id: 'mindset_checkin',
@@ -202,7 +210,7 @@ const SESSION_PHASES = [
       },
       {
         key: 'self_talk',
-        coachPrompt: (name) => `Good. Awareness is step one — always. Here's what I know: the story you tell yourself when things get hard is EVERYTHING. What's one negative thing you say to yourself on repeat? The one that shows up most when you're stuck or doubting. Let's name it so we can rewrite it. ⚡`,
+        coachPrompt: (name, prev) => `Good. Awareness is step one — always. Here's what I know: the story you tell yourself when things get hard is EVERYTHING. What's one negative thing you say to yourself on repeat? The one that shows up most when you're stuck or doubting. Let's name it so we can rewrite it. ⚡`,
         processKey: 'negative_self_talk'
       },
       {
@@ -218,7 +226,7 @@ const SESSION_PHASES = [
     steps: [
       {
         key: 'gift_discovery',
-        coachPrompt: (name) => `${name}, you just did something most people never do — you looked your own mind in the face and chose growth. Now let's go deeper. I want to find your gift — the thing you do that feels effortless to YOU but is transformative to others. Think about it: what do people always come to you for? What do you do that makes time disappear? 💪`,
+        coachPrompt: (name, prev) => `${name}, you just did something most people never do — you looked your own mind in the face and chose growth. Now let's go deeper. I want to find your gift — the thing you do that feels effortless to YOU but is transformative to others. Think about it: what do people always come to you for? What do you do that makes time disappear? 💪`,
         processKey: 'gift'
       },
       {
@@ -239,7 +247,7 @@ const SESSION_PHASES = [
     steps: [
       {
         key: 'energy_check',
-        coachPrompt: (name) => `Here's where it gets exciting, ${name}. Your gift is real. Now let's talk about how you GET PAID for it. I'm going to ask you 4 quick questions — answer honestly and we'll find your Monetization Lens. First one: When you imagine sharing your knowledge, which of these feels most natural to you? (A) Speaking on stage or podcast, (B) Consulting 1-on-1 as a strategist, (C) Building systems and organizing chaos, (D) Executing and delivering results for clients. 🏆`,
+        coachPrompt: (name, prev) => `Here's where it gets exciting, ${name}. Your gift is real. Now let's talk about how you GET PAID for it. I'm going to ask you 4 quick questions — answer honestly and we'll find your Monetization Lens. First one: When you imagine sharing your knowledge, which of these feels most natural to you? (A) Speaking on stage or podcast, (B) Consulting 1-on-1 as a strategist, (C) Building systems and organizing chaos, (D) Executing and delivering results for clients. 🏆`,
         processKey: 'lens_preference'
       },
       {
@@ -249,7 +257,7 @@ const SESSION_PHASES = [
       },
       {
         key: 'first_offer',
-        coachPrompt: () => `Perfect. You're getting clear. Now — if you had to launch something in the next 72 hours, what would it be? Don't think about price yet. Just: what's the ONE thing you could offer right now that would genuinely help someone? 🔥`,
+        coachPrompt: (name, prev) => `Perfect. You're getting clear. Now — if you had to launch something in the next 72 hours, what would it be? Don't think about price yet. Just: what's the ONE thing you could offer right now that would genuinely help someone? 🔥`,
         processKey: 'first_offer'
       }
     ]
@@ -260,7 +268,7 @@ const SESSION_PHASES = [
     steps: [
       {
         key: 'vision',
-        coachPrompt: (name) => `${name}, we've gone deep today — and I want you to feel that. You've named your mindset, found your gift, and started seeing how it turns into income. Now I need you to close your eyes for 10 seconds and picture this: it's 12 months from now. You went all in. What does your life look like? What changed? Tell me what you see. 🏆`,
+        coachPrompt: (name, prev) => `${name}, we've gone deep today — and I want you to feel that. You've named your mindset, found your gift, and started seeing how it turns into income. Now I need you to close your eyes for 10 seconds and picture this: it's 12 months from now. You went all in. What does your life look like? What changed? Tell me what you see. 🏆`,
         processKey: 'vision_12months'
       },
       {
@@ -277,15 +285,35 @@ const SESSION_PHASES = [
   }
 ];
 
-// ── COACH SYSTEM PROMPT ──────────────────────────────────────────────────────
-const buildCoachSystem = (userContext = '', sessionContext = '', retrievedKbContext = '') => `
+// ── COACH VOICE (system prompt) ───────────────────────────────────────────────
+const buildCoachSystem = (userContext = '', sessionContext = '', mode = 'chat') => `
 You are the Luhv+ AI Coach — voice of the Luhv+ Transformation platform created by Shon Crú-May.
 
-STATIC KNOWLEDGE BASE:
+CORE PURPOSE: Clarity and direction. Whatever the user inputs, you provide clarity and direction.
+- If they describe a decision → tell them if it is aligned or not, and why, based only on their goals and the Luhv+ KB.
+- If they describe a sales or communication situation → give them concrete tactical direction.
+- If they are stuck → help them identify the root cause and take one step forward.
+- Never invent criteria. Every judgment must be grounded in the user's actual data (goals, lens, transformation statement) or the Luhv+ KB frameworks below.
+
+KNOWLEDGE BASE:
 ${KNOWLEDGE_BASE}
 
-RETRIEVED KNOWLEDGE BASE CONTEXT:
-${retrievedKbContext || 'No additional retrieved KB context available.'}
+ALIGNMENT CHECK RULES (for decision and intention questions):
+When a user asks if a choice, purchase, action, or plan is aligned, evaluate it against these in order:
+1. Their active goals — does this move them closer or further from their stated goals?
+2. Their transformation statement — does this serve the gift they identified?
+3. Their monetization lens — does this fit their chosen path (Speak/Think/Organize/Do)?
+4. The four foundations — does this help or hurt body, mind, money, or relationships?
+5. Luhv+ principles — Renovate/Innovate/Collaborate, intentionality, growth mindset.
+Always respond with one of: ALIGNED / NEEDS ADJUSTMENT / NOT ALIGNED — then explain using only the above criteria. Never make up reasons outside this framework.
+
+SALES & COMMUNICATION COACHING RULES:
+When a user asks how to present an offer, handle a prospect, or navigate a conversation:
+1. Draw from the Dan Clark 8 Elements framework (thesis, structure, social proof, call to action).
+2. Apply the Example Mode principle — lead with story and transformation, not credentials.
+3. Use the Offer Ladder logic — free value, low ticket, core, premium.
+4. Always give a concrete next sentence or script they can use immediately.
+5. Never give generic advice. Always personalize to their lens and transformation statement.
 
 TONE & VOICE RULES:
 - Warm, personal, motivational — like a trusted coach who genuinely believes in you.
@@ -293,12 +321,10 @@ TONE & VOICE RULES:
 - Use 🔥 🏆 💪 ⚡ emojis naturally (1-2 per message max).
 - Short punchy sentences mixed with deeper insight.
 - Always end with a challenge, question, or clear next step.
-- Never robotic, never generic — always personal. Use the user's name when helpful.
+- Never robotic, never generic — always personal. Use the user's name.
 - Keep responses under 5 sentences unless they ask for a detailed plan.
-- Draw from the Luhv+ Knowledge Base naturally — don't quote it robotically.
-- If retrieved KB context is relevant, prioritize it.
-- Do not invent teachings that are not supported by the KB context.
-- Never use markdown, asterisks (*), or bold formatting. Plain text only.
+- Draw from the Luhv+ Knowledge Base naturally — never quote it robotically.
+- Never use markdown, asterisks, or bold formatting. Plain text only.
 
 SIGNATURE PHRASES (use naturally, not all at once):
 - "You are the MVP in your life"
@@ -313,114 +339,11 @@ SIGNATURE PHRASES (use naturally, not all at once):
 
 ${userContext}
 ${sessionContext}
+${mode === 'intention' ? 'MODE: Daily intention validation. The user is declaring their focus for today. Validate it against their goals and transformation statement. Be direct about whether it is aligned or not, then energize them to act.' : ''}
+${mode === 'decision' ? 'MODE: Decision alignment check. The user is asking if a specific choice is aligned with their vision. Use the ALIGNMENT CHECK RULES above. Be direct, be specific, cite only real data from their profile or the KB.' : ''}
 `;
 
-// ── KB SEMANTIC SEARCH HELPERS ───────────────────────────────────────────────
-async function createQueryEmbedding(text) {
-  const res = await openai.embeddings.create({
-    model: 'text-embedding-3-small',
-    input: text,
-    dimensions: 1536
-  });
-
-  return res.data[0].embedding;
-}
-
-function inferKbFilter(userMessage = '') {
-  const q = userMessage.toLowerCase();
-
-  if (
-    q.includes('speak') ||
-    q.includes('confidence') ||
-    q.includes('presentation') ||
-    q.includes('fear') ||
-    q.includes('public speaking')
-  ) {
-    return { category: 'communication' };
-  }
-
-  if (
-    q.includes('time') ||
-    q.includes('focus') ||
-    q.includes('productive') ||
-    q.includes('productivity') ||
-    q.includes('stuck') ||
-    q.includes('procrastination') ||
-    q.includes('overwhelm')
-  ) {
-    return { category: 'productivity' };
-  }
-
-  if (
-    q.includes('accountability') ||
-    q.includes('discipline') ||
-    q.includes('leader') ||
-    q.includes('leadership') ||
-    q.includes('consistency')
-  ) {
-    return { category: 'accountability' };
-  }
-
-  return {};
-}
-
-async function getRelevantKbChunks(userMessage) {
-  try {
-    const embedding = await createQueryEmbedding(userMessage);
-    const filter = inferKbFilter(userMessage);
-
-    const { rows } = await db.query(
-      `
-      select *
-      from match_kb_chunks($1::extensions.vector, $2::int, $3::float, $4::jsonb)
-      `,
-      [
-        `[${embedding.join(',')}]`,
-        6,
-        0.72,
-        JSON.stringify(filter)
-      ]
-    );
-
-    return rows || [];
-  } catch (error) {
-    console.error('KB retrieval error:', error.message);
-    return [];
-  }
-}
-
-function buildKbContext(chunks) {
-  if (!chunks.length) {
-    return 'No highly relevant KB chunks were found.';
-  }
-
-  return chunks
-    .map((chunk, i) => {
-      const book = chunk.metadata?.book || 'Unknown source';
-      const category = chunk.metadata?.category || 'general';
-      const similarity = Number(chunk.similarity || 0).toFixed(3);
-
-      return [
-        `[KB ${i + 1}]`,
-        `Source: ${book}`,
-        `Category: ${category}`,
-        `Similarity: ${similarity}`,
-        chunk.content
-      ].join('\n');
-    })
-    .join('\n\n---\n\n');
-}
-
-function extractAnthropicText(response) {
-  if (!response || !Array.isArray(response.content)) return '';
-
-  return response.content
-    .map((block) => (block && block.type === 'text' && block.text ? block.text : ''))
-    .join('\n')
-    .trim();
-}
-
-// ── SESSION HELPERS ──────────────────────────────────────────────────────────
+// ── HELPER: Get or create active session ──────────────────────────────────────
 async function getActiveSession(userId) {
   const { rows } = await db.query(
     `SELECT * FROM coach_sessions
@@ -444,14 +367,9 @@ async function createSession(userId) {
 async function updateSession(sessionId, updates) {
   const { rows } = await db.query(
     `UPDATE coach_sessions
-     SET phase = $2,
-         phase_index = $3,
-         responses = $4,
-         lens = $5,
-         completed = $6,
-         updated_at = NOW()
-     WHERE id = $1
-     RETURNING *`,
+     SET phase = $2, phase_index = $3, responses = $4,
+         lens = $5, completed = $6, updated_at = NOW()
+     WHERE id = $1 RETURNING *`,
     [
       sessionId,
       updates.phase,
@@ -464,43 +382,51 @@ async function updateSession(sessionId, updates) {
   return rows[0];
 }
 
-// ── SESSION ROUTE ────────────────────────────────────────────────────────────
+// ── SESSION ROUTE ─────────────────────────────────────────────────────────────
+// POST /api/coach/session
+// Body: { message?: string }  — empty on first call to get the welcome question
+// Returns: { question, phase, step, progress, isComplete, sessionId }
+
 app.post('/api/coach/session', auth, async (req, res) => {
   try {
     const { message } = req.body;
-    const {
-      rows: [user]
-    } = await db.query('SELECT name, streak FROM users WHERE id=$1', [req.user.id]);
+    const { rows: [user] } = await db.query(
+      'SELECT name, streak FROM users WHERE id=$1', [req.user.id]
+    );
 
     let session = await getActiveSession(req.user.id);
 
+    // First call — no session yet, send welcome question
     if (!session) {
       session = await createSession(req.user.id);
-      const phase = SESSION_PHASES[0];
-      const step = phase.steps[0];
+      const phase    = SESSION_PHASES[0];
+      const step     = phase.steps[0];
       const question = step.coachPrompt(user.name, {});
 
       return res.json({
         question,
-        phase: phase.id,
-        phaseName: phase.name,
-        step: step.key,
-        progress: 0,
+        phase:      phase.id,
+        phaseName:  phase.name,
+        step:       step.key,
+        progress:   0,
         isComplete: false,
-        sessionId: session.id
+        sessionId:  session.id
       });
     }
 
-    const phaseIdx = SESSION_PHASES.findIndex((p) => p.id === session.phase);
-    const phase = SESSION_PHASES[phaseIdx];
-    const stepIdx = session.phase_index;
+    // Find current phase and step
+    const phaseIdx    = SESSION_PHASES.findIndex(p => p.id === session.phase);
+    const phase       = SESSION_PHASES[phaseIdx];
+    const stepIdx     = session.phase_index;
     const currentStep = phase.steps[stepIdx];
 
+    // Save the user's answer
     const responses = { ...session.responses };
     if (message && currentStep) {
       responses[currentStep.processKey] = message;
     }
 
+    // Determine lens from responses if in lens phase
     let lens = session.lens;
     if (responses.lens_preference && !lens) {
       const lp = responses.lens_preference.toLowerCase();
@@ -510,31 +436,31 @@ app.post('/api/coach/session', auth, async (req, res) => {
       else if (lp.includes('d') || lp.includes('execut') || lp.includes('deliver')) lens = 'Paid to Do';
     }
 
+    // Move to next step
     let nextPhaseIdx = phaseIdx;
-    let nextStepIdx = stepIdx + 1;
-    let isComplete = false;
+    let nextStepIdx  = stepIdx + 1;
+    let isComplete   = false;
 
     if (nextStepIdx >= phase.steps.length) {
       nextPhaseIdx = phaseIdx + 1;
-      nextStepIdx = 0;
+      nextStepIdx  = 0;
     }
 
     if (nextPhaseIdx >= SESSION_PHASES.length) {
       isComplete = true;
     }
 
-    const nextPhase = isComplete
-      ? SESSION_PHASES[SESSION_PHASES.length - 1]
-      : SESSION_PHASES[nextPhaseIdx];
-
+    // Save session state
+    const nextPhase = isComplete ? SESSION_PHASES[SESSION_PHASES.length - 1] : SESSION_PHASES[nextPhaseIdx];
     await updateSession(session.id, {
-      phase: isComplete ? session.phase : nextPhase.id,
+      phase:       isComplete ? session.phase : nextPhase.id,
       phase_index: nextStepIdx,
       responses,
       lens,
-      completed: isComplete
+      completed:   isComplete
     });
 
+    // If complete, return summary
     if (isComplete) {
       const summaryPrompt = `
 The user ${user.name} just completed their Luhv+ guided coaching session.
@@ -546,36 +472,38 @@ Write a powerful 3-4 sentence closing message that:
 3. Challenges them to take the action they committed to.
 Use the Luhv+ voice and energy. End with "Lock in. Show up. Win. 🏆"
 `;
-
       const aiRes = await anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model:      'claude-sonnet-4-20250514',
         max_tokens: 300,
-        system: buildCoachSystem(`USER: ${user.name}, Streak: ${user.streak} days`),
-        messages: [{ role: 'user', content: summaryPrompt }]
+        system:     buildCoachSystem(`USER: ${user.name}, Streak: ${user.streak} days`),
+        messages:   [{ role: 'user', content: summaryPrompt }]
       });
 
-      const finalText = extractAnthropicText(aiRes) || 'Lock in. Show up. Win. 🏆';
+      const totalSteps = SESSION_PHASES.reduce((acc, p) => acc + p.steps.length, 0);
 
       return res.json({
-        question: finalText,
-        phase: 'complete',
-        phaseName: 'Session Complete',
-        step: 'done',
-        progress: 100,
+        question:   aiRes.content[0].text,
+        phase:      'complete',
+        phaseName:  'Session Complete',
+        step:       'done',
+        progress:   100,
         isComplete: true,
         lens,
-        sessionId: session.id,
+        sessionId:  session.id,
         responses
       });
     }
 
+    // Build next question
     const nextPhaseObj = SESSION_PHASES[nextPhaseIdx];
-    const nextStep = nextPhaseObj.steps[nextStepIdx];
+    const nextStep     = nextPhaseObj.steps[nextStepIdx];
 
+    // Use AI to personalize the transition if moving between phases
     let question;
     const rawQuestion = nextStep.coachPrompt(user.name, responses);
 
     if (nextStepIdx === 0 && nextPhaseIdx > phaseIdx) {
+      // Phase transition — AI adds a bridge
       const bridgePrompt = `
 The user ${user.name} just finished the "${phase.name}" phase of their coaching session.
 Their key answers so far: ${JSON.stringify(responses, null, 2)}
@@ -583,24 +511,25 @@ Now smoothly transition into the "${nextPhaseObj.name}" phase by first acknowled
 then asking this next question naturally: "${rawQuestion}"
 Keep it warm, under 5 sentences, Luhv+ voice.
 `;
-
       const aiRes = await anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model:      'claude-sonnet-4-20250514',
         max_tokens: 250,
-        system: buildCoachSystem(`USER: ${user.name}`),
-        messages: [{ role: 'user', content: bridgePrompt }]
+        system:     buildCoachSystem(`USER: ${user.name}`),
+        messages:   [{ role: 'user', content: bridgePrompt }]
       });
-
-      question = extractAnthropicText(aiRes) || rawQuestion;
+      question = aiRes.content[0].text;
     } else {
       question = rawQuestion;
     }
 
-    const totalSteps = SESSION_PHASES.reduce((acc, p) => acc + p.steps.length, 0);
-    const completedSteps =
-      SESSION_PHASES.slice(0, nextPhaseIdx).reduce((acc, p) => acc + p.steps.length, 0) + nextStepIdx;
+    // Calculate progress
+    const totalSteps    = SESSION_PHASES.reduce((acc, p) => acc + p.steps.length, 0);
+    const completedSteps = SESSION_PHASES
+      .slice(0, nextPhaseIdx)
+      .reduce((acc, p) => acc + p.steps.length, 0) + nextStepIdx;
     const progress = Math.round((completedSteps / totalSteps) * 100);
 
+    // Log to conversations
     if (message) {
       await db.query(
         'INSERT INTO conversations (user_id, role, content) VALUES ($1,$2,$3), ($1,$4,$5)',
@@ -610,47 +539,49 @@ Keep it warm, under 5 sentences, Luhv+ voice.
 
     res.json({
       question,
-      phase: nextPhaseObj.id,
+      phase:     nextPhaseObj.id,
       phaseName: nextPhaseObj.name,
-      step: nextStep.key,
+      step:      nextStep.key,
       progress,
       isComplete: false,
       lens,
       sessionId: session.id
     });
+
   } catch (e) {
     console.error('Session error:', e);
     res.status(500).json({ error: 'Session temporarily unavailable' });
   }
 });
 
-// ── GET SESSION STATUS ───────────────────────────────────────────────────────
+// ── GET SESSION STATUS ────────────────────────────────────────────────────────
 app.get('/api/coach/session', auth, async (req, res) => {
   try {
     const session = await getActiveSession(req.user.id);
     if (!session) return res.json({ hasActiveSession: false });
 
-    const phaseObj = SESSION_PHASES.find((p) => p.id === session.phase);
+    const phaseObj = SESSION_PHASES.find(p => p.id === session.phase);
     const totalSteps = SESSION_PHASES.reduce((acc, p) => acc + p.steps.length, 0);
-    const phaseIdx = SESSION_PHASES.findIndex((p) => p.id === session.phase);
-    const completedSteps =
-      SESSION_PHASES.slice(0, phaseIdx).reduce((acc, p) => acc + p.steps.length, 0) + session.phase_index;
+    const phaseIdx   = SESSION_PHASES.findIndex(p => p.id === session.phase);
+    const completedSteps = SESSION_PHASES
+      .slice(0, phaseIdx)
+      .reduce((acc, p) => acc + p.steps.length, 0) + session.phase_index;
 
     res.json({
       hasActiveSession: true,
-      sessionId: session.id,
-      phase: session.phase,
-      phaseName: phaseObj?.name,
-      progress: Math.round((completedSteps / totalSteps) * 100),
-      lens: session.lens,
-      responses: session.responses
+      sessionId:        session.id,
+      phase:            session.phase,
+      phaseName:        phaseObj?.name,
+      progress:         Math.round((completedSteps / totalSteps) * 100),
+      lens:             session.lens,
+      responses:        session.responses
     });
   } catch (e) {
     res.status(500).json({ error: 'Could not fetch session' });
   }
 });
 
-// ── RESET SESSION ────────────────────────────────────────────────────────────
+// ── RESET SESSION (start fresh) ───────────────────────────────────────────────
 app.post('/api/coach/session/reset', auth, async (req, res) => {
   try {
     await db.query(
@@ -663,103 +594,64 @@ app.post('/api/coach/session/reset', auth, async (req, res) => {
   }
 });
 
-// ── FREE CHAT ────────────────────────────────────────────────────────────────
+// ── FREE CHAT (enriched with session context) ─────────────────────────────────
 app.post('/api/coach/chat', auth, async (req, res) => {
-  try {
-    const { message, history = [] } = req.body;
+  const { message, history = [] } = req.body;
 
-    if (!message || !message.trim()) {
-      return res.status(400).json({ error: 'Message is required' });
-    }
+  const { rows: [user] }   = await db.query('SELECT name, streak FROM users WHERE id=$1', [req.user.id]);
+  const { rows: goals }    = await db.query("SELECT title, progress, target FROM goals WHERE user_id=$1 AND status='active'", [req.user.id]);
+  const { rows: [latest] } = await db.query('SELECT content FROM journal_entries WHERE user_id=$1 ORDER BY created_at DESC LIMIT 1', [req.user.id]);
+  const session            = await getActiveSession(req.user.id);
 
-    const {
-      rows: [user]
-    } = await db.query('SELECT name, streak FROM users WHERE id=$1', [req.user.id]);
-
-    const { rows: goals } = await db.query(
-      "SELECT title, progress, target FROM goals WHERE user_id=$1 AND status='active'",
-      [req.user.id]
-    );
-
-    const {
-      rows: [latest]
-    } = await db.query(
-      'SELECT content FROM journal_entries WHERE user_id=$1 ORDER BY created_at DESC LIMIT 1',
-      [req.user.id]
-    );
-
-    const session = await getActiveSession(req.user.id);
-
-    const userContext = `
+  const userContext = `
 USER CONTEXT:
 - Name: ${user.name}
 - Current streak: ${user.streak} days
-- Active goals: ${goals.map((g) => `${g.title} (${Math.round((g.progress / g.target) * 100)}%)`).join(', ') || 'none yet'}
+- Active goals: ${goals.map(g => `${g.title} (${Math.round((g.progress / g.target) * 100)}%)`).join(', ') || 'none yet'}
 - Latest journal: "${latest?.content?.slice(0, 120) || 'No entries yet'}"
 `;
 
-    const sessionContext = session
-      ? `
+  const sessionContext = session ? `
 COACHING SESSION CONTEXT:
 - Current phase: ${session.phase}
 - Identified monetization lens: ${session.lens || 'not yet determined'}
 - Key session responses: ${JSON.stringify(session.responses).slice(0, 400)}
-`
-      : '';
+` : '';
 
-    const kbChunks = await getRelevantKbChunks(message);
-    const retrievedKbContext = buildKbContext(kbChunks);
-
-    console.log('KB chunks found:', kbChunks.length);
-    console.log('KB sources:', kbChunks.map((c) => c.metadata?.book));
-
+  try {
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model:      'claude-sonnet-4-20250514',
       max_tokens: 300,
-      system: buildCoachSystem(userContext, sessionContext, retrievedKbContext),
+      system:     buildCoachSystem(userContext, sessionContext),
       messages: [
-        ...history.map((m) => ({ role: m.role, content: m.content })),
+        ...history.map(m => ({ role: m.role, content: m.content })),
         { role: 'user', content: message }
-      ]
+      ],
     });
 
-    let reply = extractAnthropicText(response);
-
-    if (!reply) {
-      console.log('Anthropic raw response:', JSON.stringify(response, null, 2));
-      reply = "Let's get this TRIUMPH 🏆 — I'm right here with you!";
-    }
+    const reply = response.content[0].text;
 
     await db.query(
       'INSERT INTO conversations (user_id, role, content) VALUES ($1,$2,$3), ($1,$4,$5)',
       [req.user.id, 'user', message, 'assistant', reply]
     );
 
-    res.json({
-      reply,
-      sources: kbChunks.map((c) => ({
-        book: c.metadata?.book || null,
-        category: c.metadata?.category || null,
-        similarity: c.similarity
-      }))
-    });
+    res.json({ reply });
   } catch (e) {
-    console.error('Coach chat error:', e);
+    console.error(e);
     res.status(500).json({ error: 'Coach is temporarily unavailable' });
   }
 });
 
-// ── AUTH ─────────────────────────────────────────────────────────────────────
+// ── AUTH ──────────────────────────────────────────────────────────────────────
 app.post('/api/auth/register', async (req, res) => {
   const { name, email, password } = req.body;
   const hash = await bcrypt.hash(password, 10);
-
   try {
     const { rows } = await db.query(
       'INSERT INTO users (name, email, password_hash) VALUES ($1,$2,$3) RETURNING id, name, email',
       [name, email, hash]
     );
-
     res.json({ token: sign({ id: rows[0].id }), user: rows[0] });
   } catch (e) {
     res.status(400).json({ error: 'Email already in use' });
@@ -769,16 +661,13 @@ app.post('/api/auth/register', async (req, res) => {
 app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
   const { rows } = await db.query('SELECT * FROM users WHERE email=$1', [email]);
-
-  if (!rows[0] || !(await bcrypt.compare(password, rows[0].password_hash))) {
+  if (!rows[0] || !(await bcrypt.compare(password, rows[0].password_hash)))
     return res.status(401).json({ error: 'Invalid credentials' });
-  }
-
   const { password_hash, ...user } = rows[0];
   res.json({ token: sign({ id: user.id }), user });
 });
 
-// ── QUOTES ───────────────────────────────────────────────────────────────────
+// ── QUOTES ────────────────────────────────────────────────────────────────────
 app.get('/api/quotes', async (req, res) => {
   const { rows } = await db.query('SELECT * FROM quotes ORDER BY created_at DESC');
   res.json(rows);
@@ -804,7 +693,7 @@ app.delete('/api/quotes/:id', auth, async (req, res) => {
   res.json({ success: true });
 });
 
-// ── HABITS ───────────────────────────────────────────────────────────────────
+// ── HABITS ────────────────────────────────────────────────────────────────────
 app.get('/api/habits', auth, async (req, res) => {
   const { rows } = await db.query(
     'SELECT * FROM habits WHERE user_id=$1 ORDER BY created_at',
@@ -828,22 +717,20 @@ app.patch('/api/habits/:id/check', auth, async (req, res) => {
     'SELECT id FROM habit_completions WHERE habit_id=$1 AND user_id=$2 AND date=$3',
     [req.params.id, req.user.id, today]
   );
-
   if (existing.rows[0]) {
     await db.query('DELETE FROM habit_completions WHERE id=$1', [existing.rows[0].id]);
-    return res.json({ done: false });
+    res.json({ done: false });
+  } else {
+    await db.query(
+      'INSERT INTO habit_completions (habit_id, user_id, date) VALUES ($1,$2,$3)',
+      [req.params.id, req.user.id, today]
+    );
+    await db.query('UPDATE users SET streak = streak + 1 WHERE id=$1', [req.user.id]);
+    res.json({ done: true });
   }
-
-  await db.query(
-    'INSERT INTO habit_completions (habit_id, user_id, date) VALUES ($1,$2,$3)',
-    [req.params.id, req.user.id, today]
-  );
-
-  await db.query('UPDATE users SET streak = streak + 1 WHERE id=$1', [req.user.id]);
-  res.json({ done: true });
 });
 
-// ── GOALS ────────────────────────────────────────────────────────────────────
+// ── GOALS ─────────────────────────────────────────────────────────────────────
 app.get('/api/goals', auth, async (req, res) => {
   const { rows } = await db.query(
     'SELECT * FROM goals WHERE user_id=$1 ORDER BY created_at DESC',
@@ -870,7 +757,7 @@ app.patch('/api/goals/:id/progress', auth, async (req, res) => {
   res.json(rows[0]);
 });
 
-// ── JOURNAL ──────────────────────────────────────────────────────────────────
+// ── JOURNAL ───────────────────────────────────────────────────────────────────
 app.get('/api/journal', auth, async (req, res) => {
   const { rows } = await db.query(
     'SELECT * FROM journal_entries WHERE user_id=$1 ORDER BY created_at DESC LIMIT 20',
@@ -891,31 +778,22 @@ app.post('/api/journal', auth, async (req, res) => {
 app.get('/api/journal/prompt', auth, async (req, res) => {
   const prompts = [
     "What's one belief that's been holding you back, and how can you start rewriting it today?",
-    'Describe your ideal life 5 years from now in vivid detail.',
+    "Describe your ideal life 5 years from now in vivid detail.",
     "What would you do today if you knew you couldn't fail?",
-    'List 3 wins from this week, no matter how small.',
-    'Who do you need to become to achieve your biggest goal?',
+    "List 3 wins from this week, no matter how small.",
+    "Who do you need to become to achieve your biggest goal?",
     "What's one habit the MVP version of you does every single day?",
-    'Where are you playing small — and what would it look like to go all in?'
+    "Where are you playing small — and what would it look like to go all in?",
   ];
-
   const idx = Math.floor(Date.now() / 86400000) % prompts.length;
   res.json({ prompt: prompts[idx] });
 });
 
-// ── ADMIN ────────────────────────────────────────────────────────────────────
-const adminAuth = async (req, res, next) => {
-  auth(req, res, async () => {
-    try {
-      const {
-        rows: [user]
-      } = await db.query('SELECT is_admin FROM users WHERE id=$1', [req.user.id]);
-
-      if (!user?.is_admin) return res.status(403).json({ error: 'Admins only' });
-      next();
-    } catch (e) {
-      res.status(500).json({ error: 'Admin auth failed' });
-    }
+// ── ADMIN ─────────────────────────────────────────────────────────────────────
+const adminAuth = (req, res, next) => {
+  auth(req, res, () => {
+    if (!req.user.is_admin) return res.status(403).json({ error: 'Admins only' });
+    next();
   });
 };
 
@@ -925,15 +803,14 @@ app.get('/api/admin/stats', adminAuth, async (req, res) => {
     db.query("SELECT COUNT(*) FROM users WHERE last_active > NOW() - INTERVAL '1 day'"),
     db.query('SELECT COUNT(*) FROM conversations'),
     db.query('SELECT ROUND(AVG(streak)) FROM users'),
-    db.query('SELECT COUNT(*) FROM coach_sessions WHERE completed = true')
+    db.query('SELECT COUNT(*) FROM coach_sessions WHERE completed = true'),
   ]);
-
   res.json({
-    totalUsers: +users.rows[0].count,
-    activeToday: +active.rows[0].count,
-    totalConvs: +convs.rows[0].count,
-    avgStreak: +streak.rows[0].round,
-    completedSessions: +sessions.rows[0].count
+    totalUsers:       +users.rows[0].count,
+    activeToday:      +active.rows[0].count,
+    totalConvs:       +convs.rows[0].count,
+    avgStreak:        +streak.rows[0].round,
+    completedSessions: +sessions.rows[0].count,
   });
 });
 
@@ -946,36 +823,191 @@ app.get('/api/admin/users', adminAuth, async (req, res) => {
 
 app.get('/api/admin/conversations', adminAuth, async (req, res) => {
   const { rows } = await db.query(`
-    SELECT c.*, u.name as user_name
-    FROM conversations c
+    SELECT c.*, u.name as user_name FROM conversations c
     JOIN users u ON c.user_id = u.id
-    ORDER BY c.created_at DESC
-    LIMIT 50
+    ORDER BY c.created_at DESC LIMIT 50
   `);
   res.json(rows);
 });
 
 app.get('/api/admin/sessions', adminAuth, async (req, res) => {
   const { rows } = await db.query(`
-    SELECT s.*, u.name as user_name
-    FROM coach_sessions s
+    SELECT s.*, u.name as user_name FROM coach_sessions s
     JOIN users u ON s.user_id = u.id
-    ORDER BY s.created_at DESC
-    LIMIT 100
+    ORDER BY s.created_at DESC LIMIT 100
   `);
   res.json(rows);
 });
 
-// ── HEALTH ───────────────────────────────────────────────────────────────────
-app.get('/health', async (_, res) => {
+// ── DAILY INTENTION ───────────────────────────────────────────────────────────
+// SQL (run once):
+// CREATE TABLE IF NOT EXISTS daily_intentions (
+//   id           SERIAL PRIMARY KEY,
+//   user_id      INTEGER REFERENCES users(id) ON DELETE CASCADE,
+//   intention    TEXT NOT NULL,
+//   coach_reply  TEXT,
+//   alignment    TEXT CHECK (alignment IN ('aligned','needs_adjustment','not_aligned')),
+//   date         DATE NOT NULL DEFAULT CURRENT_DATE,
+//   created_at   TIMESTAMPTZ DEFAULT NOW()
+// );
+// CREATE UNIQUE INDEX IF NOT EXISTS daily_intentions_user_date
+//   ON daily_intentions (user_id, date);
+
+app.get('/api/intention/today', auth, async (req, res) => {
+  const today = new Date().toISOString().split('T')[0];
+  const { rows } = await db.query(
+    'SELECT * FROM daily_intentions WHERE user_id=$1 AND date=$2',
+    [req.user.id, today]
+  );
+  res.json(rows[0] || null);
+});
+
+app.post('/api/intention', auth, async (req, res) => {
+  const { intention } = req.body;
+  if (!intention?.trim()) return res.status(400).json({ error: 'Intention required' });
+
+  const { rows: [user] }   = await db.query('SELECT name, streak FROM users WHERE id=$1', [req.user.id]);
+  const { rows: goals }    = await db.query("SELECT title, progress, target FROM goals WHERE user_id=$1 AND status='active'", [req.user.id]);
+  const session            = await getActiveSession(req.user.id);
+
+  const userContext = `
+USER CONTEXT:
+- Name: ${user.name}
+- Streak: ${user.streak} days
+- Active goals: ${goals.map(g => `${g.title} (${Math.round((g.progress / g.target) * 100)}%)`).join(', ') || 'none set yet'}
+- Transformation statement: ${session?.responses?.transformation_statement || 'not yet defined'}
+- Monetization lens: ${session?.lens || 'not yet chosen'}
+`;
+
+  const prompt = `${user.name} is setting their daily intention: "${intention}"
+
+Evaluate this intention using the ALIGNMENT CHECK RULES. 
+Then respond in this exact format:
+ALIGNMENT: [ALIGNED / NEEDS ADJUSTMENT / NOT ALIGNED]
+REASON: [one sentence citing their goals or KB framework — no invented criteria]
+COACH: [2-3 sentences in Luhv+ voice — validate or redirect, then energize them for the day]`;
+
   try {
-    await db.query('SELECT 1');
-    res.json({ status: 'ok', service: 'Luhv+ API' });
+    const response = await anthropic.messages.create({
+      model:      'claude-sonnet-4-20250514',
+      max_tokens: 300,
+      system:     buildCoachSystem(userContext, '', 'intention'),
+      messages:   [{ role: 'user', content: prompt }],
+    });
+
+    const raw   = response.content[0].text;
+    const alignMatch = raw.match(/ALIGNMENT:\s*(ALIGNED|NEEDS ADJUSTMENT|NOT ALIGNED)/i);
+    const coachMatch = raw.match(/COACH:\s*([\s\S]+)/i);
+
+    const alignmentMap = {
+      'ALIGNED': 'aligned',
+      'NEEDS ADJUSTMENT': 'needs_adjustment',
+      'NOT ALIGNED': 'not_aligned'
+    };
+    const alignment  = alignmentMap[alignMatch?.[1]?.toUpperCase()] || 'needs_adjustment';
+    const coachReply = coachMatch?.[1]?.trim() || raw;
+
+    const today = new Date().toISOString().split('T')[0];
+    await db.query(
+      `INSERT INTO daily_intentions (user_id, intention, coach_reply, alignment, date)
+       VALUES ($1,$2,$3,$4,$5)
+       ON CONFLICT (user_id, date) DO UPDATE
+       SET intention=$2, coach_reply=$3, alignment=$4`,
+      [req.user.id, intention.trim(), coachReply, alignment, today]
+    );
+
+    res.json({ alignment, coachReply, raw });
   } catch (e) {
-    res.status(500).json({ status: 'error', service: 'Luhv+ API' });
+    console.error(e);
+    res.status(500).json({ error: 'Coach unavailable' });
   }
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🏆 Luhv+ API running on port ${PORT}`);
+// ── DECISION LOG ───────────────────────────────────────────────────────────────
+// SQL (run once):
+// CREATE TABLE IF NOT EXISTS decision_log (
+//   id           SERIAL PRIMARY KEY,
+//   user_id      INTEGER REFERENCES users(id) ON DELETE CASCADE,
+//   decision     TEXT NOT NULL,
+//   context      TEXT,
+//   coach_reply  TEXT,
+//   alignment    TEXT CHECK (alignment IN ('aligned','needs_adjustment','not_aligned')),
+//   foundation   TEXT,
+//   created_at   TIMESTAMPTZ DEFAULT NOW()
+// );
+
+app.get('/api/decisions', auth, async (req, res) => {
+  const { rows } = await db.query(
+    'SELECT * FROM decision_log WHERE user_id=$1 ORDER BY created_at DESC LIMIT 20',
+    [req.user.id]
+  );
+  res.json(rows);
 });
+
+app.post('/api/decisions', auth, async (req, res) => {
+  const { decision, context } = req.body;
+  if (!decision?.trim()) return res.status(400).json({ error: 'Decision required' });
+
+  const { rows: [user] }   = await db.query('SELECT name, streak FROM users WHERE id=$1', [req.user.id]);
+  const { rows: goals }    = await db.query("SELECT title, progress, target FROM goals WHERE user_id=$1 AND status='active'", [req.user.id]);
+  const session            = await getActiveSession(req.user.id);
+
+  const userContext = `
+USER CONTEXT:
+- Name: ${user.name}
+- Active goals: ${goals.map(g => `${g.title} (${Math.round((g.progress / g.target) * 100)}%)`).join(', ') || 'none set yet'}
+- Transformation statement: ${session?.responses?.transformation_statement || 'not yet defined'}
+- Monetization lens: ${session?.lens || 'not yet chosen'}
+- Vision (12 months): ${session?.responses?.vision_12months || 'not yet defined'}
+`;
+
+  const prompt = `${user.name} is logging a decision and asking for alignment guidance.
+Decision: "${decision}"
+${context ? `Additional context: "${context}"` : ''}
+
+Evaluate using the ALIGNMENT CHECK RULES strictly — only cite real user data or KB frameworks.
+Respond in this exact format:
+ALIGNMENT: [ALIGNED / NEEDS ADJUSTMENT / NOT ALIGNED]
+FOUNDATION: [which of the 4 foundations this affects most: body / mind / money / relationships]
+REASON: [one sentence — cite specific goal or KB principle, no invented criteria]
+COACH: [2-4 sentences — give clear direction. If aligned: reinforce and push forward. If not: redirect with a specific alternative grounded in their lens or goals.]`;
+
+  try {
+    const response = await anthropic.messages.create({
+      model:      'claude-sonnet-4-20250514',
+      max_tokens: 400,
+      system:     buildCoachSystem(userContext, '', 'decision'),
+      messages:   [{ role: 'user', content: prompt }],
+    });
+
+    const raw            = response.content[0].text;
+    const alignMatch     = raw.match(/ALIGNMENT:\s*(ALIGNED|NEEDS ADJUSTMENT|NOT ALIGNED)/i);
+    const foundationMatch = raw.match(/FOUNDATION:\s*(\w+)/i);
+    const coachMatch     = raw.match(/COACH:\s*([\s\S]+)/i);
+
+    const alignmentMap = {
+      'ALIGNED': 'aligned',
+      'NEEDS ADJUSTMENT': 'needs_adjustment',
+      'NOT ALIGNED': 'not_aligned'
+    };
+    const alignment  = alignmentMap[alignMatch?.[1]?.toUpperCase()] || 'needs_adjustment';
+    const foundation = foundationMatch?.[1]?.toLowerCase() || null;
+    const coachReply = coachMatch?.[1]?.trim() || raw;
+
+    await db.query(
+      `INSERT INTO decision_log (user_id, decision, context, coach_reply, alignment, foundation)
+       VALUES ($1,$2,$3,$4,$5,$6)`,
+      [req.user.id, decision.trim(), context?.trim() || null, coachReply, alignment, foundation]
+    );
+
+    res.json({ alignment, foundation, coachReply, raw });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Coach unavailable' });
+  }
+});
+
+// ── HEALTH ────────────────────────────────────────────────────────────────────
+app.get('/health', (_, res) => res.json({ status: 'ok', service: 'Luhv+ API' }));
+
+app.listen(PORT, '0.0.0.0', () => console.log(`🏆 Luhv+ API running on port ${PORT}`));

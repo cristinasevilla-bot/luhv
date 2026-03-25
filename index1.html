@@ -11,8 +11,6 @@
 :root{--black:#0a0a0f;--blue:#0ea5e9;--teal:#06d6a0;--yellow:#fbbf24;--purple:#6366f1;--red:#f43f5e;--card:#111827;--border:rgba(14,165,233,0.15);--muted:#6b7280;--light:#e5e7eb}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{background:var(--black);font-family:'DM Sans',sans-serif;color:#fff;min-height:100vh}
-
-/* AUTH */
 #auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
 .auth-box{width:100%;max-width:380px}
 .auth-logo{font-family:'Bebas Neue',sans-serif;font-size:52px;letter-spacing:3px;text-align:center}
@@ -32,8 +30,6 @@ body{background:var(--black);font-family:'DM Sans',sans-serif;color:#fff;min-hei
 .auth-error{color:var(--red);font-size:13px;text-align:center;margin-top:12px;min-height:18px}
 .spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;margin-right:8px;vertical-align:middle}
 @keyframes spin{to{transform:rotate(360deg)}}
-
-/* APP SHELL */
 #app-screen{display:none;flex-direction:column;min-height:100vh;max-width:480px;margin:0 auto;position:relative}
 .topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;position:sticky;top:0;z-index:100;background:rgba(10,10,15,.9);backdrop-filter:blur(12px);border-bottom:0.5px solid rgba(14,165,233,.08)}
 .logo{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px}
@@ -42,8 +38,6 @@ body{background:var(--black);font-family:'DM Sans',sans-serif;color:#fff;min-hei
 .xp-pill{display:flex;align-items:center;gap:5px;background:rgba(251,191,36,.1);border:0.5px solid rgba(251,191,36,.3);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;color:var(--yellow)}
 .avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;cursor:pointer;border:2px solid rgba(14,165,233,.4)}
 .page{display:none;flex-direction:column;flex:1}.page.active{display:flex}
-
-/* HOME */
 .hero{padding:18px 20px 0}
 .greet{font-size:13px;color:var(--muted);margin-bottom:2px}
 .hname{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:1px}
@@ -64,17 +58,10 @@ body{background:var(--black);font-family:'DM Sans',sans-serif;color:#fff;min-hei
 .hitem{background:var(--card);border:0.5px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .2s}
 .hitem.done{border-color:var(--teal);background:rgba(6,214,160,.05)}
 .hico{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.hico.b{background:rgba(14,165,233,.15)}
-.hico.t{background:rgba(6,214,160,.15)}
-.hico.y{background:rgba(251,191,36,.15)}
-.hico.p{background:rgba(99,102,241,.15)}
-.hinfo{flex:1}
-.hn{font-size:14px;font-weight:600}
-.hs{font-size:12px;color:var(--muted);margin-top:2px}
+.hico.b{background:rgba(14,165,233,.15)}.hico.t{background:rgba(6,214,160,.15)}.hico.y{background:rgba(251,191,36,.15)}.hico.p{background:rgba(99,102,241,.15)}
+.hinfo{flex:1}.hn{font-size:14px;font-weight:600}.hs{font-size:12px;color:var(--muted);margin-top:2px}
 .hchk{width:24px;height:24px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--teal);transition:.2s}
 .hitem.done .hchk{background:var(--teal);border-color:var(--teal);color:#000}
-
-/* GOALS */
 .gcard{background:var(--card);border:0.5px solid var(--border);border-radius:16px;padding:16px;margin-bottom:10px}
 .gtop{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
 .gtitle{font-size:14px;font-weight:700;text-transform:capitalize}
@@ -82,24 +69,13 @@ body{background:var(--black);font-family:'DM Sans',sans-serif;color:#fff;min-hei
 .pbw{background:rgba(255,255,255,.06);border-radius:99px;height:5px;margin-bottom:8px;overflow:hidden}
 .pbf{height:100%;border-radius:99px;transition:width .5s}
 .gstats{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
-
-/* GOAL PROGRESS (improved - Progress tab) */
-.gcard-progress{background:var(--card);border:0.5px solid var(--border);border-radius:16px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:14px}
-.gcard-icon{width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
-.gcard-body{flex:1;min-width:0}
-.gcard-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
-.gcard-name{font-weight:700;font-size:14px;text-transform:capitalize;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
-.gcard-pct{font-size:15px;font-weight:800}
-
-/* COACH */
 .ai-wrap{display:flex;flex-direction:column;flex:1;overflow:hidden}
 .ai-head{padding:16px 20px 10px;border-bottom:0.5px solid var(--border)}
 .ai-title{font-size:20px;font-weight:800}
 .ai-sub{font-size:13px;color:var(--muted);margin-top:2px}
 .chat-area{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:12px}
 .msg{max-width:85%;display:flex;flex-direction:column;gap:4px}
-.msg.u{align-self:flex-end}
-.msg.a{align-self:flex-start}
+.msg.u{align-self:flex-end}.msg.a{align-self:flex-start}
 .mb{padding:12px 16px;border-radius:18px;font-size:14px;line-height:1.55}
 .msg.u .mb{background:linear-gradient(135deg,var(--blue),var(--purple));border-bottom-right-radius:4px}
 .msg.a .mb{background:var(--card);border:0.5px solid var(--border);border-bottom-left-radius:4px}
@@ -113,11 +89,8 @@ body{background:var(--black);font-family:'DM Sans',sans-serif;color:#fff;min-hei
 .send-btn{width:44px;height:44px;border-radius:14px;background:var(--blue);border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .tdots{display:flex;gap:4px;padding:4px 0}
 .dot{width:7px;height:7px;border-radius:50%;background:var(--muted);animation:bounce .8s infinite}
-.dot:nth-child(2){animation-delay:.15s}
-.dot:nth-child(3){animation-delay:.3s}
+.dot:nth-child(2){animation-delay:.15s}.dot:nth-child(3){animation-delay:.3s}
 @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
-
-/* PROGRESS / JOURNAL */
 .jpage{padding-bottom:100px;overflow-y:auto}
 .jstat{background:var(--card);border:0.5px solid var(--border);border-radius:14px;padding:14px;flex:1}
 .jstat-num{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--blue)}
@@ -131,15 +104,11 @@ body{background:var(--black);font-family:'DM Sans',sans-serif;color:#fff;min-hei
 .jprlbl{font-size:11px;color:var(--purple);text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;font-weight:600}
 .jpr{font-size:13px;color:var(--light);line-height:1.5;margin-bottom:10px}
 .jwbtn{background:var(--purple);border:none;border-radius:10px;padding:9px 16px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif}
-
-/* NAV */
 .bnav{background:rgba(10,10,15,.95);backdrop-filter:blur(12px);border-top:0.5px solid rgba(14,165,233,.12);padding:8px 10px;display:flex;position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;z-index:100}
 .ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 4px;border-radius:12px;cursor:pointer;transition:all .2s;color:var(--muted)}
 .ni.active{color:var(--blue)}
 .ni-ico{font-size:22px;line-height:1}
 .ni-lbl{font-size:10px;font-weight:600;letter-spacing:.5px}
-
-/* NUDGES */
 .nudge-stack{padding:0 20px;display:flex;flex-direction:column;gap:10px;margin-bottom:8px}
 .nudge-card{background:var(--card);border:0.5px solid var(--border);border-radius:16px;padding:14px;position:relative}
 .nudge-close{position:absolute;top:10px;right:10px;background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;line-height:1;padding:0}
@@ -153,14 +122,10 @@ body{background:var(--black);font-family:'DM Sans',sans-serif;color:#fff;min-hei
 .nudge-btn{flex:1;padding:9px 12px;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif}
 .nudge-btn.primary{background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff}
 .nudge-btn.secondary{background:rgba(255,255,255,.06);color:var(--muted)}
-
-/* STREAK CHART */
 .streak-wrap{margin:0 20px 20px;background:var(--card);border:0.5px solid var(--border);border-radius:16px;padding:16px}
 .streak-title{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:14px}
 .streak-bars{display:flex;gap:6px;align-items:flex-end;height:68px}
 .streak-lbls{display:flex;gap:6px;margin-top:8px}
-
-/* ROADMAP CARDS */
 .road-card{margin:0 20px 10px;background:var(--card);border:0.5px solid var(--border);border-radius:16px;padding:16px}
 .road-eye{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--blue);font-weight:700;margin-bottom:4px}
 .road-title{font-size:15px;font-weight:700;margin-bottom:4px}
@@ -169,8 +134,6 @@ body{background:var(--black);font-family:'DM Sans',sans-serif;color:#fff;min-hei
 .road-btn{flex:1;padding:9px 12px;border:none;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif}
 .road-btn.primary{background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff}
 .road-btn.secondary{background:rgba(255,255,255,.06);color:var(--muted)}
-
-/* COACH DEMO CARD */
 .demo-card{margin:0 20px 16px;border-radius:20px;overflow:hidden;position:relative;min-height:260px;background:#0e1720}
 .demo-photo{position:absolute;inset:0;background:#0e1720;overflow:hidden}
 .demo-photo img{width:100%;height:100%;object-fit:cover;object-position:center 18%;display:block}
@@ -186,15 +149,11 @@ body{background:var(--black);font-family:'DM Sans',sans-serif;color:#fff;min-hei
 .demo-btn.secondary{background:rgba(255,255,255,.1);color:#fff;border:0.5px solid rgba(255,255,255,.2)}
 .demo-features{display:flex;gap:8px;flex-wrap:wrap;padding:0 20px 16px}
 .demo-feat{background:rgba(255,255,255,.05);border:0.5px solid rgba(255,255,255,.1);border-radius:20px;padding:6px 12px;font-size:12px;color:rgba(255,255,255,.6)}
-
-/* MOMENTUM / PROGRESS */
 .jmom{margin:0 20px 16px;background:var(--card);border:0.5px solid var(--border);border-radius:16px;padding:16px}
 .jmom-label{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:10px;font-weight:600}
 .jmom-bar{background:rgba(255,255,255,.06);border-radius:99px;height:6px;margin-bottom:8px;overflow:hidden}
 .jmom-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--blue),var(--teal));transition:width .5s}
 .jmom-note{font-size:12px;color:var(--muted)}
-
-/* WELCOME & TOUR MODALS */
 #welcome-modal{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:none;align-items:center;justify-content:center;padding:20px}
 .welcome-box{background:#1a1a2e;border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:32px 24px;max-width:340px;width:100%;text-align:center}
 .welcome-emoji{font-size:48px;margin-bottom:16px}
@@ -213,22 +172,15 @@ body{background:var(--black);font-family:'DM Sans',sans-serif;color:#fff;min-hei
 .tour-btns{display:flex;gap:10px}
 .tour-btn-skip{flex:1;padding:12px;background:rgba(255,255,255,.08);border:none;border-radius:12px;color:rgba(255,255,255,.5);font-size:14px;font-weight:600;cursor:pointer}
 .tour-btn-next{flex:2;padding:12px;background:linear-gradient(135deg,#0ea5e9,#06d6a0);border:none;border-radius:12px;color:#fff;font-size:15px;font-weight:700;cursor:pointer}
-
-/* HELP BTN */
 #help-btn{position:fixed;bottom:80px;right:16px;width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--purple));border:none;color:#fff;font-size:18px;font-weight:700;cursor:pointer;z-index:200;display:none;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(14,165,233,.4)}
-
-/* MOOD TAGS */
-.mood-tag{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:700;border:1.5px solid}
-
-/* CHECKIN LOG */
 .checkin-entry{background:var(--card);border:0.5px solid var(--border);border-radius:14px;padding:12px 14px;display:flex;gap:12px;align-items:flex-start}
 .checkin-dot{width:10px;height:10px;border-radius:50%;margin-top:4px;flex-shrink:0}
+.checkin-meta{flex:1}
 .checkin-date{font-size:11px;color:var(--muted);margin-bottom:2px;text-transform:uppercase;letter-spacing:1px}
 .checkin-title{font-size:14px;font-weight:700;text-transform:capitalize}
 .checkin-preview{font-size:13px;color:var(--muted);margin-top:2px}
-
-/* SECTION LABEL */
 .section-lbl{font-size:11px;letter-spacing:.08em;color:var(--muted);font-weight:700;text-transform:uppercase;padding:0 20px;margin-bottom:10px}
+.mood-tag{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:700;border:1.5px solid}
 </style>
 </head>
 <body>
@@ -290,7 +242,7 @@ body{background:var(--black);font-family:'DM Sans',sans-serif;color:#fff;min-hei
     <div class="logo">LUHV<span>+</span></div>
     <div class="topbar-right">
       <div class="xp-pill">⚡ <span id="xp-count">30</span></div>
-      <div class="avatar" id="user-avatar" onclick="logout()">C</div>
+      <div class="avatar" id="user-avatar" onclick="logout()" title="Tap to sign out">C</div>
     </div>
   </div>
 
@@ -302,7 +254,6 @@ body{background:var(--black);font-family:'DM Sans',sans-serif;color:#fff;min-hei
       <div class="streak-pill">🔥 <span id="streak-count">0</span>-Day Streak</div>
     </div>
 
-    <!-- COACH DEMO CARD -->
     <div class="demo-card" style="margin-top:16px">
       <div class="demo-photo">
         <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=480&q=80" alt="Coach portrait"/>
@@ -319,7 +270,6 @@ body{background:var(--black);font-family:'DM Sans',sans-serif;color:#fff;min-hei
       </div>
     </div>
 
-    <!-- PROGRESS STATS -->
     <div class="slabel">Your Progress</div>
     <div class="prow">
       <div class="pcard"><div class="pnum" id="stat-habits">0</div><div class="plbl">Habits done</div></div>
@@ -327,7 +277,6 @@ body{background:var(--black);font-family:'DM Sans',sans-serif;color:#fff;min-hei
       <div class="pcard"><div class="pnum" id="stat-journal">0</div><div class="plbl">Progress</div></div>
     </div>
 
-    <!-- ROADMAP -->
     <div class="slabel">Today's Roadmap</div>
     <div id="inapp-reminders" class="nudge-stack"></div>
 
@@ -351,7 +300,6 @@ body{background:var(--black);font-family:'DM Sans',sans-serif;color:#fff;min-hei
       <div class="road-text">Momentum is building. Keep the streak alive with one more focused action.</div>
     </div>
 
-    <!-- QUOTE -->
     <div class="qcard" onclick="nextQuote()">
       <div class="qlabel">Quote of the Day</div>
       <div class="qtext" id="qtext">Loading…</div>
@@ -359,13 +307,31 @@ body{background:var(--black);font-family:'DM Sans',sans-serif;color:#fff;min-hei
       <div class="qtap">Tap to refresh ↻</div>
     </div>
 
-    <!-- COACH PROMO -->
     <div class="slabel">Meet your coach</div>
-    <div style="margin:0 20px 16px;background:var(--card);border:0.5px solid var(--border);border-radius:16px;overflow:hidden">
-      <div style="display:flex;gap:14px;padding:16px;align-items:center">
+    <div style="margin:0 20px 16px;background:var(--card);border:0.5px solid var(--border);border-radius:16px;padding:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div style="font-size:15px;font-weight:700">Your Daily Coach</div>
         <a href="javascript:void(0)" onclick="switchPage('ai')" style="color:var(--teal);font-size:12px;font-weight:700;text-decoration:none">Open coach →</a>
       </div>
-      <div style="padding:0 16px 16px">
-        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=480&q=80" alt="Coach portrait" style="width:100%;height:120px;object-fit:cover;object-position:center 10%;border-radius:12px;margin-bottom:12px"/>
-        <div style="font-size:15px;font-weight:700;margin-bottom:4px">Your Daily Coach</div>
-        <div style="font-size:13px;color:var(--muted);line-height:1.5">A focused voice for accountability, clarity and momentum. Built for daily accountability, momentum and clear next steps.
+      <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=480&q=80" alt="Coach portrait" style="width:100%;height:120px;object-fit:cover;object-position:center 10%;border-radius:12px;margin-bottom:12px"/>
+      <div style="font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:12px">A focused voice for accountability, clarity and momentum. Built for daily accountability, momentum and clear next steps.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div class="demo-feat">Motivation</div>
+        <div class="demo-feat">Accountability</div>
+        <div class="demo-feat">Daily reset</div>
+        <div class="demo-feat">Smart Reminders</div>
+      </div>
+    </div>
+
+    <div class="slabel">This Week's Activity</div>
+    <div class="streak-wrap">
+      <div id="streak-chart" class="streak-bars"></div>
+      <div id="streak-chart-labels" class="streak-lbls"></div>
+    </div>
+
+    <div class="slabel">Today's Habits</div>
+    <div class="hlist" id="habits-list">
+      <div style="padding:16px;text-align:center;color:var(--muted);font-size:13px">Loading habits...</div>
+    </div>
+  </div>
+  <!-- END PAGE HOME -->

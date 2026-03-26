@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+     <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -590,6 +590,524 @@ body{background:
     </div>
 </div>
 </div>
+
+<script>
+const API = 'https://luhv.onrender.com';
+let TOKEN = localStorage.getItem('luhv_token');
+let USER  = JSON.parse(localStorage.getItem('luhv_user') || 'null');
+let chatHistory = [];
+let allQuotes = [];
+let quoteIdx = 0;
+
+async function api(path, opts = {}) {
+  const res = await fetch(API + path, {
+    ...opts,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(TOKEN ? { Authorization: 'Bearer ' + TOKEN } : {}),
+      ...(opts.headers || {})
+    }
+  });
+  if (res.status === 401) { logout(); return null; }
+  return res.json();
+}
+
+function setTab(t) {
+  document.querySelectorAll('.auth-tab').forEach((el, i) => el.classList.toggle('active', (i === 0) === (t === 'login')));
+  document.getElementById('login-form').style.display    = t === 'login'    ? 'block' : 'none';
+  document.getElementById('register-form').style.display = t === 'register' ? 'block' : 'none';
+  document.getElementById('auth-error').textContent = '';
+}
+
+async function login() {
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Signing in...';
+  try {
+    const data = await api('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email: document.getElementById('login-email').value, password: document.getElementById('login-pass').value })
+    });
+    if (data?.token) {
+      TOKEN = data.token; USER = data.user;
+      localStorage.setItem('luhv_token', TOKEN);
+      localStorage.setItem('luhv_user', JSON.stringify(USER));
+      initApp();
+    } else {
+      document.getElementById('auth-error').textContent = data?.error || 'Invalid email or password';
+    }
+  } catch(e) {
+    document.getElementById('auth-error').textContent = 'Connection error — please try again';
+  }
+  btn.disabled = false; btn.innerHTML = 'Sign In 🏆';
+}
+
+async function register() {
+  const btn = document.getElementById('reg-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Creating account...';
+  try {
+    const data = await api('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ name: document.getElementById('reg-name').value, email: document.getElementById('reg-email').value, password: document.getElementById('reg-pass').value })
+    });
+    if (data?.token) {
+      TOKEN = data.token; USER = data.user;
+      localStorage.setItem('luhv_token', TOKEN);
+      localStorage.setItem('luhv_user', JSON.stringify(USER));
+      initApp();
+    } else {
+      document.getElementById('auth-error').textContent = data?.error || 'Something went wrong';
+    }
+  } catch(e) {
+    document.getElementById('auth-error').textContent = 'Connection error — please try again';
+  }
+  btn.disabled = false; btn.innerHTML = "Let's Go 🔥";
+}
+
+function logout() {
+  if (!confirm('Sign out?')) return;
+  TOKEN = null; USER = null;
+  localStorage.removeItem('luhv_token');
+  localStorage.removeItem('luhv_user');
+  document.getElementById('app-screen').style.display  = 'none';
+  document.getElementById('auth-screen').style.display = 'flex';
+}
+
+async function initApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display  = 'block';
+  const initials = USER.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  document.getElementById('user-avatar').textContent       = initials;
+  document.getElementById('user-name-display').textContent = USER.name.toUpperCase() + ' 👊';
+  document.getElementById('streak-count').textContent      = USER.streak || 0;
+  document.getElementById('welcome-msg').textContent       = `Hey ${USER.name}! Let's move one goal forward today. Tell Coach where you feel stuck, what you want to improve, or what your next step should be.`;
+  loadQuotes();
+  loadHabits();
+  loadGoals();
+  loadJournal();
+  loadPrompt();
+  initDemoNudges();
+  document.getElementById('help-btn').style.display = 'flex';
+  if (!localStorage.getItem('luhv_welcomed')) { setTimeout(showWelcome, 600); }
+}
+
+function initDemoNudges() {
+  const container = document.getElementById('inapp-reminders');
+  if (!container) return;
+  const name = (USER?.name || 'there').split(' ')[0];
+  const streak = USER?.streak || 0;
+  const habitOpenText = streak > 0
+    ? 'Keep the streak alive with one completed action.'
+    : 'A small win today is enough to restart momentum.';
+  const nudges = [
+    { id:'checkin', icon:'⚡', eyebrow:'Now', title:'Quick coach check-in', copy:habitOpenText,
+      primary:{label:'Open Coach',action:"switchPage('ai')"}, secondary:{label:'Dismiss',action:"dismissNudge('checkin')"}},
+    { id:'goal', icon:'🎯', eyebrow:'Momentum', title:'Update one goal', copy:'Visible progress keeps accountability concrete.',
+      primary:{label:'Go to Goals',action:"switchPage('goals')"}, secondary:{label:'Dismiss',action:"dismissNudge('goal')"}},
+    { id:'reset', icon:'📝', eyebrow:'Later today', title:'Evening reset', copy:`Before the day closes, log one lesson or one win.`,
+      primary:{label:'Open Progress',action:"switchPage('journal')"}, secondary:{label:'Dismiss',action:"dismissNudge('reset')"}}
+  ];
+  const dismissed = JSON.parse(localStorage.getItem('luhv_demo_nudges_closed') || '[]');
+  const visible = nudges.filter(n => !dismissed.includes(n.id));
+  container.innerHTML = visible.map(n => `
+    <div class="nudge-card" id="nudge-${n.id}">
+      <button class="nudge-close" onclick="dismissNudge('${n.id}')">×</button>
+      <div class="nudge-top">
+        <div class="nudge-icon">${n.icon}</div>
+        <div class="nudge-meta">
+          <div class="nudge-eyebrow">${n.eyebrow}</div>
+          <div class="nudge-title">${n.title}</div>
+          <div class="nudge-copy">${n.copy}</div>
+        </div>
+      </div>
+      <div class="nudge-actions">
+        <button class="nudge-btn primary" onclick="${n.primary.action}">${n.primary.label}</button>
+        <button class="nudge-btn secondary" onclick="${n.secondary.action}">${n.secondary.label}</button>
+      </div>
+    </div>`).join('') || '<div style="padding:14px;text-align:center;color:var(--muted);font-size:13px">All reminders dismissed.</div>';
+}
+
+function dismissNudge(id) {
+  const current = JSON.parse(localStorage.getItem('luhv_demo_nudges_closed') || '[]');
+  if (!current.includes(id)) current.push(id);
+  localStorage.setItem('luhv_demo_nudges_closed', JSON.stringify(current));
+  initDemoNudges();
+}
+
+async function loadQuotes() {
+  const q = await api('/api/quotes/today');
+  if (q) { document.getElementById('qtext').textContent = q.text; document.getElementById('qauthor').textContent = q.author; }
+  const all = await api('/api/quotes');
+  if (all) allQuotes = all;
+}
+
+function nextQuote() {
+  if (!allQuotes.length) return;
+  quoteIdx = (quoteIdx + 1) % allQuotes.length;
+  document.getElementById('qtext').textContent   = allQuotes[quoteIdx].text;
+  document.getElementById('qauthor').textContent = allQuotes[quoteIdx].author;
+}
+
+async function loadHabits() {
+  const habits = await api('/api/habits');
+  const list   = document.getElementById('habits-list');
+  if (!habits?.length) { list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--muted);font-size:13px">No habits yet!</div>'; renderStreakChart([]); return; }
+  const colors = ['b','t','y','p'];
+  list.innerHTML = habits.map((h, i) => `
+    <div class="hitem ${h.done ? 'done' : ''}" onclick="toggleHabit(this,'${h.id}')">
+      <div class="hico ${colors[i%4]}">${h.icon||'⚡'}</div>
+      <div class="hinfo"><div class="hn">${h.name}</div><div class="hs">${h.time||''}</div></div>
+      <div class="hchk">${h.done?'✓':''}</div>
+    </div>`).join('');
+  document.getElementById('stat-habits').textContent = habits.filter(h => h.done).length;
+  const streak = USER?.streak || 0;
+  const completions = Array.from({length: Math.min(streak, 7)}, (_, i) => {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    return { date: d.toISOString().split('T')[0] };
+  });
+  renderStreakChart(completions);
+}
+
+async function toggleHabit(el, id) {
+  el.classList.toggle('done');
+  el.querySelector('.hchk').textContent = el.classList.contains('done') ? '✓' : '';
+  await api('/api/habits/' + id + '/check', { method: 'PATCH' });
+}
+
+function renderStreakChart(completions) {
+  const chart  = document.getElementById('streak-chart');
+  const labels = document.getElementById('streak-chart-labels');
+  if (!chart) return;
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const today = new Date();
+  const week = Array.from({length:7}, (_, i) => {
+    const d = new Date(today); d.setDate(today.getDate() - (6 - i));
+    return d.toISOString().split('T')[0];
+  });
+  const counts = week.map(date => completions.filter(c => c.date === date).length);
+  const max = Math.max(...counts, 1);
+  const grads = ['linear-gradient(180deg,#0ea5e9,#06d6a0)','linear-gradient(180deg,#6366f1,#0ea5e9)','linear-gradient(180deg,#06d6a0,#fbbf24)','linear-gradient(180deg,#0ea5e9,#6366f1)','linear-gradient(180deg,#fbbf24,#f43f5e)','linear-gradient(180deg,#0ea5e9,#06d6a0)','linear-gradient(180deg,#06d6a0,#0ea5e9)'];
+  chart.innerHTML = '';
+  week.forEach((date, i) => {
+    const h = Math.max(8, Math.round((counts[i] / max) * 60));
+    const isToday = date === today.toISOString().split('T')[0];
+    const col = document.createElement('div');
+    col.style.cssText = 'display:flex;flex-direction:column;align-items:center;flex:1;justify-content:flex-end';
+    const num = document.createElement('div');
+    num.style.cssText = 'font-size:10px;margin-bottom:4px;font-weight:600;color:' + (counts[i] > 0 ? 'rgba(255,255,255,0.7)' : 'transparent');
+    num.textContent = counts[i] || '';
+    const bar = document.createElement('div');
+    bar.style.cssText = 'width:100%;border-radius:6px 6px 3px 3px;transition:.3s;height:' + h + 'px;background:' + (counts[i] > 0 ? grads[i] : 'rgba(255,255,255,0.06)') + (isToday ? ';box-shadow:0 0 8px rgba(14,165,233,0.5)' : '');
+    col.appendChild(num); col.appendChild(bar); chart.appendChild(col);
+  });
+  labels.innerHTML = '';
+  const dayOfWeek = today.getDay();
+  const mondayOffset = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
+  week.forEach((_, i) => {
+    const dayIdx = (mondayOffset - 6 + i + 7) % 7;
+    const isToday = i === 6;
+    const lbl = document.createElement('div');
+    lbl.style.cssText = 'font-size:10px;flex:1;text-align:center;font-weight:' + (isToday ? '700' : '400') + ';color:' + (isToday ? '#0ea5e9' : 'rgba(255,255,255,0.35)');
+    lbl.textContent = days[dayIdx];
+    labels.appendChild(lbl);
+  });
+}
+
+async function loadGoals() {
+  const goals = await api('/api/goals');
+  const list = document.getElementById('goals-list');
+  if (!goals?.length) { list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--muted);font-size:13px">No goals yet.</div>'; return; }
+  list.innerHTML = goals.map(g => {
+    const pct = Math.round((g.progress / g.target) * 100);
+    return `<div class="gcard">
+      <div class="gtop"><div class="gtitle">${g.title}</div><div class="gbadge">${pct >= 100 ? 'Done' : 'Active'}</div></div>
+      <div class="pbw"><div class="pbf" style="width:${pct}%;background:${pct >= 100 ? 'var(--teal)' : 'linear-gradient(90deg,var(--blue),var(--purple))'}"></div></div>
+      <div class="gstats"><span>${pct}% complete</span><span>${g.deadline ? ('Due ' + g.deadline) : 'No deadline'}</span></div>
+      <div style="margin-top:10px;display:flex;gap:8px;">
+        <button onclick="updateProgress(${g.id}, ${g.progress}, ${g.target})" style="flex:1;padding:9px 12px;border:none;border-radius:10px;background:rgba(14,165,233,.12);color:var(--blue);font-size:12px;font-weight:700;cursor:pointer;">Update Progress</button>
+      </div>
+    </div>`;
+  }).join('');
+  renderProgressGoals(goals);
+}
+
+async function addGoal() {
+  const titleEl = document.getElementById('goal-title-input');
+  const deadlineEl = document.getElementById('goal-deadline-input');
+  const categoryEl = document.getElementById('goal-category-input');
+  const msgEl = document.getElementById('goal-form-msg');
+  const title = titleEl?.value?.trim();
+  if (!title) { msgEl.textContent = 'Please enter a goal title.'; msgEl.style.color = '#fbbf24'; return; }
+  try {
+    msgEl.textContent = 'Adding goal...'; msgEl.style.color = 'var(--muted)';
+    const result = await api('/api/goals', { method: 'POST', body: JSON.stringify({ title: `[${categoryEl.value}] ${title}`, deadline: deadlineEl.value || null, target: 100, unit: '%' }) });
+    if (!result || result.error) { msgEl.textContent = result?.error || 'Could not create goal.'; msgEl.style.color = '#f87171'; return; }
+    titleEl.value = ''; deadlineEl.value = ''; categoryEl.value = 'Productivity';
+    msgEl.textContent = 'Goal added!'; msgEl.style.color = '#06d6a0';
+    await loadGoals();
+  } catch(e) { msgEl.textContent = 'Could not create goal.'; msgEl.style.color = '#f87171'; }
+}
+
+async function updateProgress(id, current, target) {
+  const currentPct = Math.round((current / target) * 100);
+  const input = prompt("Update progress (0-100%)\nCurrent: " + currentPct + "%");
+  if (input === null || input === "") return;
+  const pct = Math.min(100, Math.max(0, parseInt(input, 10)));
+  if (isNaN(pct)) { alert("Please enter a number between 0 and 100"); return; }
+  const result = await api("/api/goals/" + id + "/progress", { method: "PATCH", body: JSON.stringify({ progress: pct }) });
+  if (!result || result.error) { alert(result?.error || "Could not update"); return; }
+  await loadGoals();
+}
+
+async function loadJournal() {
+  const entries = await api('/api/journal');
+  const list    = document.getElementById('journal-list');
+  const totalEl = document.getElementById('checkin-total');
+  const checkinsEl = document.getElementById('prog-checkins');
+  const statJnl = document.getElementById('stat-journal');
+  if (!entries?.length) { if (list) list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--muted);font-size:13px">No check-ins yet.</div>'; return; }
+  if (totalEl)    totalEl.textContent    = entries.length + ' total';
+  if (checkinsEl) checkinsEl.textContent = entries.length;
+  if (statJnl)    statJnl.textContent    = entries.length;
+  const moodColors = { energized:'#06d6a0', focused:'#fbbf24', reflective:'#0ea5e9', grateful:'#6366f1', neutral:'#6b7280' };
+  const moodIcons  = { energized:'⚡', focused:'🎯', reflective:'🌊', grateful:'✨', neutral:'😐' };
+  const moodsEl = document.getElementById('recent-moods');
+  if (moodsEl) {
+    moodsEl.innerHTML = entries.slice(0,5).map(e => {
+      const c = moodColors[e.mood]||'#6b7280'; const i = moodIcons[e.mood]||'●';
+      const d = new Date(e.created_at); const l = d.toLocaleString('en-US',{month:'short'})+' '+d.getDate();
+      return '<div style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;border:1.5px solid '+c+';font-size:12px;font-weight:700;color:'+c+'">'+i+' '+e.mood.toUpperCase()+' <span style="opacity:0.6;font-weight:400;font-size:11px">'+l+'</span></div>';
+    }).join('');
+  }
+  if (list) {
+    list.innerHTML = entries.map(e => {
+      const color = moodColors[e.mood]||'#6b7280';
+      const date  = new Date(e.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+      return '<div class="checkin-entry"><div class="checkin-dot" style="background:'+color+'"></div><div class="checkin-meta"><div class="checkin-date">'+date+' · '+e.mood+'</div><div class="checkin-title">'+(e.title||'Untitled')+'</div><div class="checkin-preview">'+e.content.slice(0,80)+(e.content.length>80?'…':'')+'</div></div></div>';
+    }).join('');
+  }
+  loadTodayIntention();
+  loadDecisionsLog();
+}
+
+async function loadPrompt() {
+  const data = await api('/api/journal/prompt');
+  if (data?.prompt) {
+    const el = document.getElementById('journal-prompt');
+    if (el) el.textContent = data.prompt;
+  }
+}
+
+async function sendMsg() {
+  const input = document.getElementById('cin');
+  const msg   = input.value.trim();
+  if (!msg) return;
+  addMsg(msg, 'u'); input.value = ''; showTyping();
+  chatHistory.push({ role: 'user', content: msg });
+  const data = await api('/api/coach/chat', { method: 'POST', body: JSON.stringify({ message: msg, history: chatHistory.slice(-10) }) });
+  removeTyping();
+  const reply = data?.reply || "Let's get this TRIUMPH 🏆 — I'm right here with you!";
+  addMsg(reply, 'a');
+  chatHistory.push({ role: 'assistant', content: reply });
+}
+
+function sendSug(text) { document.getElementById('cin').value = text; sendMsg(); }
+
+function addMsg(text, role) {
+  const w = document.getElementById('chat-msgs');
+  const d = document.createElement('div');
+  d.className = 'msg ' + role;
+  const ct = role === 'a' ? parseMarkdown(text) : text;
+  d.innerHTML = role === 'a' ? '<div class="albl">Coach</div><div class="mb">'+ct+'</div>' : '<div class="mb">'+ct+'</div>';
+  w.appendChild(d); w.scrollTop = w.scrollHeight;
+}
+
+function showTyping() {
+  const w = document.getElementById('chat-msgs');
+  const d = document.createElement('div');
+  d.className = 'msg a'; d.id = 'ti';
+  d.innerHTML = '<div class="albl">Coach</div><div class="tdots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
+  w.appendChild(d); w.scrollTop = w.scrollHeight;
+}
+function removeTyping() { const t = document.getElementById('ti'); if (t) t.remove(); }
+
+function switchPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.ni').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.getElementById('ni-' + name).classList.add('active');
+  if (name === 'journal') { loadJournal(); loadGoals(); }
+  if (name === 'goals')   loadGoals();
+  if (name === 'focus')   loadFocusPage();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const cinEl = document.getElementById('cin');
+  if (cinEl) cinEl.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); } });
+  const loginPass = document.getElementById('login-pass');
+  if (loginPass) loginPass.addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+  const regPass = document.getElementById('reg-pass');
+  if (regPass) regPass.addEventListener('keydown', e => { if (e.key === 'Enter') register(); });
+});
+
+function getGoalIcon(title) {
+  const t = (title||'').toLowerCase();
+  if (t.includes('water')) return '💧';
+  if (t.includes('workout')||t.includes('exercise')||t.includes('gym')) return '🏃';
+  if (t.includes('sleep')||t.includes('wake')) return '⏰';
+  if (t.includes('budget')||t.includes('money')) return '💰';
+  if (t.includes('read')||t.includes('book')) return '📚';
+  if (t.includes('meditat')) return '🧠';
+  if (t.includes('time')||t.includes('focus')||t.includes('efficien')) return '💪';
+  return '🎯';
+}
+
+function parseMarkdown(text) {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/\n/g, '<br>');
+}
+
+// ── FOCUS TIMER ──────────────────────────────────────────
+var timerInterval = null, timerSeconds = 25*60, timerRunning = false, timerMode = 'deep', timerTotal = 25*60, sessionsToday = [];
+var focusQuotes = ['One hour of focused work beats eight hours of busy work.','Clarity on what NOT to do is more valuable than a to-do list.','The most effective people protect their time like money.','Deep work is the skill that separates effective from busy.'];
+
+function setMode(mode, minutes) {
+  timerMode = mode; timerTotal = minutes*60; timerSeconds = timerTotal;
+  if (timerRunning) { clearInterval(timerInterval); timerRunning = false; }
+  document.getElementById('timer-start-btn').textContent = 'Start ⚡';
+  document.getElementById('timer-status').textContent = 'Ready when you are.';
+  document.getElementById('timer-display').textContent = String(Math.floor(timerSeconds/60)).padStart(2,'0')+':00';
+  document.querySelectorAll('.focus-mode').forEach(el => el.classList.remove('active'));
+  var modeEl = document.getElementById('mode-'+mode); if (modeEl) modeEl.classList.add('active');
+  var labels = {deep:'Deep Work Session',quick:'Quick Sprint',break:'Recovery Break'};
+  var lbl = document.getElementById('timer-mode-label'); if (lbl) lbl.textContent = labels[mode]||mode;
+}
+
+function startTimer() {
+  if (timerRunning) { clearInterval(timerInterval); timerRunning = false; document.getElementById('timer-start-btn').textContent = 'Resume ⚡'; document.getElementById('timer-status').textContent = 'Paused.'; return; }
+  timerRunning = true; document.getElementById('timer-start-btn').textContent = 'Pause'; document.getElementById('timer-status').textContent = 'Session in progress. Lock in. 🔥';
+  timerInterval = setInterval(() => {
+    timerSeconds--;
+    document.getElementById('timer-display').textContent = String(Math.floor(timerSeconds/60)).padStart(2,'0')+':'+String(timerSeconds%60).padStart(2,'0');
+    if (timerSeconds <= 0) {
+      clearInterval(timerInterval); timerRunning = false;
+      document.getElementById('timer-status').textContent = 'Session complete. That is one win. 🏆';
+      document.getElementById('timer-start-btn').textContent = 'Start ⚡';
+      var task = (document.getElementById('focus-task')||{}).value || (timerMode+' session');
+      sessionsToday.push({ task: task.trim()||timerMode+' session', time: new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) });
+      renderSessions(); timerSeconds = timerTotal;
+      document.getElementById('timer-display').textContent = String(Math.floor(timerSeconds/60)).padStart(2,'0')+':00';
+    }
+  }, 1000);
+}
+
+function resetTimer() {
+  clearInterval(timerInterval); timerRunning = false; timerSeconds = timerTotal;
+  document.getElementById('timer-display').textContent = String(Math.floor(timerSeconds/60)).padStart(2,'0')+':00';
+  document.getElementById('timer-start-btn').textContent = 'Start ⚡';
+  document.getElementById('timer-status').textContent = 'Ready when you are.';
+}
+
+function renderSessions() {
+  var el = document.getElementById('focus-sessions'); if (!el) return;
+  if (!sessionsToday.length) { el.innerHTML = '<div style="font-size:13px;color:var(--muted)">No sessions yet.</div>'; return; }
+  el.innerHTML = sessionsToday.map(s => '<div style="background:rgba(14,165,233,.1);border:0.5px solid rgba(14,165,233,.25);border-radius:10px;padding:8px 12px;font-size:12px;font-weight:600;color:var(--blue)">✓ '+s.task+' <span style="opacity:.6;font-weight:400">· '+s.time+'</span></div>').join('');
+}
+
+async function loadFocusPage() {
+  var habits = await api('/api/habits');
+  var list = document.getElementById('focus-habits-list'); if (!list) return;
+  if (!habits||!habits.length) { list.innerHTML = '<div style="padding:12px;text-align:center;color:var(--muted);font-size:13px">No habits yet.</div>'; }
+  else {
+    var colors = ['b','t','y','p'];
+    list.innerHTML = habits.map((h,i) => '<div class="hitem '+(h.done?'done':'')+'" onclick="toggleHabit(this,\''+h.id+'\')" style="margin-bottom:8px"><div class="hico '+colors[i%4]+'">'+(h.icon||'⚡')+'</div><div class="hinfo"><div class="hn">'+h.name+'</div><div class="hs">'+(h.time||'')+'</div></div><div class="hchk">'+(h.done?'✓':'')+'</div></div>').join('');
+  }
+  var qi = Math.floor(Date.now()/3600000)%focusQuotes.length;
+  var qEl = document.getElementById('focus-quote'); if (qEl) qEl.textContent = focusQuotes[qi];
+  renderSessions();
+}
+
+async function loadTodayIntention() {
+  var data = await api('/api/intention/today');
+  var el = document.getElementById('intention-today-card'); if (!el) return;
+  if (!data) { el.innerHTML = ''; return; }
+  var bc = data.alignment||'needs_adjustment';
+  var labels = {aligned:'Aligned ✓',needs_adjustment:'Needs Adjustment',not_aligned:'Not Aligned ✗'};
+  var colors = {aligned:'rgba(6,214,160,.3)',needs_adjustment:'rgba(251,191,36,.3)',not_aligned:'rgba(244,63,94,.3)'};
+  el.innerHTML = '<div class="intent-card" style="border-color:'+(colors[bc]||colors.needs_adjustment)+'"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:700">Today&#39;s Intention</div><span class="align-badge '+bc+'">'+(labels[bc]||bc)+'</span></div><div style="font-size:14px;font-weight:600;margin-bottom:8px">'+data.intention+'</div><div style="font-size:13px;color:var(--muted);line-height:1.6">'+(data.coach_reply||'')+'</div></div>';
+}
+
+async function submitIntention() {
+  var input = document.getElementById('intention-input'), btn = document.getElementById('intention-btn'), result = document.getElementById('intention-result');
+  var val = input.value.trim(); if (!val) return;
+  btn.disabled = true; btn.textContent = 'Checking...'; result.style.display = 'none';
+  try {
+    var data = await api('/api/intention', {method:'POST', body:JSON.stringify({intention:val})});
+    if (data&&data.alignment) {
+      var labels = {aligned:'✓ Aligned',needs_adjustment:'Needs Adjustment',not_aligned:'✗ Not Aligned'};
+      var colors = {aligned:'#06d6a0',needs_adjustment:'#fbbf24',not_aligned:'#f43f5e'};
+      result.innerHTML = '<div style="margin-bottom:8px"><span class="align-badge '+data.alignment+'">'+(labels[data.alignment]||data.alignment)+'</span></div><div style="color:var(--light)">'+(data.coachReply||'')+'</div>';
+      result.style.display = 'block'; result.style.borderLeft = '3px solid '+(colors[data.alignment]||'#fbbf24'); result.style.paddingLeft = '12px';
+      input.value = ''; loadTodayIntention();
+    }
+  } catch(e) { result.innerHTML = 'Could not connect.'; result.style.display = 'block'; }
+  btn.disabled = false; btn.textContent = "Set Today's Intention";
+}
+
+async function loadDecisionsLog() {
+  var data = await api('/api/decisions');
+  var logEl = document.getElementById('decisions-log'), alignEl = document.getElementById('prog-aligned');
+  if (!data||!data.length) { if (logEl) logEl.innerHTML = ''; return; }
+  var aligned = data.filter(d => d.alignment==='aligned').length;
+  if (alignEl) alignEl.textContent = aligned;
+  if (logEl) {
+    var labels = {aligned:'Aligned ✓',needs_adjustment:'Needs Adjustment',not_aligned:'Not Aligned ✗'};
+    logEl.innerHTML = data.slice(0,5).map(d => {
+      var date = new Date(d.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+      return '<div class="dec-card"><div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:13px;font-weight:600;flex:1;margin-right:8px">'+d.decision+'</div><span class="align-badge '+(d.alignment||'needs_adjustment')+'">'+(labels[d.alignment]||d.alignment)+'</span></div>'+(d.foundation?'<div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">'+d.foundation+'</div>':'')+'<div style="font-size:12px;color:var(--muted)">'+date+'</div></div>';
+    }).join('');
+  }
+}
+
+async function submitDecision() {
+  var decInput = document.getElementById('decision-input'), ctxInput = document.getElementById('decision-context'), btn = document.getElementById('decision-btn'), result = document.getElementById('decision-result');
+  var val = decInput.value.trim(); if (!val) return;
+  btn.disabled = true; btn.textContent = 'Getting clarity...'; result.style.display = 'none';
+  try {
+    var data = await api('/api/decisions', {method:'POST', body:JSON.stringify({decision:val, context:ctxInput.value.trim()||null})});
+    if (data&&data.alignment) {
+      var labels = {aligned:'✓ Aligned',needs_adjustment:'Needs Adjustment',not_aligned:'✗ Not Aligned'};
+      var colors = {aligned:'#06d6a0',needs_adjustment:'#fbbf24',not_aligned:'#f43f5e'};
+      result.innerHTML = '<div style="margin-bottom:8px;display:flex;align-items:center;gap:8px"><span class="align-badge '+data.alignment+'">'+(labels[data.alignment]||data.alignment)+'</span>'+(data.foundation?'<span style="font-size:11px;color:var(--muted);text-transform:uppercase">'+data.foundation+'</span>':'')+'</div><div style="color:var(--light)">'+(data.coachReply||'')+'</div>';
+      result.style.display = 'block'; result.style.borderLeft = '3px solid '+(colors[data.alignment]||'#fbbf24'); result.style.paddingLeft = '12px';
+      decInput.value = ''; ctxInput.value = ''; loadDecisionsLog();
+    }
+  } catch(e) { result.innerHTML = 'Could not connect.'; result.style.display = 'block'; }
+  btn.disabled = false; btn.textContent = 'Get Clarity';
+}
+
+function renderProgressGoals(goals) {
+  var progressList = document.getElementById('progress-goals-list'), summaryEl = document.getElementById('goals-summary'), momFill = document.getElementById('momentum-fill'), momNote = document.getElementById('momentum-note');
+  if (!progressList||!goals||!goals.length) return;
+  var total = goals.length, avgPct = Math.round(goals.reduce((a,g) => a+(g.progress/g.target)*100, 0)/total);
+  var completed = goals.filter(g => Math.round((g.progress/g.target)*100)>=100).length;
+  if (summaryEl) summaryEl.textContent = completed+' completed, '+(total-completed)+' active';
+  if (momFill) momFill.style.width = avgPct+'%';
+  if (momNote) momNote.textContent = completed > 0 ? completed+' of '+total+' goals completed. Keep pushing! 🔥' : avgPct+'% average across '+total+' goals.';
+  var html = '';
+  for (var i = 0; i < goals.length; i++) {
+    var g = goals[i], pct = Math.round((g.progress/g.target)*100), col = pct>=70?'#06d6a0':pct>=30?'#fbbf24':'#f43f5e';
+    var icon = getGoalIcon(g.title), nm = g.title.replace(/^\[.*?\]\s*/,'');
+    html += '<div style="background:var(--card);border:0.5px solid var(--border);border-radius:16px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:14px"><div style="width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">'+icon+'</div><div style="flex:1;min-width:0"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px">'+nm+'</div><div style="font-size:15px;font-weight:800;color:'+col+';flex-shrink:0;margin-left:8px">'+pct+'%</div></div><div style="background:rgba(255,255,255,.06);border-radius:99px;height:5px;overflow:hidden"><div style="height:100%;border-radius:99px;width:'+pct+'%;background:'+col+';transition:width .5s"></div></div></div></div>';
+  }
+  progressList.innerHTML = html;
+}
+
+if (TOKEN && USER) initApp();
+</script>
 
 <script>
 // ── ONBOARDING SYSTEM ──────────────────────────────────────

@@ -181,7 +181,7 @@ const KNOWLEDGE_BASE = `
 • "You are the MVP in your life."
 • "You're the cream of the crop."
 • "Let's get this TRIUMPH 🏆"
-• "I don't remember a version of you that quit — and I never will."
+• "I don't remember a version of you that quit and I never will."
 • "That's LUHV+ energy right there 🔥"
 • "Step into your next level."
 • "No more waiting — it's YOUR time."
@@ -200,22 +200,22 @@ const SESSION_PHASES = [
     steps: [
       {
         key: 'welcome',
-        coachPrompt: (name) => `Welcome ${name}! I'm your Luhv+ AI Coach — and I'm genuinely excited you're here. This is YOUR space to grow, get clear, and step into the next level of who you're becoming. Before we dive in, I want to ask you something real: On a scale of 1–10, where is your mindset RIGHT NOW — and what's one word that describes how you're feeling today? 💪`,
+        coachPrompt: (name) => `Welcome ${name}! I'm your Luhv+ AI Coach and I'm genuinely excited you're here. This is YOUR space to grow, get clear, and step into the next level of who you're becoming. Before we dive in, I want to ask you something real: On a scale of 1–10, where is your mindset RIGHT NOW — and what's one word that describes how you're feeling today? 💪`,
         processKey: 'mindset_score'
       },
       {
         key: 'fixed_vs_growth',
-        coachPrompt: (name, prev) => `I hear you — ${prev.mindset_score}. That's real, and I respect it. Now let me ask you this: When something doesn't go your way — a goal you missed, a plan that fell apart — what's your first instinct? Do you tend to think "I'm just not built for this"... or "What can I learn from this?" Be honest. 🔥`,
+        coachPrompt: (name, prev) => `I hear you  ${prev.mindset_score}. That's real, and I respect it. Now let me ask you this: When something doesn't go your way — a goal you missed, a plan that fell apart — what's your first instinct? Do you tend to think "I'm just not built for this"... or "What can I learn from this?" Be honest. 🔥`,
         processKey: 'mindset_type'
       },
       {
         key: 'self_talk',
-        coachPrompt: (name, prev) => `Good. Awareness is step one — always. Here's what I know: the story you tell yourself when things get hard is EVERYTHING. What's one negative thing you say to yourself on repeat? The one that shows up most when you're stuck or doubting. Let's name it so we can rewrite it. ⚡`,
+        coachPrompt: (name, prev) => `Good. Awareness is step one always. Here's what I know: the story you tell yourself when things get hard is EVERYTHING. What's one negative thing you say to yourself on repeat? The one that shows up most when you're stuck or doubting. Let's name it so we can rewrite it. ⚡`,
         processKey: 'negative_self_talk'
       },
       {
         key: 'reframe',
-        coachPrompt: (name, prev) => `"${prev.negative_self_talk}" — okay, we're putting that on notice right now. That narrative doesn't get to run the show anymore. Here's your assignment: flip it. How would the MVP version of you reframe that exact thought? What does the GROWTH version of that belief sound like? 🏆`,
+        coachPrompt: (name, prev) => `"${prev.negative_self_talk}" okay, we're putting that on notice right now. That narrative doesn't get to run the show anymore. Here's your assignment: flip it. How would the MVP version of you reframe that exact thought? What does the GROWTH version of that belief sound like? 🏆`,
         processKey: 'reframe'
       }
     ]
@@ -226,7 +226,7 @@ const SESSION_PHASES = [
     steps: [
       {
         key: 'gift_discovery',
-        coachPrompt: (name, prev) => `${name}, you just did something most people never do — you looked your own mind in the face and chose growth. Now let's go deeper. I want to find your gift — the thing you do that feels effortless to YOU but is transformative to others. Think about it: what do people always come to you for? What do you do that makes time disappear? 💪`,
+        coachPrompt: (name, prev) => `${name}, you just did something most people never do, you looked your own mind in the face and chose growth. Now let's go deeper. I want to find your gift — the thing you do that feels effortless to YOU but is transformative to others. Think about it: what do people always come to you for? What do you do that makes time disappear? 💪`,
         processKey: 'gift'
       },
       {
@@ -384,7 +384,7 @@ async function updateSession(sessionId, updates) {
 
 // ── SESSION ROUTE ─────────────────────────────────────────────────────────────
 // POST /api/coach/session
-// Body: { message?: string }  — empty on first call to get the welcome question
+// Body: { message?: string }  empty on first call to get the welcome question
 // Returns: { question, phase, step, progress, isComplete, sessionId }
 
 app.post('/api/coach/session', auth, async (req, res) => {

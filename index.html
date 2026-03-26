@@ -1581,7 +1581,10 @@ async function loadJournal() {
 }
 async function loadPrompt() {
   const data = await api('/api/journal/prompt');
-  if (data?.prompt) document.getElementById('journal-prompt').textContent = data.prompt;
+  if (data?.prompt) {
+    const el = document.getElementById('journal-prompt');
+    if (el) el.textContent = data.prompt;
+  }
 }
 
 async function newJournalEntry() {

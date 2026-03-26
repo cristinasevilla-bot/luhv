@@ -1,4 +1,4 @@
-     <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -201,12 +201,14 @@ body{background:
 .jmom-bar{background:rgba(255,255,255,.06);border-radius:99px;height:6px;margin-bottom:8px;overflow:hidden}
 .jmom-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--blue),var(--teal));transition:width .5s}
 .jmom-note{font-size:12px;color:var(--muted)}
-.checkin-entry{background:var(--card);border:0.5px solid var(--border);border-radius:14px;padding:12px 14px;display:flex;gap:12px;align-items:flex-start}
-.checkin-dot{width:10px;height:10px;border-radius:50%;margin-top:4px;flex-shrink:0}
-.checkin-meta{flex:1}
-.checkin-date{font-size:11px;color:var(--muted);margin-bottom:2px;text-transform:uppercase;letter-spacing:1px}
-.checkin-title{font-size:14px;font-weight:700;text-transform:capitalize}
-.checkin-preview{font-size:13px;color:var(--muted);margin-top:2px}
+.checkin-entry{background:linear-gradient(180deg,rgba(17,24,39,.95),rgba(12,18,28,.98));border:0.5px solid var(--border);border-radius:16px;padding:14px 16px;display:flex;gap:14px;align-items:flex-start;transition:border-color .2s}
+.checkin-entry:hover{border-color:rgba(14,165,233,.3)}
+.checkin-dot{width:36px;height:36px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px}
+.checkin-meta{flex:1;min-width:0}
+.checkin-date{font-size:10px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:1.2px}
+.checkin-title{font-size:14px;font-weight:700;text-transform:capitalize;margin-bottom:4px}
+.checkin-preview{font-size:13px;color:var(--muted);line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.checkin-mood-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
 .section-lbl{font-size:11px;letter-spacing:.08em;color:var(--muted);font-weight:700;text-transform:uppercase;padding:0 20px;margin-bottom:10px}
 .align-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
 .align-badge.aligned{background:rgba(6,214,160,.12);color:#06d6a0;border:0.5px solid rgba(6,214,160,.3)}
@@ -884,7 +886,10 @@ async function loadJournal() {
     list.innerHTML = entries.map(e => {
       const color = moodColors[e.mood]||'#6b7280';
       const date  = new Date(e.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-      return '<div class="checkin-entry"><div class="checkin-dot" style="background:'+color+'"></div><div class="checkin-meta"><div class="checkin-date">'+date+' · '+e.mood+'</div><div class="checkin-title">'+(e.title||'Untitled')+'</div><div class="checkin-preview">'+e.content.slice(0,80)+(e.content.length>80?'…':'')+'</div></div></div>';
+      const moodBg = { energized:'rgba(6,214,160,.12)', focused:'rgba(251,191,36,.12)', reflective:'rgba(14,165,233,.12)', grateful:'rgba(99,102,241,.12)', neutral:'rgba(107,114,128,.12)' };
+      const bg = moodBg[e.mood]||'rgba(107,114,128,.12)';
+      const preview = e.content && e.content.length > 4 ? e.content.slice(0,90)+(e.content.length>90?'…':'') : (e.title||'');
+      return '<div class="checkin-entry"><div class="checkin-dot" style="background:'+bg+';border:1px solid '+color+'40">'+icon+'</div><div class="checkin-meta"><div class="checkin-date">'+date+'</div><div class="checkin-mood-badge" style="background:'+bg+';color:'+color+'">'+icon+' '+e.mood+'</div><div class="checkin-title">'+(e.title||'Check-in')+'</div><div class="checkin-preview">'+preview+'</div></div></div>';
     }).join('');
   }
   loadTodayIntention();

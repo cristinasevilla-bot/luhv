@@ -695,39 +695,73 @@ app.delete('/api/quotes/:id', auth, async (req, res) => {
 
 // ── HABITS ────────────────────────────────────────────────────────────────────
 app.get('/api/habits', auth, async (req, res) => {
+  const today = new Date().toISOString().split('T')[0];
   const { rows } = await db.query(
-    'SELECT * FROM habits WHERE user_id=$1 ORDER BY created_at',
-    [req.user.id]
+    `SELECT h.*, 
+      COALESCE(hc.value, 0) as today_value,
+      CASE WHEN h.target_type = 'check' THEN (hc.id IS NOT NULL)
+           ELSE (COALESCE(hc.value,0) >= h.daily_target) END as done
+     FROM habits h
+     LEFT JOIN habit_completions hc ON hc.habit_id=h.id AND hc.user_id=$1 AND hc.date=$2
+     WHERE h.user_id=$1 ORDER BY h.created_at`,
+    [req.user.id, today]
   );
   res.json(rows);
 });
 
 app.post('/api/habits', auth, async (req, res) => {
-  const { name, time, icon } = req.body;
+  const { name, time, icon, target_type, daily_target } = req.body;
+  // target_type: 'check' (binary) or 'count' (numeric)
+  // SQL: ALTER TABLE habits ADD COLUMN IF NOT EXISTS target_type TEXT DEFAULT 'check';
+  //      ALTER TABLE habits ADD COLUMN IF NOT EXISTS daily_target INTEGER DEFAULT 1;
   const { rows } = await db.query(
-    'INSERT INTO habits (user_id, name, time, icon) VALUES ($1,$2,$3,$4) RETURNING *',
-    [req.user.id, name, time, icon]
+    'INSERT INTO habits (user_id, name, time, icon, target_type, daily_target) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *',
+    [req.user.id, name, time || null, icon || '⚡', target_type || 'check', daily_target || 1]
   );
   res.json(rows[0]);
 });
 
+// Increment habit progress (works for both check and count)
 app.patch('/api/habits/:id/check', auth, async (req, res) => {
   const today = new Date().toISOString().split('T')[0];
-  const existing = await db.query(
-    'SELECT id FROM habit_completions WHERE habit_id=$1 AND user_id=$2 AND date=$3',
+  const { rows: [habit] } = await db.query('SELECT * FROM habits WHERE id=$1 AND user_id=$2', [req.params.id, req.user.id]);
+  if (!habit) return res.status(404).json({ error: 'Habit not found' });
+
+  const { rows: [existing] } = await db.query(
+    'SELECT id, value FROM habit_completions WHERE habit_id=$1 AND user_id=$2 AND date=$3',
     [req.params.id, req.user.id, today]
   );
-  if (existing.rows[0]) {
-    await db.query('DELETE FROM habit_completions WHERE id=$1', [existing.rows[0].id]);
-    res.json({ done: false });
+
+  if (habit.target_type === 'check') {
+    // Binary toggle
+    if (existing) {
+      await db.query('DELETE FROM habit_completions WHERE id=$1', [existing.id]);
+      res.json({ done: false, value: 0, target: 1 });
+    } else {
+      await db.query('INSERT INTO habit_completions (habit_id, user_id, date, value) VALUES ($1,$2,$3,1)', [req.params.id, req.user.id, today]);
+      await db.query('UPDATE users SET streak = streak + 1 WHERE id=$1', [req.user.id]);
+      res.json({ done: true, value: 1, target: 1 });
+    }
   } else {
-    await db.query(
-      'INSERT INTO habit_completions (habit_id, user_id, date) VALUES ($1,$2,$3)',
-      [req.params.id, req.user.id, today]
-    );
-    await db.query('UPDATE users SET streak = streak + 1 WHERE id=$1', [req.user.id]);
-    res.json({ done: true });
+    // Count — increment by 1 up to daily_target
+    const currentValue = existing ? existing.value : 0;
+    const newValue = Math.min(currentValue + 1, habit.daily_target);
+    if (existing) {
+      await db.query('UPDATE habit_completions SET value=$1 WHERE id=$2', [newValue, existing.id]);
+    } else {
+      await db.query('INSERT INTO habit_completions (habit_id, user_id, date, value) VALUES ($1,$2,$3,$4)', [req.params.id, req.user.id, today, newValue]);
+    }
+    const done = newValue >= habit.daily_target;
+    if (done && !existing) await db.query('UPDATE users SET streak = streak + 1 WHERE id=$1', [req.user.id]);
+    res.json({ done, value: newValue, target: habit.daily_target });
   }
+});
+
+// Reset habit progress for today
+app.patch('/api/habits/:id/reset', auth, async (req, res) => {
+  const today = new Date().toISOString().split('T')[0];
+  await db.query('DELETE FROM habit_completions WHERE habit_id=$1 AND user_id=$2 AND date=$3', [req.params.id, req.user.id, today]);
+  res.json({ done: false, value: 0 });
 });
 
 // ── GOALS ─────────────────────────────────────────────────────────────────────
@@ -1066,104 +1100,54 @@ Rules:
 });
 
 
-// ── ONBOARDING ────────────────────────────────────────────────────────────────
-// SQL (run once in Supabase):
-// ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarding_done BOOLEAN DEFAULT false;
-// ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarding_data JSONB DEFAULT '{}';
-
-app.get('/api/onboarding/status', auth, async (req, res) => {
-  const { rows: [user] } = await db.query('SELECT onboarding_done, onboarding_data FROM users WHERE id=$1', [req.user.id]);
-  res.json({ done: user?.onboarding_done || false, data: user?.onboarding_data || {} });
-});
-
-app.post('/api/onboarding/complete', auth, async (req, res) => {
-  const { data } = req.body;
-  if (!data) return res.status(400).json({ error: 'Missing data' });
-
-  // Save onboarding data to user
-  await db.query('UPDATE users SET onboarding_done=true, onboarding_data=$1 WHERE id=$2', [JSON.stringify(data), req.user.id]);
-
-  // Auto-create first goal from onboarding
-  if (data.goal_90days?.trim()) {
-    try {
-      await db.query(
-        "INSERT INTO goals (user_id, title, target, unit, status) VALUES ($1,$2,100,'%','active')",
-        [req.user.id, '[' + (data.growth_area || 'Personal') + '] ' + data.goal_90days.trim()]
-      );
-    } catch(e) { console.error('Goal creation error:', e); }
-  }
-
-  // Generate personalized welcome message from coach
-  try {
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 200,
-      system: buildCoachSystem('', '', 'chat'),
-      messages: [{
-        role: 'user',
-        content: `A new user just completed onboarding. Here is what they shared:
-- Name: ${data.name || 'friend'}
-- Biggest stuck area: ${data.stuck_area || 'unknown'}
-- Main obstacle: ${data.obstacle || 'unknown'}
-- What "going from good to great" looks like: ${data.good_to_great || 'not shared'}
-- 90-day goal: ${data.goal_90days || 'not set yet'}
-
-Write a short, powerful, personalized welcome message (2-3 sentences max). Reference their specific answers. End with one direct challenge or question. Sound like Shaun Crumméy — direct, warm, motivating. No emojis at the start.`
-      }]
-    });
-    res.json({ success: true, welcomeMessage: response.content[0].text });
-  } catch(e) {
-    res.json({ success: true, welcomeMessage: null });
-  }
-});
-
 // ── EFFECTIVENESS SCORE ───────────────────────────────────────────────────────
 app.get('/api/effectiveness-score', auth, async (req, res) => {
   try {
-    const { rows: [user] }    = await db.query('SELECT name, streak, onboarding_data FROM users WHERE id=$1', [req.user.id]);
-    const { rows: goals }     = await db.query("SELECT progress, target FROM goals WHERE user_id=$1 AND status='active'", [req.user.id]);
-    const { rows: habits }    = await db.query('SELECT done FROM habits WHERE user_id=$1', [req.user.id]);
-    const today               = new Date().toISOString().split('T')[0];
+    const today = new Date().toISOString().split('T')[0];
+    const { rows: [user] }      = await db.query('SELECT name, streak FROM users WHERE id=$1', [req.user.id]);
+    const { rows: goals }       = await db.query("SELECT progress, target FROM goals WHERE user_id=$1 AND status='active'", [req.user.id]);
+    const { rows: habits }      = await db.query(
+      `SELECT h.target_type, h.daily_target, COALESCE(hc.value,0) as today_value,
+        CASE WHEN h.target_type='check' THEN (hc.id IS NOT NULL)
+             ELSE (COALESCE(hc.value,0) >= h.daily_target) END as done
+       FROM habits h LEFT JOIN habit_completions hc ON hc.habit_id=h.id AND hc.user_id=$1 AND hc.date=$2
+       WHERE h.user_id=$1`, [req.user.id, today]);
     const { rows: [intention] } = await db.query('SELECT alignment FROM daily_intentions WHERE user_id=$1 AND date=$2', [req.user.id, today]);
-    const { rows: decisions } = await db.query("SELECT alignment FROM decision_log WHERE user_id=$1 AND created_at > NOW() - INTERVAL '7 days'", [req.user.id]);
+    const { rows: decisions }   = await db.query("SELECT alignment FROM decision_log WHERE user_id=$1 AND created_at > NOW() - INTERVAL '7 days'", [req.user.id]);
 
     // MINDSET (25pts) — intention set and aligned
     let mindset = 0;
-    if (intention) {
-      mindset = intention.alignment === 'aligned' ? 25 : intention.alignment === 'needs_adjustment' ? 15 : 8;
-    }
+    if (intention) mindset = intention.alignment === 'aligned' ? 25 : intention.alignment === 'needs_adjustment' ? 15 : 8;
 
-    // ACTION (25pts) — habits completed today
-    const totalHabits = habits.length;
-    const doneHabits  = habits.filter(h => h.done).length;
-    const action      = totalHabits > 0 ? Math.round((doneHabits / totalHabits) * 25) : 0;
+    // ACTION (25pts) — habits completed today (partial credit for count habits)
+    let action = 0;
+    if (habits.length > 0) {
+      const habitScore = habits.reduce((sum, h) => {
+        if (h.target_type === 'check') return sum + (h.done ? 1 : 0);
+        return sum + Math.min(1, h.today_value / h.daily_target);
+      }, 0);
+      action = Math.round((habitScore / habits.length) * 25);
+    }
 
     // MOMENTUM (25pts) — average goal progress
     const momentum = goals.length > 0
-      ? Math.round((goals.reduce((a, g) => a + (g.progress / g.target) * 100, 0) / goals.length) * 0.25)
+      ? Math.round(goals.reduce((a,g) => a + (g.progress/g.target)*100, 0) / goals.length * 0.25)
       : 0;
 
     // ALIGNMENT (25pts) — decisions aligned this week
-    const alignedDecisions = decisions.filter(d => d.alignment === 'aligned').length;
     const alignment = decisions.length > 0
-      ? Math.round((alignedDecisions / decisions.length) * 25)
+      ? Math.round((decisions.filter(d => d.alignment === 'aligned').length / decisions.length) * 25)
       : (intention?.alignment === 'aligned' ? 10 : 5);
 
     const total = Math.min(100, mindset + action + momentum + alignment);
 
-    // Level based on book: Good → Great → Effective → Peak
     let level, message;
     if (total >= 91)      { level = 'Peak';      message = 'When good is no longer good enough — you are there. 🏆'; }
     else if (total >= 71) { level = 'Effective'; message = 'You are becoming more effective in less time.'; }
     else if (total >= 41) { level = 'Great';     message = 'Moving from good to great. Keep the momentum.'; }
-    else                  { level = 'Good';       message = 'Good is the starting point. Now go for great.'; }
+    else                  { level = 'Good';      message = 'Good is the starting point. Now go for great.'; }
 
-    res.json({
-      total,
-      level,
-      message,
-      breakdown: { mindset, action, momentum, alignment }
-    });
+    res.json({ total, level, message, breakdown: { mindset, action, momentum, alignment } });
   } catch(e) {
     console.error('Score error:', e);
     res.status(500).json({ error: 'Could not calculate score' });

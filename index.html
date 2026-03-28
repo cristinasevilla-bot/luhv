@@ -549,6 +549,47 @@ body{background:
     </div>
   </div>
 
+  <!-- HABITS -->
+  <div class="page" id="page-habits" style="overflow-y:auto;padding-bottom:100px">
+    <div style="padding:18px 20px 14px">
+      <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:8px;">Habits</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:1px;line-height:.95">Daily actions build great results.</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:8px">Habits are done every day. Goals are achieved over time.</div>
+    </div>
+    <div style="padding:0 20px 14px">
+      <div style="background:linear-gradient(180deg,rgba(17,24,39,.92),rgba(12,18,28,.96));border:0.5px solid var(--border);border-radius:16px;padding:14px;">
+        <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:10px;">Add Habit</div>
+        <input id="habit-name-input" type="text" placeholder="Example: Drink 2L of water"
+          style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:var(--light);font-size:14px;outline:none;margin-bottom:10px;" />
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+          <input id="habit-time-input" type="text" placeholder="Time (e.g. 7:00 AM)"
+            style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:var(--light);font-size:14px;outline:none;" />
+          <select id="habit-icon-input"
+            style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:var(--light);font-size:14px;outline:none;">
+            <option value="💧">💧 Water</option>
+            <option value="🏃">🏃 Exercise</option>
+            <option value="🧘">🧘 Meditation</option>
+            <option value="📚">📚 Reading</option>
+            <option value="⏰">⏰ Wake up</option>
+            <option value="💪">💪 Workout</option>
+            <option value="🧠">🧠 Learning</option>
+            <option value="✍️">✍️ Journaling</option>
+            <option value="🥗">🥗 Nutrition</option>
+            <option value="⚡">⚡ Custom</option>
+          </select>
+        </div>
+        <button onclick="addHabit()" style="width:100%;padding:12px 14px;border:none;border-radius:12px;background:linear-gradient(90deg,var(--teal),var(--blue));color:#07111b;font-weight:800;font-size:14px;cursor:pointer;">
+          + Add Habit
+        </button>
+        <div id="habit-form-msg" style="margin-top:10px;font-size:12px;color:var(--muted);min-height:16px;"></div>
+      </div>
+    </div>
+    <div style="padding:0 20px;font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);font-weight:700;margin-bottom:10px">Today's Habits</div>
+    <div class="hlist" id="habits-page-list">
+      <div style="padding:16px;text-align:center;color:var(--muted);font-size:13px">Loading habits...</div>
+    </div>
+  </div>
+
   <!-- AI COACH -->
   <div class="page" id="page-ai">
     <div style="padding:18px 20px 12px">
@@ -694,7 +735,7 @@ body{background:
 <div class="bnav">
     <div class="ni active" id="ni-home" onclick="switchPage('home')"><span class="nico" style="font-size:18px">📍</span><span class="nlbl">Today</span></div>
     <div class="ni" id="ni-goals" onclick="switchPage('goals')"><span class="nico" style="font-size:18px">🎯</span><span class="nlbl">Goals</span></div>
-    <div class="ni" id="ni-focus" onclick="switchPage('focus')"><span class="nico" style="font-size:18px">⏱️</span><span class="nlbl">Focus</span></div>
+    <div class="ni" id="ni-habits" onclick="switchPage('habits')"><span class="nico" style="font-size:18px">✅</span><span class="nlbl">Habits</span></div>
     <div class="ni" id="ni-ai" onclick="switchPage('ai')"><span class="nico" style="font-size:18px">⚡</span><span class="nlbl">Coach</span></div>
     <div class="ni" id="ni-journal" onclick="switchPage('journal')"><span class="nico" style="font-size:18px">📈</span><span class="nlbl">Progress</span></div>
     </div>
@@ -1137,6 +1178,49 @@ async function loadGoals() {
   renderProgressGoals(goals);
 }
 
+async function addHabit() {
+  var nameEl = document.getElementById('habit-name-input');
+  var timeEl = document.getElementById('habit-time-input');
+  var iconEl = document.getElementById('habit-icon-input');
+  var msgEl  = document.getElementById('habit-form-msg');
+  var name   = nameEl?.value?.trim();
+  if (!name) { msgEl.textContent = 'Please enter a habit name.'; msgEl.style.color = '#fbbf24'; return; }
+  try {
+    msgEl.textContent = 'Adding habit...'; msgEl.style.color = 'var(--muted)';
+    var result = await api('/api/habits', {
+      method: 'POST',
+      body: JSON.stringify({ name: name, time: timeEl.value.trim() || null, icon: iconEl.value || '⚡' })
+    });
+    if (!result || result.error) { msgEl.textContent = result?.error || 'Could not add habit.'; msgEl.style.color = '#f87171'; return; }
+    nameEl.value = ''; timeEl.value = '';
+    msgEl.textContent = 'Habit added!'; msgEl.style.color = '#06d6a0';
+    await loadHabitsPage();
+    await loadHabits(); // refresh Today tab too
+  } catch(e) { msgEl.textContent = 'Could not add habit.'; msgEl.style.color = '#f87171'; }
+}
+
+async function loadHabitsPage() {
+  var habits = await api('/api/habits');
+  var list   = document.getElementById('habits-page-list');
+  if (!list) return;
+  if (!habits || !habits.length) {
+    list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--muted);font-size:13px">No habits yet — add your first one above!</div>';
+    return;
+  }
+  var colors = ['b','t','y','p'];
+  list.innerHTML = '';
+  habits.forEach(function(h, i) {
+    var div = document.createElement('div');
+    div.className = 'hitem' + (h.done ? ' done' : '');
+    div.dataset.id = h.id;
+    div.onclick = function() { toggleHabit(div, h.id); };
+    div.innerHTML = '<div class="hico ' + colors[i%4] + '">' + (h.icon||'⚡') + '</div>' +
+      '<div class="hinfo"><div class="hn">' + h.name + '</div><div class="hs">' + (h.time||'Daily') + '</div></div>' +
+      '<div class="hchk">' + (h.done ? '✓' : '') + '</div>';
+    list.appendChild(div);
+  });
+}
+
 async function addGoal() {
   const titleEl = document.getElementById('goal-title-input');
   const deadlineEl = document.getElementById('goal-deadline-input');
@@ -1248,6 +1332,7 @@ function switchPage(name) {
   if (name === 'journal') { loadJournal(); loadGoals(); }
   if (name === 'goals')   loadGoals();
   if (name === 'focus')   loadFocusPage();
+  if (name === 'habits')  loadHabitsPage();
 }
 
 document.addEventListener('DOMContentLoaded', () => {

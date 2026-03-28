@@ -1065,6 +1065,111 @@ Rules:
   }
 });
 
+
+// ── ONBOARDING ────────────────────────────────────────────────────────────────
+// SQL (run once in Supabase):
+// ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarding_done BOOLEAN DEFAULT false;
+// ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarding_data JSONB DEFAULT '{}';
+
+app.get('/api/onboarding/status', auth, async (req, res) => {
+  const { rows: [user] } = await db.query('SELECT onboarding_done, onboarding_data FROM users WHERE id=$1', [req.user.id]);
+  res.json({ done: user?.onboarding_done || false, data: user?.onboarding_data || {} });
+});
+
+app.post('/api/onboarding/complete', auth, async (req, res) => {
+  const { data } = req.body;
+  if (!data) return res.status(400).json({ error: 'Missing data' });
+
+  // Save onboarding data to user
+  await db.query('UPDATE users SET onboarding_done=true, onboarding_data=$1 WHERE id=$2', [JSON.stringify(data), req.user.id]);
+
+  // Auto-create first goal from onboarding
+  if (data.goal_90days?.trim()) {
+    try {
+      await db.query(
+        "INSERT INTO goals (user_id, title, target, unit, status) VALUES ($1,$2,100,'%','active')",
+        [req.user.id, '[' + (data.growth_area || 'Personal') + '] ' + data.goal_90days.trim()]
+      );
+    } catch(e) { console.error('Goal creation error:', e); }
+  }
+
+  // Generate personalized welcome message from coach
+  try {
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 200,
+      system: buildCoachSystem('', '', 'chat'),
+      messages: [{
+        role: 'user',
+        content: `A new user just completed onboarding. Here is what they shared:
+- Name: ${data.name || 'friend'}
+- Biggest stuck area: ${data.stuck_area || 'unknown'}
+- Main obstacle: ${data.obstacle || 'unknown'}
+- What "going from good to great" looks like: ${data.good_to_great || 'not shared'}
+- 90-day goal: ${data.goal_90days || 'not set yet'}
+
+Write a short, powerful, personalized welcome message (2-3 sentences max). Reference their specific answers. End with one direct challenge or question. Sound like Shaun Crumméy — direct, warm, motivating. No emojis at the start.`
+      }]
+    });
+    res.json({ success: true, welcomeMessage: response.content[0].text });
+  } catch(e) {
+    res.json({ success: true, welcomeMessage: null });
+  }
+});
+
+// ── EFFECTIVENESS SCORE ───────────────────────────────────────────────────────
+app.get('/api/effectiveness-score', auth, async (req, res) => {
+  try {
+    const { rows: [user] }    = await db.query('SELECT name, streak, onboarding_data FROM users WHERE id=$1', [req.user.id]);
+    const { rows: goals }     = await db.query("SELECT progress, target FROM goals WHERE user_id=$1 AND status='active'", [req.user.id]);
+    const { rows: habits }    = await db.query('SELECT done FROM habits WHERE user_id=$1', [req.user.id]);
+    const today               = new Date().toISOString().split('T')[0];
+    const { rows: [intention] } = await db.query('SELECT alignment FROM daily_intentions WHERE user_id=$1 AND date=$2', [req.user.id, today]);
+    const { rows: decisions } = await db.query("SELECT alignment FROM decision_log WHERE user_id=$1 AND created_at > NOW() - INTERVAL '7 days'", [req.user.id]);
+
+    // MINDSET (25pts) — intention set and aligned
+    let mindset = 0;
+    if (intention) {
+      mindset = intention.alignment === 'aligned' ? 25 : intention.alignment === 'needs_adjustment' ? 15 : 8;
+    }
+
+    // ACTION (25pts) — habits completed today
+    const totalHabits = habits.length;
+    const doneHabits  = habits.filter(h => h.done).length;
+    const action      = totalHabits > 0 ? Math.round((doneHabits / totalHabits) * 25) : 0;
+
+    // MOMENTUM (25pts) — average goal progress
+    const momentum = goals.length > 0
+      ? Math.round((goals.reduce((a, g) => a + (g.progress / g.target) * 100, 0) / goals.length) * 0.25)
+      : 0;
+
+    // ALIGNMENT (25pts) — decisions aligned this week
+    const alignedDecisions = decisions.filter(d => d.alignment === 'aligned').length;
+    const alignment = decisions.length > 0
+      ? Math.round((alignedDecisions / decisions.length) * 25)
+      : (intention?.alignment === 'aligned' ? 10 : 5);
+
+    const total = Math.min(100, mindset + action + momentum + alignment);
+
+    // Level based on book: Good → Great → Effective → Peak
+    let level, message;
+    if (total >= 91)      { level = 'Peak';      message = 'When good is no longer good enough — you're there. 🏆'; }
+    else if (total >= 71) { level = 'Effective'; message = 'You're becoming more effective in less time.'; }
+    else if (total >= 41) { level = 'Great';     message = 'Moving from good to great. Keep the momentum.'; }
+    else                  { level = 'Good';       message = 'Good is the starting point. Now go for great.'; }
+
+    res.json({
+      total,
+      level,
+      message,
+      breakdown: { mindset, action, momentum, alignment }
+    });
+  } catch(e) {
+    console.error('Score error:', e);
+    res.status(500).json({ error: 'Could not calculate score' });
+  }
+});
+
 app.get('/health', (_, res) => res.json({ status: 'ok', service: 'Luhv+ API' }));
 
 app.listen(PORT, '0.0.0.0', () => console.log(`🏆 Luhv+ API running on port ${PORT}`));

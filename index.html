@@ -238,7 +238,8 @@ body{background:
 .timer-btns{display:flex;gap:10px;margin-top:16px;justify-content:center}
 .timer-btn{padding:12px 28px;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif}
 .timer-btn.start{background:linear-gradient(135deg,var(--blue),var(--teal));color:#fff}
-.timer-btn.reset{background:rgba(255,255,255,.07);color:var(--muted)}
+.timer-btn.reset{background:rgba(255,255,255,.07);color:var(--muted);transition:all .2s}
+.timer-btn.reset.active{background:rgba(244,63,94,.15);color:#f43f5e;border:1px solid rgba(244,63,94,.3)}
 .focus-mode{flex:1;background:var(--card);border:0.5px solid var(--border);border-radius:12px;padding:12px;text-align:center;cursor:pointer}
 .focus-mode.active{border-color:var(--blue);background:rgba(14,165,233,.08)}
 .focus-mode-label{font-size:12px;font-weight:700;margin-bottom:2px}
@@ -853,6 +854,7 @@ async function initApp() {
   loadEffectivenessScore();
   checkOnboarding();
   document.getElementById('help-btn').style.display = 'flex';
+  restoreTimerIfRunning();
   if (!localStorage.getItem('luhv_welcomed')) { setTimeout(showWelcome, 600); }
 }
 
@@ -1105,6 +1107,25 @@ function nextQuote() {
   document.getElementById('qauthor').textContent = allQuotes[quoteIdx].author;
 }
 
+async function deleteGoal(id) {
+  if (!confirm('Delete this goal?')) return;
+  var result = await api('/api/goals/' + id, { method: 'DELETE' });
+  if (result && result.success) await loadGoals();
+}
+
+async function editGoalTitle(id, currentTitle) {
+  var newTitle = prompt('Edit goal name:', currentTitle);
+  if (!newTitle || !newTitle.trim() || newTitle.trim() === currentTitle) return;
+  var result = await api('/api/goals/' + id + '/title', { method: 'PATCH', body: JSON.stringify({ title: newTitle.trim() }) });
+  if (result && !result.error) await loadGoals();
+}
+
+async function quickProgress(id, currentPct, delta) {
+  var newPct = Math.min(100, Math.max(0, currentPct + delta));
+  var result = await api('/api/goals/' + id + '/progress', { method: 'PATCH', body: JSON.stringify({ progress: newPct }) });
+  if (result && !result.error) await loadGoals();
+}
+
 async function loadHabits() {
   const habits = await api('/api/habits');
   const list   = document.getElementById('habits-list');
@@ -1190,17 +1211,34 @@ async function loadGoals() {
   const goals = await api('/api/goals');
   const list = document.getElementById('goals-list');
   if (!goals?.length) { list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--muted);font-size:13px">No goals yet.</div>'; return; }
-  list.innerHTML = goals.map(g => {
+  list.innerHTML = '';
+  goals.forEach(g => {
     const pct = Math.round((g.progress / g.target) * 100);
-    return `<div class="gcard">
-      <div class="gtop"><div class="gtitle">${g.title}</div><div class="gbadge">${pct >= 100 ? 'Done' : 'Active'}</div></div>
-      <div class="pbw"><div class="pbf" style="width:${pct}%;background:${pct >= 100 ? 'var(--teal)' : 'linear-gradient(90deg,var(--blue),var(--purple))'}"></div></div>
-      <div class="gstats"><span>${pct}% complete</span><span>${g.deadline ? ('Due ' + g.deadline) : 'No deadline'}</span></div>
-      <div style="margin-top:10px;display:flex;gap:8px;">
-        <button onclick="updateProgress(${g.id}, ${g.progress}, ${g.target})" style="flex:1;padding:9px 12px;border:none;border-radius:10px;background:rgba(14,165,233,.12);color:var(--blue);font-size:12px;font-weight:700;cursor:pointer;">Update Progress</button>
+    const nm  = g.title.replace(/^\[.*?\]\s*/, '');
+    const deadlineStr = g.deadline
+      ? 'Due ' + new Date(g.deadline).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})
+      : 'No deadline';
+    const div = document.createElement('div');
+    div.className = 'gcard';
+    const btnStyle = 'width:28px;height:28px;border-radius:8px;border:none;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center';
+    div.innerHTML = `
+      <div class="gtop">
+        <div class="gtitle">${nm}</div>
+        <div style="display:flex;align-items:center;gap:5px">
+          <div class="gbadge">${pct >= 100 ? 'Done' : 'Active'}</div>
+          <button onclick="editGoalTitle(${g.id},'${nm.replace(/'/g,'&#39;')}')" style="${btnStyle};background:rgba(255,255,255,.06);color:var(--muted)">✏️</button>
+          <button onclick="deleteGoal(${g.id})" style="${btnStyle};background:rgba(244,63,94,.08);color:var(--red);border:1px solid rgba(244,63,94,.2)">🗑</button>
+        </div>
       </div>
-    </div>`;
-  }).join('');
+      <div style="display:flex;align-items:center;gap:10px;margin:8px 0 4px">
+        <button onclick="quickProgress(${g.id},${pct},-5)" style="width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:#fff;font-size:16px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center">−</button>
+        <div style="flex:1"><div class="pbw"><div class="pbf" style="width:${pct}%;background:${pct >= 100 ? 'var(--teal)' : 'linear-gradient(90deg,var(--blue),var(--purple))'}"></div></div></div>
+        <button onclick="quickProgress(${g.id},${pct},5)" style="width:30px;height:30px;border-radius:50%;border:1px solid rgba(14,165,233,.3);background:rgba(14,165,233,.1);color:var(--blue);font-size:16px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center">+</button>
+        <span style="font-size:14px;font-weight:700;color:var(--blue);min-width:36px;text-align:right">${pct}%</span>
+      </div>
+      <div class="gstats"><span>${deadlineStr}</span></div>`;
+    list.appendChild(div);
+  });
   renderProgressGoals(goals);
 }
 
@@ -1439,6 +1477,43 @@ function parseMarkdown(text) {
 
 // ── FOCUS TIMER ──────────────────────────────────────────
 var timerInterval = null, timerSeconds = 25*60, timerRunning = false, timerMode = 'deep', timerTotal = 25*60, sessionsToday = [];
+
+function requestNotificationPermission() {
+  if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
+}
+function sendTimerNotification(task) {
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification('Session complete! 🏆', { body: task + ' — That is one win!', icon: '/icon-192.png' });
+  }
+}
+function saveTimerState(endTime, mode, task) {
+  localStorage.setItem('luhv_timer', JSON.stringify({ endTime, mode, task }));
+}
+function clearTimerState() { localStorage.removeItem('luhv_timer'); }
+function restoreTimerIfRunning() {
+  var saved = localStorage.getItem('luhv_timer');
+  if (!saved) return;
+  try {
+    var state = JSON.parse(saved);
+    var remaining = Math.round((state.endTime - Date.now()) / 1000);
+    if (remaining <= 0) {
+      clearTimerState();
+      sendTimerNotification(state.task || 'Focus session');
+      var statusEl = document.getElementById('timer-status');
+      if (statusEl) statusEl.textContent = 'Session complete while you were away. 🏆';
+    } else {
+      timerSeconds = remaining; timerMode = state.mode || timerMode;
+      var dispEl = document.getElementById('timer-display');
+      if (dispEl) dispEl.textContent = String(Math.floor(remaining/60)).padStart(2,'0')+':'+String(remaining%60).padStart(2,'0');
+      timerRunning = true;
+      document.getElementById('timer-start-btn').textContent = 'Pause';
+      document.getElementById('timer-status').textContent = 'Session in progress. Lock in. 🔥';
+      var resetBtn = document.querySelector('.timer-btn.reset');
+      if (resetBtn) resetBtn.classList.add('active');
+      timerInterval = setInterval(timerTick, 1000);
+    }
+  } catch(e) { clearTimerState(); }
+}
 var focusQuotes = ['One hour of focused work beats eight hours of busy work.','Clarity on what NOT to do is more valuable than a to-do list.','The most effective people protect their time like money.','Deep work is the skill that separates effective from busy.'];
 
 function setMode(mode, minutes) {
@@ -1453,30 +1528,55 @@ function setMode(mode, minutes) {
   var lbl = document.getElementById('timer-mode-label'); if (lbl) lbl.textContent = labels[mode]||mode;
 }
 
+function timerTick() {
+  var saved = localStorage.getItem('luhv_timer');
+  if (saved) { try { timerSeconds = Math.max(0, Math.round((JSON.parse(saved).endTime - Date.now()) / 1000)); } catch(e) {} }
+  else timerSeconds--;
+  if (timerSeconds < 0) timerSeconds = 0;
+  document.getElementById('timer-display').textContent = String(Math.floor(timerSeconds/60)).padStart(2,'0')+':'+String(timerSeconds%60).padStart(2,'0');
+  if (timerSeconds <= 0) {
+    clearInterval(timerInterval); timerRunning = false; clearTimerState();
+    document.getElementById('timer-status').textContent = 'Session complete. That is one win. 🏆';
+    document.getElementById('timer-start-btn').textContent = 'Start ⚡';
+    var resetBtn = document.querySelector('.timer-btn.reset');
+    if (resetBtn) resetBtn.classList.remove('active');
+    var task = (document.getElementById('focus-task')||{}).value || (timerMode+' session');
+    task = task.trim() || timerMode + ' session';
+    sessionsToday.push({ task, time: new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) });
+    renderSessions(); timerSeconds = timerTotal;
+    document.getElementById('timer-display').textContent = String(Math.floor(timerSeconds/60)).padStart(2,'0')+':00';
+    sendTimerNotification(task);
+    if (timerMode !== 'break') showGoalLinkModal();
+  }
+}
+
 function startTimer() {
-  if (timerRunning) { clearInterval(timerInterval); timerRunning = false; document.getElementById('timer-start-btn').textContent = 'Resume ⚡'; document.getElementById('timer-status').textContent = 'Paused.'; return; }
-  timerRunning = true; document.getElementById('timer-start-btn').textContent = 'Pause'; document.getElementById('timer-status').textContent = 'Session in progress. Lock in. 🔥';
-  timerInterval = setInterval(() => {
-    timerSeconds--;
-    document.getElementById('timer-display').textContent = String(Math.floor(timerSeconds/60)).padStart(2,'0')+':'+String(timerSeconds%60).padStart(2,'0');
-    if (timerSeconds <= 0) {
-      clearInterval(timerInterval); timerRunning = false;
-      document.getElementById('timer-status').textContent = 'Session complete. That is one win. 🏆';
-      document.getElementById('timer-start-btn').textContent = 'Start ⚡';
-      var task = (document.getElementById('focus-task')||{}).value || (timerMode+' session');
-      sessionsToday.push({ task: task.trim()||timerMode+' session', time: new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) });
-      renderSessions(); timerSeconds = timerTotal;
-      document.getElementById('timer-display').textContent = String(Math.floor(timerSeconds/60)).padStart(2,'0')+':00';
-      if (timerMode !== 'break') showGoalLinkModal();
-    }
-  }, 1000);
+  if (timerRunning) {
+    clearInterval(timerInterval); timerRunning = false; clearTimerState();
+    document.getElementById('timer-start-btn').textContent = 'Resume ⚡';
+    document.getElementById('timer-status').textContent = 'Paused.';
+    var resetBtn = document.querySelector('.timer-btn.reset');
+    if (resetBtn) resetBtn.classList.remove('active');
+    return;
+  }
+  requestNotificationPermission();
+  timerRunning = true;
+  document.getElementById('timer-start-btn').textContent = 'Pause';
+  document.getElementById('timer-status').textContent = 'Session in progress. Lock in. 🔥';
+  var resetBtn = document.querySelector('.timer-btn.reset');
+  if (resetBtn) resetBtn.classList.add('active');
+  var task = (document.getElementById('focus-task')||{}).value || (timerMode+' session');
+  saveTimerState(Date.now() + timerSeconds * 1000, timerMode, task.trim());
+  timerInterval = setInterval(timerTick, 1000);
 }
 
 function resetTimer() {
-  clearInterval(timerInterval); timerRunning = false; timerSeconds = timerTotal;
+  clearInterval(timerInterval); timerRunning = false; timerSeconds = timerTotal; clearTimerState();
   document.getElementById('timer-display').textContent = String(Math.floor(timerSeconds/60)).padStart(2,'0')+':00';
   document.getElementById('timer-start-btn').textContent = 'Start ⚡';
   document.getElementById('timer-status').textContent = 'Ready when you are.';
+  var resetBtn = document.querySelector('.timer-btn.reset');
+  if (resetBtn) resetBtn.classList.remove('active');
 }
 
 function renderSessions() {

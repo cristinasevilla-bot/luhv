@@ -791,6 +791,21 @@ app.patch('/api/goals/:id/progress', auth, async (req, res) => {
   res.json(rows[0]);
 });
 
+app.delete('/api/goals/:id', auth, async (req, res) => {
+  await db.query('DELETE FROM goals WHERE id=$1 AND user_id=$2', [req.params.id, req.user.id]);
+  res.json({ success: true });
+});
+
+app.patch('/api/goals/:id/title', auth, async (req, res) => {
+  const { title } = req.body;
+  if (!title?.trim()) return res.status(400).json({ error: 'Title required' });
+  const { rows } = await db.query(
+    'UPDATE goals SET title=$1 WHERE id=$2 AND user_id=$3 RETURNING *',
+    [title.trim(), req.params.id, req.user.id]
+  );
+  res.json(rows[0] || null);
+});
+
 // ── JOURNAL ───────────────────────────────────────────────────────────────────
 app.get('/api/journal', auth, async (req, res) => {
   const { rows } = await db.query(

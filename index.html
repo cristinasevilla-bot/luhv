@@ -740,9 +740,18 @@ async function loadCoachGreeting() {
   if (!card || !textEl) return;
   card.style.display = 'flex';
   try {
-    var data = await api('/api/coach/greeting');
+    // Give Render extra time to wake up — retry up to 3 times
+    var data = null;
+    for (var attempt = 0; attempt < 3; attempt++) {
+      data = await api('/api/coach/greeting');
+      if (data && data.greeting) break;
+      await new Promise(r => setTimeout(r, 3000));
+    }
     if (data && data.greeting) {
-      textEl.textContent = data.greeting;
+      textEl.innerHTML = data.greeting;
+      card.style.opacity = '0';
+      card.style.transition = 'opacity .4s';
+      setTimeout(() => { card.style.opacity = '1'; }, 50);
     } else {
       card.style.display = 'none';
     }

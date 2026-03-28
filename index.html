@@ -243,6 +243,41 @@ body{background:
 .focus-mode.active{border-color:var(--blue);background:rgba(14,165,233,.08)}
 .focus-mode-label{font-size:12px;font-weight:700;margin-bottom:2px}
 .focus-mode-sub{font-size:11px;color:var(--muted)}
+
+/* ── ONBOARDING ── */
+#onboarding-modal{position:fixed;inset:0;z-index:2000;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.9);padding:0}
+.ob-box{background:linear-gradient(180deg,#0d1520,#080f18);border-radius:28px 28px 0 0;padding:32px 24px 40px;width:100%;max-width:390px;min-height:60vh;display:flex;flex-direction:column}
+.ob-progress{display:flex;gap:6px;margin-bottom:28px}
+.ob-dot{flex:1;height:3px;border-radius:99px;background:rgba(255,255,255,.12);transition:.3s}
+.ob-dot.done{background:var(--teal)}
+.ob-dot.active{background:var(--blue)}
+.ob-step-label{font-size:10px;color:var(--teal);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:10px}
+.ob-question{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:.5px;line-height:1.1;margin-bottom:8px}
+.ob-sub{font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:24px}
+.ob-options{display:flex;flex-direction:column;gap:10px;flex:1}
+.ob-option{padding:14px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);font-size:14px;cursor:pointer;transition:all .2s;text-align:left;color:#fff;font-family:'DM Sans',sans-serif}
+.ob-option:hover,.ob-option.selected{border-color:var(--teal);background:rgba(6,214,160,.1);color:var(--teal)}
+.ob-input{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px 16px;color:#fff;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;resize:none;min-height:80px}
+.ob-input:focus{border-color:var(--blue)}
+.ob-next{width:100%;padding:15px;border:none;border-radius:14px;background:linear-gradient(135deg,var(--blue),var(--teal));color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:16px;opacity:.4;transition:.2s}
+.ob-next.ready{opacity:1}
+
+/* ── EFFECTIVENESS SCORE ── */
+.score-card{margin:0 20px 16px;background:linear-gradient(135deg,rgba(14,165,233,.1),rgba(6,214,160,.06));border:1px solid rgba(14,165,233,.25);border-radius:20px;padding:20px}
+.score-top{display:flex;align-items:center;gap:16px;margin-bottom:16px}
+.score-circle{width:72px;height:72px;border-radius:50%;background:conic-gradient(var(--teal) 0%, rgba(255,255,255,.08) 0%);display:flex;align-items:center;justify-content:center;flex-direction:column;flex-shrink:0;position:relative}
+.score-circle-inner{width:58px;height:58px;border-radius:50%;background:#080f18;display:flex;align-items:center;justify-content:center;flex-direction:column;position:absolute}
+.score-num{font-family:'Bebas Neue',sans-serif;font-size:24px;color:#fff;line-height:1}
+.score-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.score-info{flex:1}
+.score-level{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;margin-bottom:4px}
+.score-msg{font-size:12px;color:var(--muted);line-height:1.4}
+.score-bars{display:flex;flex-direction:column;gap:8px}
+.score-bar-row{display:flex;align-items:center;gap:10px}
+.score-bar-label{font-size:11px;color:var(--muted);width:70px;flex-shrink:0;text-transform:uppercase;letter-spacing:.5px}
+.score-bar-track{flex:1;height:5px;background:rgba(255,255,255,.07);border-radius:99px;overflow:hidden}
+.score-bar-fill{height:100%;border-radius:99px;transition:width .6s}
+.score-bar-val{font-size:11px;font-weight:700;width:28px;text-align:right;flex-shrink:0}
 .goal-modal{position:fixed;inset:0;z-index:999;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.7);padding:20px}
 .goal-modal-box{background:#111827;border:1px solid rgba(14,165,233,.2);border-radius:24px 24px 20px 20px;padding:24px;width:100%;max-width:390px}
 .goal-modal-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;margin-bottom:6px}
@@ -281,6 +316,18 @@ body{background:
   </div>
 </div>
 <button class="help-btn" id="help-btn" onclick="startTour()" title="App guide">?</button>
+<!-- ONBOARDING MODAL -->
+<div id="onboarding-modal" style="display:none">
+  <div class="ob-box">
+    <div class="ob-progress" id="ob-progress"></div>
+    <div class="ob-step-label" id="ob-step-label">Step 1 of 5</div>
+    <div class="ob-question" id="ob-question">Loading...</div>
+    <div class="ob-sub" id="ob-sub"></div>
+    <div class="ob-options" id="ob-options"></div>
+    <button class="ob-next" id="ob-next" onclick="obNext()">Continue →</button>
+  </div>
+</div>
+
 <!-- AUTH -->
 <div id="auth-screen">
   <div class="auth-box">
@@ -320,6 +367,28 @@ body{background:
       <div class="greet">Good morning,</div>
       <div class="hname" id="user-name-display">CHAMPION 👊</div>
       <div class="streak-pill">🔥 <span id="streak-count">0</span>-Day Streak</div>
+    </div>
+
+    <!-- EFFECTIVENESS SCORE -->
+    <div class="score-card" id="score-card" style="display:none">
+      <div class="score-top">
+        <div class="score-circle" id="score-circle">
+          <div class="score-circle-inner">
+            <div class="score-num" id="score-num">—</div>
+            <div class="score-label">Score</div>
+          </div>
+        </div>
+        <div class="score-info">
+          <div class="score-level" id="score-level">LOADING...</div>
+          <div class="score-msg" id="score-msg">Calculating your effectiveness...</div>
+        </div>
+      </div>
+      <div class="score-bars">
+        <div class="score-bar-row"><div class="score-bar-label">Mindset</div><div class="score-bar-track"><div class="score-bar-fill" id="bar-mindset" style="width:0%;background:var(--purple)"></div></div><div class="score-bar-val" id="val-mindset" style="color:var(--purple)">0</div></div>
+        <div class="score-bar-row"><div class="score-bar-label">Action</div><div class="score-bar-track"><div class="score-bar-fill" id="bar-action" style="width:0%;background:var(--blue)"></div></div><div class="score-bar-val" id="val-action" style="color:var(--blue)">0</div></div>
+        <div class="score-bar-row"><div class="score-bar-label">Momentum</div><div class="score-bar-track"><div class="score-bar-fill" id="bar-momentum" style="width:0%;background:var(--teal)"></div></div><div class="score-bar-val" id="val-momentum" style="color:var(--teal)">0</div></div>
+        <div class="score-bar-row"><div class="score-bar-label">Alignment</div><div class="score-bar-track"><div class="score-bar-fill" id="bar-alignment" style="width:0%;background:var(--yellow)"></div></div><div class="score-bar-val" id="val-alignment" style="color:var(--yellow)">0</div></div>
+      </div>
     </div>
 
     <div id="coach-greeting-card" class="coach-greeting" style="display:none">
@@ -730,8 +799,9 @@ async function initApp() {
   loadPrompt();
   initDemoNudges();
   loadCoachGreeting();
+  loadEffectivenessScore();
+  checkOnboarding();
   document.getElementById('help-btn').style.display = 'flex';
-  restoreTimerIfRunning();
   if (!localStorage.getItem('luhv_welcomed')) { setTimeout(showWelcome, 600); }
 }
 
@@ -749,6 +819,181 @@ async function loadCoachGreeting() {
     }
   } catch(e) {
     card.style.display = 'none';
+  }
+}
+
+// ── EFFECTIVENESS SCORE ──────────────────────────────────────────────────────
+async function loadEffectivenessScore() {
+  var card = document.getElementById('score-card');
+  if (!card) return;
+  card.style.display = 'block';
+  try {
+    var data = await api('/api/effectiveness-score');
+    if (!data || data.error) { card.style.display = 'none'; return; }
+    document.getElementById('score-num').textContent = data.total;
+    document.getElementById('score-level').textContent = data.level.toUpperCase();
+    document.getElementById('score-msg').textContent = data.message;
+    var levelColors = { Peak: '#06d6a0', Effective: '#0ea5e9', Great: '#fbbf24', Good: '#6b7280' };
+    document.getElementById('score-level').style.color = levelColors[data.level] || '#fff';
+    var b = data.breakdown;
+    var pct = function(v) { return Math.round((v/25)*100); };
+    document.getElementById('bar-mindset').style.width  = pct(b.mindset)   + '%';
+    document.getElementById('bar-action').style.width   = pct(b.action)    + '%';
+    document.getElementById('bar-momentum').style.width = pct(b.momentum)  + '%';
+    document.getElementById('bar-alignment').style.width= pct(b.alignment) + '%';
+    document.getElementById('val-mindset').textContent  = b.mindset;
+    document.getElementById('val-action').textContent   = b.action;
+    document.getElementById('val-momentum').textContent = b.momentum;
+    document.getElementById('val-alignment').textContent= b.alignment;
+    // Animated conic gradient circle
+    var circle = document.getElementById('score-circle');
+    var color  = levelColors[data.level] || '#0ea5e9';
+    var deg    = Math.round((data.total / 100) * 360);
+    circle.style.background = 'conic-gradient(' + color + ' ' + deg + 'deg, rgba(255,255,255,.08) ' + deg + 'deg)';
+  } catch(e) { document.getElementById('score-card').style.display = 'none'; }
+}
+
+// ── ONBOARDING ────────────────────────────────────────────────────────────────
+var obStep = 0;
+var obAnswers = {};
+var obSteps = [
+  {
+    label: 'Step 1 of 5 — Mindset',
+    question: 'Which area of your life feels most stuck right now?',
+    sub: 'Be honest — this is where we focus first.',
+    key: 'stuck_area',
+    type: 'options',
+    options: ['Mindset & beliefs', 'Confidence', 'Time & focus', 'Goals & direction', 'Relationships']
+  },
+  {
+    label: 'Step 2 of 5 — Obstacle',
+    question: 'What is your biggest obstacle to being more effective?',
+    sub: 'From the book: awareness is the first step to change.',
+    key: 'obstacle',
+    type: 'options',
+    options: ['Distraction & procrastination', 'Lack of clarity', 'No accountability', 'Overwhelm', 'Fear of failure']
+  },
+  {
+    label: 'Step 3 of 5 — Vision',
+    question: 'What does going from Good to Great look like for you?',
+    sub: 'Your answer personalizes everything — coach, goals, daily plan.',
+    key: 'good_to_great',
+    type: 'text',
+    placeholder: 'Example: Building a business while having time for my family...'
+  },
+  {
+    label: 'Step 4 of 5 — Growth',
+    question: 'How do you prefer to grow?',
+    sub: 'We will weight your Effectiveness Score around this.',
+    key: 'growth_style',
+    type: 'options',
+    options: ['Learning & knowledge', 'Taking action fast', 'Accountability & check-ins', 'Systems & structure']
+  },
+  {
+    label: 'Step 5 of 5 — Your First Goal',
+    question: 'What is one goal you want to achieve in the next 90 days?',
+    sub: 'We will create it as your first goal automatically.',
+    key: 'goal_90days',
+    type: 'text',
+    placeholder: 'Example: Launch my online course with 50 paying students...'
+  }
+];
+
+async function checkOnboarding() {
+  try {
+    var data = await api('/api/onboarding/status');
+    if (data && !data.done) {
+      setTimeout(startOnboarding, 800);
+    }
+  } catch(e) {}
+}
+
+function startOnboarding() {
+  obStep = 0; obAnswers = {};
+  renderObStep();
+  document.getElementById('onboarding-modal').style.display = 'flex';
+}
+
+function renderObStep() {
+  var step = obSteps[obStep];
+  document.getElementById('ob-step-label').textContent = step.label;
+  document.getElementById('ob-question').textContent   = step.question;
+  document.getElementById('ob-sub').textContent        = step.sub;
+
+  // Progress dots
+  var dots = document.getElementById('ob-progress');
+  dots.innerHTML = obSteps.map(function(_, i) {
+    var cls = i < obStep ? 'done' : i === obStep ? 'active' : '';
+    return '<div class="ob-dot ' + cls + '"></div>';
+  }).join('');
+
+  // Options or text input
+  var optEl = document.getElementById('ob-options');
+  var nextBtn = document.getElementById('ob-next');
+  nextBtn.classList.remove('ready');
+
+  if (step.type === 'options') {
+    optEl.innerHTML = '';
+    step.options.forEach(function(o) {
+      var btn = document.createElement('button');
+      btn.className = 'ob-option' + (obAnswers[step.key] === o ? ' selected' : '');
+      btn.textContent = o;
+      btn.dataset.value = o;
+      btn.onclick = function() { obSelect(this, this.dataset.value); };
+      optEl.appendChild(btn);
+    });
+    if (obAnswers[step.key]) nextBtn.classList.add('ready');
+  } else {
+    var saved = obAnswers[step.key] || '';
+    optEl.innerHTML = '<textarea class="ob-input" id="ob-text-input" placeholder="' + step.placeholder + '" oninput="obTextInput(this)">' + saved + '</textarea>';
+    if (saved.trim().length > 3) nextBtn.classList.add('ready');
+    setTimeout(function() { var el = document.getElementById('ob-text-input'); if (el) el.focus(); }, 100);
+  }
+
+  nextBtn.textContent = obStep === obSteps.length - 1 ? 'Complete Setup 🏆' : 'Continue →';
+}
+
+function obSelect(el, value) {
+  document.querySelectorAll('.ob-option').forEach(function(o) { o.classList.remove('selected'); });
+  el.classList.add('selected');
+  obAnswers[obSteps[obStep].key] = value;
+  document.getElementById('ob-next').classList.add('ready');
+}
+
+function obTextInput(el) {
+  obAnswers[obSteps[obStep].key] = el.value;
+  var nextBtn = document.getElementById('ob-next');
+  if (el.value.trim().length > 3) nextBtn.classList.add('ready');
+  else nextBtn.classList.remove('ready');
+}
+
+async function obNext() {
+  var step = obSteps[obStep];
+  if (!obAnswers[step.key] || obAnswers[step.key].toString().trim().length === 0) return;
+
+  if (obStep < obSteps.length - 1) {
+    obStep++;
+    renderObStep();
+  } else {
+    // Complete onboarding
+    var btn = document.getElementById('ob-next');
+    btn.textContent = 'Setting up your app...';
+    btn.disabled = true;
+    obAnswers.name = USER?.name || '';
+    try {
+      var result = await api('/api/onboarding/complete', { method: 'POST', body: JSON.stringify({ data: obAnswers }) });
+      document.getElementById('onboarding-modal').style.display = 'none';
+      // Show personalized welcome in coach
+      if (result && result.welcomeMessage) {
+        switchPage('ai');
+        setTimeout(function() { addMsg(result.welcomeMessage, 'a'); }, 400);
+      }
+      // Reload goals and score
+      await loadGoals();
+      await loadEffectivenessScore();
+    } catch(e) {
+      document.getElementById('onboarding-modal').style.display = 'none';
+    }
   }
 }
 
@@ -882,13 +1127,11 @@ async function loadGoals() {
     const pct = Math.round((g.progress / g.target) * 100);
     return `<div class="gcard">
       <div class="gtop"><div class="gtitle">${g.title}</div><div class="gbadge">${pct >= 100 ? 'Done' : 'Active'}</div></div>
-      <div style="display:flex;align-items:center;gap:10px;margin:10px 0 4px">
-        <button onclick="quickProgress(${g.id},${pct},-5)" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:#fff;font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center">−</button>
-        <div style="flex:1"><div class="pbw"><div class="pbf" style="width:${pct}%;background:${pct >= 100 ? 'var(--teal)' : 'linear-gradient(90deg,var(--blue),var(--purple))'}"></div></div></div>
-        <button onclick="quickProgress(${g.id},${pct},5)" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(14,165,233,.3);background:rgba(14,165,233,.1);color:var(--blue);font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center">+</button>
-        <span style="font-size:14px;font-weight:700;color:var(--blue);min-width:36px;text-align:right">${pct}%</span>
+      <div class="pbw"><div class="pbf" style="width:${pct}%;background:${pct >= 100 ? 'var(--teal)' : 'linear-gradient(90deg,var(--blue),var(--purple))'}"></div></div>
+      <div class="gstats"><span>${pct}% complete</span><span>${g.deadline ? ('Due ' + g.deadline) : 'No deadline'}</span></div>
+      <div style="margin-top:10px;display:flex;gap:8px;">
+        <button onclick="updateProgress(${g.id}, ${g.progress}, ${g.target})" style="flex:1;padding:9px 12px;border:none;border-radius:10px;background:rgba(14,165,233,.12);color:var(--blue);font-size:12px;font-weight:700;cursor:pointer;">Update Progress</button>
       </div>
-      <div class="gstats"><span>${g.deadline ? 'Due ' + new Date(g.deadline).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : 'No deadline'}</span></div>
     </div>`;
   }).join('');
   renderProgressGoals(goals);
@@ -920,12 +1163,6 @@ async function updateProgress(id, current, target) {
   const result = await api("/api/goals/" + id + "/progress", { method: "PATCH", body: JSON.stringify({ progress: pct }) });
   if (!result || result.error) { alert(result?.error || "Could not update"); return; }
   await loadGoals();
-}
-
-async function quickProgress(id, currentPct, delta) {
-  var newPct = Math.min(100, Math.max(0, currentPct + delta));
-  var result = await api('/api/goals/' + id + '/progress', { method: 'PATCH', body: JSON.stringify({ progress: newPct }) });
-  if (result && !result.error) await loadGoals();
 }
 
 async function loadJournal() {
@@ -1043,47 +1280,6 @@ function parseMarkdown(text) {
 
 // ── FOCUS TIMER ──────────────────────────────────────────
 var timerInterval = null, timerSeconds = 25*60, timerRunning = false, timerMode = 'deep', timerTotal = 25*60, sessionsToday = [];
-
-function requestNotificationPermission() {
-  if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
-}
-function sendTimerNotification(task) {
-  if ('Notification' in window && Notification.permission === 'granted') {
-    new Notification('Session complete! 🏆', { body: task + ' — That is one win!', icon: '/icon-192.png' });
-  }
-}
-
-// Save end time to localStorage so timer survives app minimise/background
-function saveTimerState(endTime, mode, task) {
-  localStorage.setItem('luhv_timer', JSON.stringify({ endTime, mode, task }));
-}
-function clearTimerState() {
-  localStorage.removeItem('luhv_timer');
-}
-function restoreTimerIfRunning() {
-  var saved = localStorage.getItem('luhv_timer');
-  if (!saved) return;
-  try {
-    var state = JSON.parse(saved);
-    var remaining = Math.round((state.endTime - Date.now()) / 1000);
-    if (remaining <= 0) {
-      // Timer already finished while app was closed
-      clearTimerState();
-      sendTimerNotification(state.task || state.mode + ' session');
-      document.getElementById('timer-status').textContent = 'Session complete while you were away. 🏆';
-      document.getElementById('timer-display').textContent = String(Math.floor(timerTotal/60)).padStart(2,'0') + ':00';
-    } else {
-      // Timer still running — resume it
-      timerSeconds = remaining;
-      timerMode = state.mode || timerMode;
-      document.getElementById('timer-display').textContent = String(Math.floor(remaining/60)).padStart(2,'0')+':'+String(remaining%60).padStart(2,'0');
-      document.getElementById('timer-status').textContent = 'Session in progress. Lock in. 🔥';
-      document.getElementById('timer-start-btn').textContent = 'Pause';
-      timerRunning = true;
-      timerInterval = setInterval(timerTick, 1000);
-    }
-  } catch(e) { clearTimerState(); }
-}
 var focusQuotes = ['One hour of focused work beats eight hours of busy work.','Clarity on what NOT to do is more valuable than a to-do list.','The most effective people protect their time like money.','Deep work is the skill that separates effective from busy.'];
 
 function setMode(mode, minutes) {
@@ -1098,59 +1294,30 @@ function setMode(mode, minutes) {
   var lbl = document.getElementById('timer-mode-label'); if (lbl) lbl.textContent = labels[mode]||mode;
 }
 
-function timerTick() {
-  // Recalculate from localStorage in case app was backgrounded
-  var saved = localStorage.getItem('luhv_timer');
-  if (saved) {
-    try {
-      var state = JSON.parse(saved);
-      timerSeconds = Math.round((state.endTime - Date.now()) / 1000);
-      if (timerSeconds < 0) timerSeconds = 0;
-    } catch(e) {}
-  } else {
-    timerSeconds--;
-  }
-  document.getElementById('timer-display').textContent = String(Math.floor(timerSeconds/60)).padStart(2,'0')+':'+String(timerSeconds%60).padStart(2,'0');
-  if (timerSeconds <= 0) {
-    clearInterval(timerInterval); timerRunning = false; clearTimerState();
-    document.getElementById('timer-status').textContent = 'Session complete. That is one win. 🏆';
-    document.getElementById('timer-start-btn').textContent = 'Start ⚡';
-    document.querySelector('.timer-btn.reset').classList.remove('active');
-    var task = (document.getElementById('focus-task')||{}).value || (timerMode+' session');
-    task = task.trim() || timerMode + ' session';
-    sessionsToday.push({ task: task, time: new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) });
-    renderSessions(); timerSeconds = timerTotal;
-    document.getElementById('timer-display').textContent = String(Math.floor(timerSeconds/60)).padStart(2,'0')+':00';
-    sendTimerNotification(task);
-    if (timerMode !== 'break') showGoalLinkModal();
-  }
-}
-
 function startTimer() {
-  if (timerRunning) {
-    clearInterval(timerInterval); timerRunning = false; clearTimerState();
-    document.getElementById('timer-start-btn').textContent = 'Resume ⚡';
-    document.getElementById('timer-status').textContent = 'Paused.';
-    document.querySelector('.timer-btn.reset').classList.remove('active');
-    return;
-  }
-  requestNotificationPermission();
-  timerRunning = true;
-  document.getElementById('timer-start-btn').textContent = 'Pause';
-  document.getElementById('timer-status').textContent = 'Session in progress. Lock in. 🔥';
-  document.querySelector('.timer-btn.reset').classList.add('active');
-  var task = (document.getElementById('focus-task')||{}).value || (timerMode+' session');
-  saveTimerState(Date.now() + timerSeconds * 1000, timerMode, task.trim());
-  timerInterval = setInterval(timerTick, 1000);
+  if (timerRunning) { clearInterval(timerInterval); timerRunning = false; document.getElementById('timer-start-btn').textContent = 'Resume ⚡'; document.getElementById('timer-status').textContent = 'Paused.'; return; }
+  timerRunning = true; document.getElementById('timer-start-btn').textContent = 'Pause'; document.getElementById('timer-status').textContent = 'Session in progress. Lock in. 🔥';
+  timerInterval = setInterval(() => {
+    timerSeconds--;
+    document.getElementById('timer-display').textContent = String(Math.floor(timerSeconds/60)).padStart(2,'0')+':'+String(timerSeconds%60).padStart(2,'0');
+    if (timerSeconds <= 0) {
+      clearInterval(timerInterval); timerRunning = false;
+      document.getElementById('timer-status').textContent = 'Session complete. That is one win. 🏆';
+      document.getElementById('timer-start-btn').textContent = 'Start ⚡';
+      var task = (document.getElementById('focus-task')||{}).value || (timerMode+' session');
+      sessionsToday.push({ task: task.trim()||timerMode+' session', time: new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) });
+      renderSessions(); timerSeconds = timerTotal;
+      document.getElementById('timer-display').textContent = String(Math.floor(timerSeconds/60)).padStart(2,'0')+':00';
+      if (timerMode !== 'break') showGoalLinkModal();
+    }
+  }, 1000);
 }
 
 function resetTimer() {
-  clearInterval(timerInterval); timerRunning = false; timerSeconds = timerTotal; clearTimerState();
+  clearInterval(timerInterval); timerRunning = false; timerSeconds = timerTotal;
   document.getElementById('timer-display').textContent = String(Math.floor(timerSeconds/60)).padStart(2,'0')+':00';
   document.getElementById('timer-start-btn').textContent = 'Start ⚡';
   document.getElementById('timer-status').textContent = 'Ready when you are.';
-  var resetBtn = document.querySelector('.timer-btn.reset');
-  if (resetBtn) resetBtn.classList.remove('active');
 }
 
 function renderSessions() {

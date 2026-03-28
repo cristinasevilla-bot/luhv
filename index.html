@@ -740,18 +740,9 @@ async function loadCoachGreeting() {
   if (!card || !textEl) return;
   card.style.display = 'flex';
   try {
-    // Give Render extra time to wake up — retry up to 3 times
-    var data = null;
-    for (var attempt = 0; attempt < 3; attempt++) {
-      data = await api('/api/coach/greeting');
-      if (data && data.greeting) break;
-      await new Promise(r => setTimeout(r, 3000));
-    }
+    var data = await api('/api/coach/greeting');
     if (data && data.greeting) {
-      textEl.innerHTML = data.greeting;
-      card.style.opacity = '0';
-      card.style.transition = 'opacity .4s';
-      setTimeout(() => { card.style.opacity = '1'; }, 50);
+      textEl.textContent = data.greeting;
     } else {
       card.style.display = 'none';
     }
@@ -891,10 +882,13 @@ async function loadGoals() {
     return `<div class="gcard">
       <div class="gtop"><div class="gtitle">${g.title}</div><div class="gbadge">${pct >= 100 ? 'Done' : 'Active'}</div></div>
       <div class="pbw"><div class="pbf" style="width:${pct}%;background:${pct >= 100 ? 'var(--teal)' : 'linear-gradient(90deg,var(--blue),var(--purple))'}"></div></div>
-      <div class="gstats"><span>${pct}% complete</span><span>${g.deadline ? ('Due ' + g.deadline) : 'No deadline'}</span></div>
-      <div style="margin-top:10px;display:flex;gap:8px;">
-        <button onclick="updateProgress(${g.id}, ${g.progress}, ${g.target})" style="flex:1;padding:9px 12px;border:none;border-radius:10px;background:rgba(14,165,233,.12);color:var(--blue);font-size:12px;font-weight:700;cursor:pointer;">Update Progress</button>
+      <div style="display:flex;align-items:center;gap:10px;margin:10px 0 4px">
+        <button onclick="quickProgress(${g.id},${pct},-5)" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:#fff;font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center">−</button>
+        <div style="flex:1"><div class="pbw"><div class="pbf" style="width:${pct}%;background:${pct >= 100 ? 'var(--teal)' : 'linear-gradient(90deg,var(--blue),var(--purple))'}"></div></div></div>
+        <button onclick="quickProgress(${g.id},${pct},5)" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(14,165,233,.3);background:rgba(14,165,233,.1);color:var(--blue);font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center">+</button>
+        <span style="font-size:14px;font-weight:700;color:var(--blue);min-width:36px;text-align:right">${pct}%</span>
       </div>
+      <div class="gstats"><span>${g.deadline ? 'Due ' + new Date(g.deadline).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : 'No deadline'}</span></div>
     </div>`;
   }).join('');
   renderProgressGoals(goals);
@@ -926,6 +920,12 @@ async function updateProgress(id, current, target) {
   const result = await api("/api/goals/" + id + "/progress", { method: "PATCH", body: JSON.stringify({ progress: pct }) });
   if (!result || result.error) { alert(result?.error || "Could not update"); return; }
   await loadGoals();
+}
+
+async function quickProgress(id, currentPct, delta) {
+  var newPct = Math.min(100, Math.max(0, currentPct + delta));
+  var result = await api('/api/goals/' + id + '/progress', { method: 'PATCH', body: JSON.stringify({ progress: newPct }) });
+  if (result && !result.error) await loadGoals();
 }
 
 async function loadJournal() {
@@ -1011,6 +1011,8 @@ function switchPage(name) {
   if (name === 'journal') { loadJournal(); loadGoals(); }
   if (name === 'goals')   loadGoals();
   if (name === 'focus')   loadFocusPage();
+  var helpBtn = document.getElementById('help-btn');
+  if (helpBtn) helpBtn.style.display = name === 'ai' ? 'none' : 'flex';
 }
 
 document.addEventListener('DOMContentLoaded', () => {

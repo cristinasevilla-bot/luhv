@@ -1008,6 +1008,63 @@ COACH: [2-4 sentences — give clear direction. If aligned: reinforce and push f
 });
 
 // ── HEALTH ────────────────────────────────────────────────────────────────────
+
+// ── PROACTIVE COACH GREETING ──────────────────────────────────────────────────
+app.get('/api/coach/greeting', auth, async (req, res) => {
+  try {
+    const { rows: [user] }  = await db.query('SELECT name, streak FROM users WHERE id=$1', [req.user.id]);
+    const { rows: goals }   = await db.query("SELECT title, progress, target, updated_at FROM goals WHERE user_id=$1 AND status='active' ORDER BY updated_at ASC", [req.user.id]);
+    const { rows: entries } = await db.query('SELECT mood, created_at FROM journal_entries WHERE user_id=$1 ORDER BY created_at DESC LIMIT 5', [req.user.id]);
+    const { rows: [lastChat] } = await db.query('SELECT created_at FROM conversations WHERE user_id=$1 ORDER BY created_at DESC LIMIT 1', [req.user.id]);
+
+    const now = new Date();
+    const hour = now.getHours();
+    const timeOfDay = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
+
+    const stalledGoals = goals.filter(g => {
+      const daysSince = (now - new Date(g.updated_at)) / (1000 * 60 * 60 * 24);
+      return daysSince > 2 && Math.round((g.progress / g.target) * 100) < 100;
+    });
+
+    const lastMood = entries[0]?.mood || null;
+    const daysSinceChat = lastChat ? Math.floor((now - new Date(lastChat.created_at)) / (1000 * 60 * 60 * 24)) : 999;
+
+    const context = `
+USER: ${user.name}
+Streak: ${user.streak} days
+Time of day: ${timeOfDay}
+Active goals: ${goals.map(g => `${g.title.replace(/^\[.*?\]\s*/, '')} (${Math.round((g.progress / g.target) * 100)}%)`).join(', ') || 'none yet'}
+Goals with no progress in 2+ days: ${stalledGoals.map(g => g.title.replace(/^\[.*?\]\s*/, '')).join(', ') || 'none'}
+Last mood logged: ${lastMood || 'none'}
+Days since last coach chat: ${daysSinceChat}
+`;
+
+    const prompt = `Generate a short, proactive opening message from the coach for ${user.name} this ${timeOfDay}.
+
+Rules:
+- Max 2 sentences. No more.
+- Be specific — reference their actual goals, streak or mood if relevant.
+- If they have stalled goals, gently call one out with a question.
+- If streak > 3, acknowledge it with energy.
+- If it's morning, set the tone for the day. If evening, reflect on progress.
+- Sound like a real coach, not a motivational poster.
+- End with either a question or a direct challenge. Never both.
+- No emojis at the start. One max at the end if it fits naturally.`;
+
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 120,
+      system: buildCoachSystem(context, '', 'chat'),
+      messages: [{ role: 'user', content: prompt }]
+    });
+
+    res.json({ greeting: response.content[0].text });
+  } catch (e) {
+    console.error('Greeting error:', e);
+    res.json({ greeting: null });
+  }
+});
+
 app.get('/health', (_, res) => res.json({ status: 'ok', service: 'Luhv+ API' }));
 
 app.listen(PORT, '0.0.0.0', () => console.log(`🏆 Luhv+ API running on port ${PORT}`));

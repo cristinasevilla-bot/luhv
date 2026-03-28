@@ -118,10 +118,10 @@ body{background:var(--black);font-family:'DM Sans',sans-serif;color:#fff;min-hei
 .jwbtn{background:var(--purple);border:none;border-radius:10px;padding:9px 16px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif}
 
 /* NAV */
-.bnav{background:rgba(10,10,15,.95);backdrop-filter:blur(12px);border-top:0.5px solid rgba(14,165,233,.12);padding:8px 10px 14px;display:flex;justify-content:space-around}
-.ni{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:5px 12px;border-radius:12px;transition:background .2s;flex:1}
+.bnav{background:rgba(10,10,15,.95);backdrop-filter:blur(12px);border-top:0.5px solid rgba(14,165,233,.12);padding:6px 4px 12px;display:flex;justify-content:space-around}
+.ni{display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:4px 6px;border-radius:10px;transition:background .2s;flex:1}
 .ni.active{background:rgba(14,165,233,.1)}
-.nico{font-size:20px}.nlbl{font-size:10px;color:var(--muted)}
+.nico{font-size:18px}.nlbl{font-size:9px;color:var(--muted)}
 .ni.active .nlbl{color:var(--blue)}
 
 /* ── ONBOARDING ── */
@@ -742,11 +742,12 @@ body{background:
   </div>
 
 <div class="bnav">
-    <div class="ni active" id="ni-home" onclick="switchPage('home')"><span class="nico" style="font-size:18px">📍</span><span class="nlbl">Today</span></div>
-    <div class="ni" id="ni-goals" onclick="switchPage('goals')"><span class="nico" style="font-size:18px">🎯</span><span class="nlbl">Goals</span></div>
-    <div class="ni" id="ni-habits" onclick="switchPage('habits')"><span class="nico" style="font-size:18px">✅</span><span class="nlbl">Habits</span></div>
-    <div class="ni" id="ni-ai" onclick="switchPage('ai')"><span class="nico" style="font-size:18px">⚡</span><span class="nlbl">Coach</span></div>
-    <div class="ni" id="ni-journal" onclick="switchPage('journal')"><span class="nico" style="font-size:18px">📈</span><span class="nlbl">Progress</span></div>
+    <div class="ni active" id="ni-home" onclick="switchPage('home')"><span class="nico">📍</span><span class="nlbl">Today</span></div>
+    <div class="ni" id="ni-goals" onclick="switchPage('goals')"><span class="nico">🎯</span><span class="nlbl">Goals</span></div>
+    <div class="ni" id="ni-habits" onclick="switchPage('habits')"><span class="nico">✅</span><span class="nlbl">Habits</span></div>
+    <div class="ni" id="ni-focus" onclick="switchPage('focus')"><span class="nico">⏱️</span><span class="nlbl">Focus</span></div>
+    <div class="ni" id="ni-ai" onclick="switchPage('ai')"><span class="nico">⚡</span><span class="nlbl">Coach</span></div>
+    <div class="ni" id="ni-journal" onclick="switchPage('journal')"><span class="nico">📈</span><span class="nlbl">Progress</span></div>
     </div>
 </div>
 </div>
@@ -1189,33 +1190,17 @@ async function loadGoals() {
   const goals = await api('/api/goals');
   const list = document.getElementById('goals-list');
   if (!goals?.length) { list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--muted);font-size:13px">No goals yet.</div>'; return; }
-  list.innerHTML = '';
-  goals.forEach(g => {
+  list.innerHTML = goals.map(g => {
     const pct = Math.round((g.progress / g.target) * 100);
-    const nm  = g.title.replace(/^\[.*?\]\s*/, '');
-    const deadlineStr = g.deadline
-      ? 'Due ' + new Date(g.deadline).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})
-      : 'No deadline';
-    const div = document.createElement('div');
-    div.className = 'gcard';
-    div.innerHTML = `
-      <div class="gtop">
-        <div class="gtitle">${nm}</div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <div class="gbadge">${pct >= 100 ? 'Done' : 'Active'}</div>
-          <button onclick="editGoalTitle(${g.id}, '${nm.replace(/'/g,"&#39;")}')" style="width:26px;height:26px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:var(--muted);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center">✏️</button>
-          <button onclick="deleteGoal(${g.id})" style="width:26px;height:26px;border-radius:8px;border:1px solid rgba(244,63,94,.2);background:rgba(244,63,94,.08);color:var(--red);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center">🗑</button>
-        </div>
+    return `<div class="gcard">
+      <div class="gtop"><div class="gtitle">${g.title}</div><div class="gbadge">${pct >= 100 ? 'Done' : 'Active'}</div></div>
+      <div class="pbw"><div class="pbf" style="width:${pct}%;background:${pct >= 100 ? 'var(--teal)' : 'linear-gradient(90deg,var(--blue),var(--purple))'}"></div></div>
+      <div class="gstats"><span>${pct}% complete</span><span>${g.deadline ? ('Due ' + g.deadline) : 'No deadline'}</span></div>
+      <div style="margin-top:10px;display:flex;gap:8px;">
+        <button onclick="updateProgress(${g.id}, ${g.progress}, ${g.target})" style="flex:1;padding:9px 12px;border:none;border-radius:10px;background:rgba(14,165,233,.12);color:var(--blue);font-size:12px;font-weight:700;cursor:pointer;">Update Progress</button>
       </div>
-      <div style="display:flex;align-items:center;gap:10px;margin:8px 0 4px">
-        <button onclick="quickProgress(${g.id},${pct},-5)" style="width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:#fff;font-size:16px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center">−</button>
-        <div style="flex:1"><div class="pbw"><div class="pbf" style="width:${pct}%;background:${pct >= 100 ? 'var(--teal)' : 'linear-gradient(90deg,var(--blue),var(--purple))'}"></div></div></div>
-        <button onclick="quickProgress(${g.id},${pct},5)" style="width:30px;height:30px;border-radius:50%;border:1px solid rgba(14,165,233,.3);background:rgba(14,165,233,.1);color:var(--blue);font-size:16px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center">+</button>
-        <span style="font-size:14px;font-weight:700;color:var(--blue);min-width:36px;text-align:right">${pct}%</span>
-      </div>
-      <div class="gstats"><span>${deadlineStr}</span></div>`;
-    list.appendChild(div);
-  });
+    </div>`;
+  }).join('');
   renderProgressGoals(goals);
 }
 

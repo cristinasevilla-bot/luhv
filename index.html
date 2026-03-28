@@ -559,11 +559,9 @@ body{background:
     <div style="padding:0 20px 14px">
       <div style="background:linear-gradient(180deg,rgba(17,24,39,.92),rgba(12,18,28,.96));border:0.5px solid var(--border);border-radius:16px;padding:14px;">
         <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:10px;">Add Habit</div>
-        <input id="habit-name-input" type="text" placeholder="Example: Drink 2L of water"
+        <input id="habit-name-input" type="text" placeholder="Example: Drink 8 glasses of water"
           style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:var(--light);font-size:14px;outline:none;margin-bottom:10px;" />
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-          <input id="habit-time-input" type="text" placeholder="Time (e.g. 7:00 AM)"
-            style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:var(--light);font-size:14px;outline:none;" />
           <select id="habit-icon-input"
             style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:var(--light);font-size:14px;outline:none;">
             <option value="💧">💧 Water</option>
@@ -577,6 +575,17 @@ body{background:
             <option value="🥗">🥗 Nutrition</option>
             <option value="⚡">⚡ Custom</option>
           </select>
+          <input id="habit-time-input" type="text" placeholder="Time (e.g. 7:00 AM)"
+            style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:var(--light);font-size:14px;outline:none;" />
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+          <select id="habit-type-input" onchange="toggleHabitTarget(this.value)"
+            style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:var(--light);font-size:14px;outline:none;">
+            <option value="check">✓ Daily check</option>
+            <option value="count">🔢 Daily target</option>
+          </select>
+          <input id="habit-target-input" type="number" min="1" max="100" placeholder="Target (e.g. 8)"
+            style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:var(--light);font-size:14px;outline:none;display:none;" />
         </div>
         <button onclick="addHabit()" style="width:100%;padding:12px 14px;border:none;border-radius:12px;background:linear-gradient(90deg,var(--teal),var(--blue));color:#07111b;font-weight:800;font-size:14px;cursor:pointer;">
           + Add Habit
@@ -1100,12 +1109,28 @@ async function loadHabits() {
   const list   = document.getElementById('habits-list');
   if (!habits?.length) { list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--muted);font-size:13px">No habits yet!</div>'; renderStreakChart([]); return; }
   const colors = ['b','t','y','p'];
-  list.innerHTML = habits.map((h, i) => `
-    <div class="hitem ${h.done ? 'done' : ''}" onclick="toggleHabit(this,'${h.id}')">
-      <div class="hico ${colors[i%4]}">${h.icon||'⚡'}</div>
-      <div class="hinfo"><div class="hn">${h.name}</div><div class="hs">${h.time||''}</div></div>
-      <div class="hchk">${h.done?'✓':''}</div>
-    </div>`).join('');
+  list.innerHTML = '';
+  habits.forEach((h, i) => {
+    var div = document.createElement('div');
+    div.className = 'hitem' + (h.done ? ' done' : '');
+    var isCount = h.target_type === 'count';
+    var val = parseInt(h.today_value)||0, tgt = parseInt(h.daily_target)||1;
+    var pct = Math.min(100, Math.round((val/tgt)*100));
+    var inner = '<div class="hico ' + colors[i%4] + '">' + (h.icon||'⚡') + '</div>' +
+      '<div class="hinfo"><div class="hn">' + h.name + '</div><div class="hs">' + (h.time||'') + (isCount ? ' · '+val+'/'+tgt : '') + '</div></div>';
+    if (isCount) {
+      inner += '<button onclick="incrementHabit(event,\'' + h.id + '\')" style="width:32px;height:32px;border-radius:50%;border:none;background:rgba(14,165,233,.15);color:var(--blue);font-size:18px;cursor:pointer;flex-shrink:0">+</button>';
+      div.style.flexDirection = 'column'; div.style.gap = '6px';
+      inner = '<div style="display:flex;align-items:center;gap:12px">' + inner + '</div>' +
+        '<div style="background:rgba(255,255,255,.07);border-radius:99px;height:4px;overflow:hidden">' +
+        '<div style="height:100%;border-radius:99px;width:'+pct+'%;background:'+(h.done?'var(--teal)':'var(--blue)')+';transition:width .3s"></div></div>';
+    } else {
+      inner += '<div class="hchk">' + (h.done?'✓':'') + '</div>';
+      div.onclick = () => toggleHabit(div, h.id);
+    }
+    div.innerHTML = inner;
+    list.appendChild(div);
+  });
   document.getElementById('stat-habits').textContent = habits.filter(h => h.done).length;
   const streak = USER?.streak || 0;
   const completions = Array.from({length: Math.min(streak, 7)}, (_, i) => {
@@ -1178,24 +1203,33 @@ async function loadGoals() {
   renderProgressGoals(goals);
 }
 
+function toggleHabitTarget(type) {
+  var targetEl = document.getElementById('habit-target-input');
+  if (targetEl) targetEl.style.display = type === 'count' ? 'block' : 'none';
+}
+
 async function addHabit() {
-  var nameEl = document.getElementById('habit-name-input');
-  var timeEl = document.getElementById('habit-time-input');
-  var iconEl = document.getElementById('habit-icon-input');
-  var msgEl  = document.getElementById('habit-form-msg');
-  var name   = nameEl?.value?.trim();
+  var nameEl   = document.getElementById('habit-name-input');
+  var timeEl   = document.getElementById('habit-time-input');
+  var iconEl   = document.getElementById('habit-icon-input');
+  var typeEl   = document.getElementById('habit-type-input');
+  var targetEl = document.getElementById('habit-target-input');
+  var msgEl    = document.getElementById('habit-form-msg');
+  var name     = nameEl?.value?.trim();
   if (!name) { msgEl.textContent = 'Please enter a habit name.'; msgEl.style.color = '#fbbf24'; return; }
+  var targetType   = typeEl?.value || 'check';
+  var dailyTarget  = targetType === 'count' ? (parseInt(targetEl?.value) || 1) : 1;
   try {
     msgEl.textContent = 'Adding habit...'; msgEl.style.color = 'var(--muted)';
     var result = await api('/api/habits', {
       method: 'POST',
-      body: JSON.stringify({ name: name, time: timeEl.value.trim() || null, icon: iconEl.value || '⚡' })
+      body: JSON.stringify({ name: name, time: timeEl?.value?.trim() || null, icon: iconEl?.value || '⚡', target_type: targetType, daily_target: dailyTarget })
     });
     if (!result || result.error) { msgEl.textContent = result?.error || 'Could not add habit.'; msgEl.style.color = '#f87171'; return; }
-    nameEl.value = ''; timeEl.value = '';
+    nameEl.value = ''; if (timeEl) timeEl.value = ''; if (targetEl) targetEl.value = '';
     msgEl.textContent = 'Habit added!'; msgEl.style.color = '#06d6a0';
     await loadHabitsPage();
-    await loadHabits(); // refresh Today tab too
+    await loadHabits();
   } catch(e) { msgEl.textContent = 'Could not add habit.'; msgEl.style.color = '#f87171'; }
 }
 
@@ -1212,13 +1246,52 @@ async function loadHabitsPage() {
   habits.forEach(function(h, i) {
     var div = document.createElement('div');
     div.className = 'hitem' + (h.done ? ' done' : '');
-    div.dataset.id = h.id;
-    div.onclick = function() { toggleHabit(div, h.id); };
-    div.innerHTML = '<div class="hico ' + colors[i%4] + '">' + (h.icon||'⚡') + '</div>' +
-      '<div class="hinfo"><div class="hn">' + h.name + '</div><div class="hs">' + (h.time||'Daily') + '</div></div>' +
-      '<div class="hchk">' + (h.done ? '✓' : '') + '</div>';
+    div.style.flexDirection = 'column';
+    div.style.alignItems = 'stretch';
+    div.style.gap = '8px';
+
+    var isCount = h.target_type === 'count';
+    var val  = parseInt(h.today_value) || 0;
+    var tgt  = parseInt(h.daily_target) || 1;
+    var pct  = Math.min(100, Math.round((val/tgt)*100));
+
+    var incrBtn = document.createElement('button');
+    incrBtn.textContent = '+';
+    incrBtn.style.cssText = 'width:32px;height:32px;border-radius:50%;border:none;background:rgba(14,165,233,.15);color:var(--blue);font-size:18px;cursor:pointer;flex-shrink:0';
+    incrBtn.onclick = function(e) { incrementHabit(e, h.id); };
+    var chk = document.createElement('div');
+    chk.className = 'hchk';
+    chk.textContent = h.done ? '\u2713' : '';
+    var closureId = h.id;
+    chk.onclick = function() { toggleHabit(div, closureId); };
+    var topDiv = document.createElement('div');
+    topDiv.style.cssText = 'display:flex;align-items:center;gap:12px';
+    topDiv.innerHTML = '<div class="hico ' + colors[i%4] + '">' + (h.icon||'\u26a1') + '</div>' +
+      '<div class="hinfo"><div class="hn">' + h.name + '</div>' +
+      '<div class="hs">' + (h.time||'Daily') + (isCount ? ' \u00b7 ' + val + '/' + tgt : '') + '</div></div>';
+    topDiv.appendChild(isCount ? incrBtn : chk);
+    div.appendChild(topDiv);
+    var topRow = '';
+    // topRow built via DOM (see topDiv above)
+    if (isCount) {
+      var progRow = document.createElement('div');
+      progRow.style.cssText = 'background:rgba(255,255,255,.07);border-radius:99px;height:4px;overflow:hidden';
+      var fill = document.createElement('div');
+      fill.style.cssText = 'height:100%;border-radius:99px;width:' + pct + '%;background:' + (h.done ? 'var(--teal)' : 'var(--blue)') + ';transition:width .3s';
+      progRow.appendChild(fill);
+      div.appendChild(progRow);
+    }
+    if (!isCount) div.onclick = function() { toggleHabit(div, h.id); };
+    list.appendChild(div);
+    if (!isCount) div.onclick = function() { toggleHabit(div, h.id); };
     list.appendChild(div);
   });
+}
+
+async function incrementHabit(event, id) {
+  event.stopPropagation();
+  var result = await api('/api/habits/' + id + '/check', { method: 'PATCH' });
+  if (result) { await loadHabitsPage(); await loadHabits(); await loadEffectivenessScore(); }
 }
 
 async function addGoal() {

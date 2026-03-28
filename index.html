@@ -197,6 +197,15 @@ body{background:
 .nudge-btn.secondary{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);color:#fff}
 .nudge-close{position:absolute;top:10px;right:10px;width:24px;height:24px;border-radius:50%;border:none;background:rgba(255,255,255,.05);color:#8ca0b4;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
 .nudge-close:hover{background:rgba(255,255,255,.09);color:#fff}
+.coach-greeting{margin:0 20px 16px;background:linear-gradient(135deg,rgba(6,214,160,.08),rgba(14,165,233,.06));border:1px solid rgba(6,214,160,.25);border-radius:18px;padding:16px;display:flex;gap:12px;align-items:flex-start}
+.coach-greeting-avatar{width:40px;height:40px;border-radius:12px;overflow:hidden;flex-shrink:0;border:1px solid rgba(6,214,160,.3)}
+.coach-greeting-avatar img{width:100%;height:100%;object-fit:cover;object-position:center top}
+.coach-greeting-body{flex:1}
+.coach-greeting-label{font-size:10px;color:var(--teal);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:5px}
+.coach-greeting-text{font-size:14px;line-height:1.55;color:var(--light)}
+.coach-greeting-skeleton{height:14px;background:rgba(255,255,255,.06);border-radius:6px;margin-bottom:6px;animation:shimmer 1.5s infinite}
+.coach-greeting-skeleton.short{width:60%}
+@keyframes shimmer{0%,100%{opacity:.4}50%{opacity:.8}}
 
 
 .jpage{overflow-y:auto;padding-bottom:100px}
@@ -311,6 +320,19 @@ body{background:
       <div class="greet">Good morning,</div>
       <div class="hname" id="user-name-display">CHAMPION 👊</div>
       <div class="streak-pill">🔥 <span id="streak-count">0</span>-Day Streak</div>
+    </div>
+
+    <div id="coach-greeting-card" class="coach-greeting" style="display:none">
+      <div class="coach-greeting-avatar">
+        <img src="https://ggfvluqiwcnhbmetxxao.supabase.co/storage/v1/object/public/coach/coach.png" alt="Coach">
+      </div>
+      <div class="coach-greeting-body">
+        <div class="coach-greeting-label">Coach</div>
+        <div class="coach-greeting-text" id="coach-greeting-text">
+          <div class="coach-greeting-skeleton"></div>
+          <div class="coach-greeting-skeleton short"></div>
+        </div>
+      </div>
     </div>
 
     <div class="demo-hero">
@@ -707,8 +729,26 @@ async function initApp() {
   loadJournal();
   loadPrompt();
   initDemoNudges();
+  loadCoachGreeting();
   document.getElementById('help-btn').style.display = 'flex';
   if (!localStorage.getItem('luhv_welcomed')) { setTimeout(showWelcome, 600); }
+}
+
+async function loadCoachGreeting() {
+  var card = document.getElementById('coach-greeting-card');
+  var textEl = document.getElementById('coach-greeting-text');
+  if (!card || !textEl) return;
+  card.style.display = 'flex';
+  try {
+    var data = await api('/api/coach/greeting');
+    if (data && data.greeting) {
+      textEl.textContent = data.greeting;
+    } else {
+      card.style.display = 'none';
+    }
+  } catch(e) {
+    card.style.display = 'none';
+  }
 }
 
 function initDemoNudges() {

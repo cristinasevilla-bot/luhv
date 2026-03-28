@@ -1154,7 +1154,7 @@ app.get('/api/effectiveness-score', auth, async (req, res) => {
     // Level based on book: Good → Great → Effective → Peak
     let level, message;
     if (total >= 91)      { level = 'Peak';      message = 'When good is no longer good enough — you are there. 🏆'; }
-    else if (total >= 71) { level = 'Effective'; message = 'You're becoming more effective in less time.'; }
+    else if (total >= 71) { level = 'Effective'; message = 'You are becoming more effective in less time.'; }
     else if (total >= 41) { level = 'Great';     message = 'Moving from good to great. Keep the momentum.'; }
     else                  { level = 'Good';       message = 'Good is the starting point. Now go for great.'; }
 

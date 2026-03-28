@@ -234,6 +234,16 @@ body{background:
 .focus-mode.active{border-color:var(--blue);background:rgba(14,165,233,.08)}
 .focus-mode-label{font-size:12px;font-weight:700;margin-bottom:2px}
 .focus-mode-sub{font-size:11px;color:var(--muted)}
+.goal-modal{position:fixed;inset:0;z-index:999;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.7);padding:20px}
+.goal-modal-box{background:#111827;border:1px solid rgba(14,165,233,.2);border-radius:24px 24px 20px 20px;padding:24px;width:100%;max-width:390px}
+.goal-modal-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;margin-bottom:6px}
+.goal-modal-sub{font-size:13px;color:var(--muted);margin-bottom:18px;line-height:1.5}
+.goal-modal-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;max-height:220px;overflow-y:auto}
+.goal-modal-item{padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);cursor:pointer;font-size:14px;font-weight:600;transition:all .2s;display:flex;align-items:center;justify-content:space-between}
+.goal-modal-item:hover{border-color:var(--teal);background:rgba(6,214,160,.08)}
+.goal-modal-item.selected{border-color:var(--teal);background:rgba(6,214,160,.12);color:var(--teal)}
+.goal-modal-skip{width:100%;padding:12px;border:none;border-radius:12px;background:rgba(255,255,255,.05);color:var(--muted);font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif}
+.goal-modal-confirm{width:100%;padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,var(--blue),var(--teal));color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:8px;display:none}
 </style>
 </head>
 <body>
@@ -1012,6 +1022,7 @@ function startTimer() {
       sessionsToday.push({ task: task.trim()||timerMode+' session', time: new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) });
       renderSessions(); timerSeconds = timerTotal;
       document.getElementById('timer-display').textContent = String(Math.floor(timerSeconds/60)).padStart(2,'0')+':00';
+      if (timerMode !== 'break') showGoalLinkModal();
     }
   }, 1000);
 }
@@ -1118,6 +1129,52 @@ function renderProgressGoals(goals) {
   progressList.innerHTML = html;
 }
 
+var selectedGoalId = null;
+var selectedGoalProgress = null;
+var selectedGoalTarget = null;
+
+async function showGoalLinkModal() {
+  var goals = await api('/api/goals');
+  if (!goals || !goals.length) return;
+  selectedGoalId = null;
+  var list = document.getElementById('goal-modal-list');
+  list.innerHTML = goals.filter(g => Math.round((g.progress/g.target)*100) < 100).map(g => {
+    var pct = Math.round((g.progress/g.target)*100);
+    var nm = g.title.replace(/^\[.*?\]\s*/, '');
+    return '<div class="goal-modal-item" onclick="selectGoal(this,'+g.id+','+g.progress+','+g.target+')" data-id="'+g.id+'">' +
+      '<span>'+nm+'</span>' +
+      '<span style="font-size:12px;color:var(--muted);font-weight:400">'+pct+'%</span>' +
+      '</div>';
+  }).join('');
+  document.getElementById('goal-link-modal').style.display = 'flex';
+}
+
+function selectGoal(el, id, progress, target) {
+  document.querySelectorAll('.goal-modal-item').forEach(i => i.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedGoalId = id;
+  selectedGoalProgress = progress;
+  selectedGoalTarget = target;
+  document.getElementById('goal-modal-confirm').style.display = 'block';
+}
+
+async function confirmGoalLink() {
+  if (!selectedGoalId) return;
+  var currentPct = Math.round((selectedGoalProgress / selectedGoalTarget) * 100);
+  var newPct = Math.min(100, currentPct + 5);
+  await api('/api/goals/' + selectedGoalId + '/progress', {
+    method: 'PATCH',
+    body: JSON.stringify({ progress: newPct })
+  });
+  document.getElementById('goal-link-modal').style.display = 'none';
+  document.getElementById('timer-status').textContent = 'Progress logged. Keep going! 🔥';
+  await loadGoals();
+}
+
+function skipGoalLink() {
+  document.getElementById('goal-link-modal').style.display = 'none';
+}
+
 if (TOKEN && USER) initApp();
 </script>
 
@@ -1200,6 +1257,17 @@ function endTour() {
 
 
 </script>
+<!-- GOAL LINK MODAL -->
+<div id="goal-link-modal" class="goal-modal" style="display:none">
+  <div class="goal-modal-box">
+    <div class="goal-modal-title">SESSION COMPLETE 🏆</div>
+    <div class="goal-modal-sub">Which goal did you work on? We'll add progress automatically.</div>
+    <div class="goal-modal-list" id="goal-modal-list"></div>
+    <button class="goal-modal-confirm" id="goal-modal-confirm" onclick="confirmGoalLink()">Add Progress ⚡</button>
+    <button class="goal-modal-skip" onclick="skipGoalLink()">Skip for now</button>
+  </div>
+</div>
+
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {

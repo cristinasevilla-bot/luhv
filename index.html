@@ -820,11 +820,11 @@ body{background:
         <div class="mb" id="welcome-msg">Let’s move one goal forward today. Tell Coach where you feel stuck, what you want to improve, or what your next step should be.</div>
       </div>
     </div>
-    <div class="suggs">
-      <div class="chip" onclick="sendSug('Help me manage my time better')">Time focus ⏱️</div>
-      <div class="chip" onclick="sendSug('Help me plan my week')">Weekly plan 🗓️</div>
-      <div class="chip" onclick="sendSug('Help me stay on budget')">Budgeting 💸</div>
-      <div class="chip" onclick="sendSug('Help me build confidence')">Confidence 🎤</div>
+    <div class="suggs" id="coach-chips">
+      <div class="chip" onclick="sendSug('What is my most important goal right now?')">Top goal ⚡</div>
+      <div class="chip" onclick="sendSug('Help me plan my week ahead')">Weekly plan 🗓️</div>
+      <div class="chip" onclick="sendSug('I am feeling stuck, what should I do?')">Feeling stuck 🧠</div>
+      <div class="chip" onclick="sendSug('Review my progress this week')">My progress 📈</div>
     </div>
     <div class="cinrow">
       <textarea class="cin" id="cin" rows="1" placeholder="Ask Coach about your next step..."></textarea>
@@ -1219,12 +1219,32 @@ async function loadCoachGreeting() {
     var data = await api('/api/coach/greeting');
     if (data && data.greeting) {
       textEl.textContent = data.greeting;
+      // Render personalised chips if available
+      if (data.chips && data.chips.length) {
+        renderPersonalisedChips(data.chips);
+      }
     } else {
       card.style.display = 'none';
     }
   } catch(e) {
     card.style.display = 'none';
   }
+}
+
+function renderPersonalisedChips(chips) {
+  var suggs = document.getElementById('coach-chips');
+  if (!suggs) return;
+  suggs.innerHTML = '';
+  chips.slice(0, 4).forEach(function(chip) {
+    var div = document.createElement('div');
+    div.className = 'chip';
+    // Shorten for display — show first 4-5 words as label
+    var words = chip.split(' ');
+    var label = words.slice(0, 5).join(' ') + (words.length > 5 ? '...' : '');
+    div.textContent = label;
+    div.onclick = function() { sendSug(chip); };
+    suggs.appendChild(div);
+  });
 }
 
 // ── EFFECTIVENESS SCORE ──────────────────────────────────────────────────────

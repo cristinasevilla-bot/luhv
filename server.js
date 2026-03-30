@@ -1169,6 +1169,22 @@ app.get('/api/effectiveness-score', auth, async (req, res) => {
   }
 });
 
+
+// ── PEAK HOUR UPDATE ─────────────────────────────────────────────────────────
+app.patch('/api/onboarding/peak-hour', auth, async (req, res) => {
+  const { peak_hour } = req.body;
+  if (!peak_hour) return res.status(400).json({ error: 'peak_hour required' });
+  try {
+    const { rows: [user] } = await db.query('SELECT onboarding_data FROM users WHERE id=$1', [req.user.id]);
+    const data = user?.onboarding_data || {};
+    data.peak_hour = peak_hour;
+    await db.query('UPDATE users SET onboarding_data=$1 WHERE id=$2', [JSON.stringify(data), req.user.id]);
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: 'Could not update' });
+  }
+});
+
 app.get('/health', (_, res) => res.json({ status: 'ok', service: 'Luhv+ API' }));
 
 app.listen(PORT, '0.0.0.0', () => console.log(`🏆 Luhv+ API running on port ${PORT}`));

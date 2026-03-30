@@ -816,12 +816,46 @@ app.get('/api/journal', auth, async (req, res) => {
 });
 
 app.post('/api/journal', auth, async (req, res) => {
-  const { title, content, mood } = req.body;
+  const { title, content, mood, energy_level } = req.body;
+  // SQL: ALTER TABLE journal_entries ADD COLUMN IF NOT EXISTS energy_level INTEGER DEFAULT NULL;
   const { rows } = await db.query(
-    'INSERT INTO journal_entries (user_id, title, content, mood) VALUES ($1,$2,$3,$4) RETURNING *',
-    [req.user.id, title, content, mood]
+    'INSERT INTO journal_entries (user_id, title, content, mood, energy_level) VALUES ($1,$2,$3,$4,$5) RETURNING *',
+    [req.user.id, title, content, mood, energy_level || null]
   );
   res.json(rows[0]);
+});
+
+// ── ENERGY LOG ────────────────────────────────────────────────────────────────
+app.post('/api/energy', auth, async (req, res) => {
+  const { level, note } = req.body;
+  if (!level || level < 1 || level > 5) return res.status(400).json({ error: 'Level must be 1-5' });
+  // SQL: CREATE TABLE IF NOT EXISTS energy_logs (
+  //   id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  //   level INTEGER NOT NULL CHECK (level BETWEEN 1 AND 5),
+  //   note TEXT, logged_at TIMESTAMPTZ DEFAULT NOW()
+  // );
+  const { rows } = await db.query(
+    'INSERT INTO energy_logs (user_id, level, note) VALUES ($1,$2,$3) RETURNING *',
+    [req.user.id, level, note || null]
+  );
+  res.json(rows[0]);
+});
+
+app.get('/api/energy', auth, async (req, res) => {
+  const { rows } = await db.query(
+    'SELECT * FROM energy_logs WHERE user_id=$1 ORDER BY logged_at DESC LIMIT 14',
+    [req.user.id]
+  );
+  res.json(rows);
+});
+
+app.get('/api/energy/today', auth, async (req, res) => {
+  const today = new Date().toISOString().split('T')[0];
+  const { rows } = await db.query(
+    "SELECT * FROM energy_logs WHERE user_id=$1 AND logged_at::date=$2 ORDER BY logged_at DESC LIMIT 1",
+    [req.user.id, today]
+  );
+  res.json(rows[0] || null);
 });
 
 app.get('/api/journal/prompt', auth, async (req, res) => {

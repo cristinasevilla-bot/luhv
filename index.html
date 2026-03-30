@@ -244,6 +244,14 @@ body{background:
 .focus-mode.active{border-color:var(--blue);background:rgba(14,165,233,.08)}
 .focus-mode-label{font-size:12px;font-weight:700;margin-bottom:2px}
 .focus-mode-sub{font-size:11px;color:var(--muted)}
+.peak-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;background:linear-gradient(135deg,rgba(251,191,36,.15),rgba(244,63,94,.1));border:1px solid rgba(251,191,36,.35);color:#fbbf24;font-size:12px;font-weight:700;letter-spacing:.5px;margin-bottom:12px}
+.peak-window-card{margin:0 20px 16px;background:linear-gradient(135deg,rgba(251,191,36,.08),rgba(244,63,94,.04));border:1px solid rgba(251,191,36,.2);border-radius:16px;padding:14px 16px;display:flex;align-items:center;gap:12px}
+.peak-window-icon{font-size:24px;flex-shrink:0}
+.peak-window-body{flex:1}
+.peak-window-label{font-size:10px;color:#fbbf24;text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:3px}
+.peak-window-text{font-size:14px;font-weight:600;color:#fff}
+.peak-window-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.peak-edit-btn{font-size:11px;color:var(--muted);background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:8px;border:1px solid rgba(255,255,255,.08)}
 
 /* ── ONBOARDING ── */
 #onboarding-modal{position:fixed;inset:0;z-index:2000;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.9);padding:0}
@@ -390,6 +398,17 @@ body{background:
         <div class="score-bar-row"><div class="score-bar-label">Momentum</div><div class="score-bar-track"><div class="score-bar-fill" id="bar-momentum" style="width:0%;background:var(--teal)"></div></div><div class="score-bar-val" id="val-momentum" style="color:var(--teal)">0</div></div>
         <div class="score-bar-row"><div class="score-bar-label">Alignment</div><div class="score-bar-track"><div class="score-bar-fill" id="bar-alignment" style="width:0%;background:var(--yellow)"></div></div><div class="score-bar-val" id="val-alignment" style="color:var(--yellow)">0</div></div>
       </div>
+    </div>
+
+    <!-- PEAK HOUR WINDOW -->
+    <div class="peak-window-card" id="peak-window-card" style="display:none">
+      <div class="peak-window-icon">⚡</div>
+      <div class="peak-window-body">
+        <div class="peak-window-label">Peak Performance Window</div>
+        <div class="peak-window-text" id="peak-window-text">Loading...</div>
+        <div class="peak-window-sub" id="peak-window-sub"></div>
+      </div>
+      <button class="peak-edit-btn" onclick="editPeakHour()">Edit</button>
     </div>
 
     <div id="coach-greeting-card" class="coach-greeting" style="display:none">
@@ -714,6 +733,7 @@ body{background:
       </div>
     </div>
     <div class="focus-timer">
+      <div id="peak-timer-badge" style="display:none" class="peak-badge">🔥 PEAK HOUR — Your sharpest time</div>
       <div class="timer-label" id="timer-mode-label">Deep Work Session</div>
       <div class="timer-display" id="timer-display">25:00</div>
       <div style="font-size:13px;color:var(--muted);margin-top:4px" id="timer-status">Ready when you are.</div>
@@ -853,6 +873,7 @@ async function initApp() {
   loadCoachGreeting();
   loadEffectivenessScore();
   checkOnboarding();
+  loadPeakHourCard();
   document.getElementById('help-btn').style.display = 'flex';
   restoreTimerIfRunning();
   if (!localStorage.getItem('luhv_welcomed')) { setTimeout(showWelcome, 600); }
@@ -876,6 +897,93 @@ async function loadCoachGreeting() {
 }
 
 // ── EFFECTIVENESS SCORE ──────────────────────────────────────────────────────
+// ── PEAK HOUR ──────────────────────────────────────────────────────────────
+var PEAK_RANGES = {
+  'Early morning (5–8am)':  { start: 5,  end: 8  },
+  'Morning (8–11am)':       { start: 8,  end: 11 },
+  'Midday (11am–2pm)':      { start: 11, end: 14 },
+  'Afternoon (2–5pm)':      { start: 14, end: 17 },
+  'Evening (5–9pm)':        { start: 17, end: 21 }
+};
+
+function isPeakHour() {
+  var peakPref = null;
+  try {
+    var saved = localStorage.getItem('luhv_onboarding');
+    if (saved) peakPref = JSON.parse(saved).peak_hour;
+    if (!peakPref && USER?.onboarding_data) peakPref = USER.onboarding_data.peak_hour;
+  } catch(e) {}
+  if (!peakPref) return false;
+  var range = PEAK_RANGES[peakPref];
+  if (!range) return false;
+  var h = new Date().getHours();
+  return h >= range.start && h < range.end;
+}
+
+function getPeakHourPref() {
+  try {
+    var saved = localStorage.getItem('luhv_onboarding');
+    if (saved) return JSON.parse(saved).peak_hour;
+    if (USER?.onboarding_data) return USER.onboarding_data.peak_hour;
+  } catch(e) {}
+  return null;
+}
+
+function loadPeakHourCard() {
+  var card = document.getElementById('peak-window-card');
+  var textEl = document.getElementById('peak-window-text');
+  var subEl = document.getElementById('peak-window-sub');
+  if (!card) return;
+  var pref = getPeakHourPref();
+  if (!pref) { card.style.display = 'none'; return; }
+  card.style.display = 'flex';
+  textEl.textContent = pref;
+  var isPeak = isPeakHour();
+  if (isPeak) {
+    card.style.borderColor = 'rgba(251,191,36,.4)';
+    subEl.textContent = 'You are in your peak window right now — make it count.';
+    subEl.style.color = '#fbbf24';
+  } else {
+    var range = PEAK_RANGES[pref];
+    var h = new Date().getHours();
+    card.style.borderColor = 'rgba(251,191,36,.2)';
+    if (range && h < range.start) {
+      var hoursUntil = range.start - h;
+      subEl.textContent = 'Your peak window starts in ' + hoursUntil + ' hour' + (hoursUntil > 1 ? 's' : '') + '. Use this time to prepare.';
+    } else {
+      subEl.textContent = 'Peak window passed. Plan your next one for tomorrow.';
+    }
+    subEl.style.color = 'var(--muted)';
+  }
+}
+
+function loadPeakTimerBadge() {
+  var badge = document.getElementById('peak-timer-badge');
+  if (!badge) return;
+  badge.style.display = isPeakHour() ? 'inline-flex' : 'none';
+}
+
+async function editPeakHour() {
+  var options = Object.keys(PEAK_RANGES);
+  var current = getPeakHourPref() || '';
+  var idx = options.indexOf(current);
+  var choice = prompt('When are you most sharp? Enter 1-5:\n1. Early morning (5-8am)\n2. Morning (8-11am)\n3. Midday (11am-2pm)\n4. Afternoon (2-5pm)\n5. Evening (5-9pm)', idx >= 0 ? String(idx+1) : '1');
+  var num = parseInt(choice) - 1;
+  if (num >= 0 && num < options.length) {
+    var newPeak = options[num];
+    // Save locally
+    try {
+      var saved = JSON.parse(localStorage.getItem('luhv_onboarding') || '{}');
+      saved.peak_hour = newPeak;
+      localStorage.setItem('luhv_onboarding', JSON.stringify(saved));
+    } catch(e) {}
+    // Save to server
+    await api('/api/onboarding/peak-hour', { method: 'PATCH', body: JSON.stringify({ peak_hour: newPeak }) });
+    loadPeakHourCard();
+    loadPeakTimerBadge();
+  }
+}
+
 async function loadEffectivenessScore() {
   var card = document.getElementById('score-card');
   if (!card) return;
@@ -911,7 +1019,7 @@ var obStep = 0;
 var obAnswers = {};
 var obSteps = [
   {
-    label: 'Step 1 of 5 — Mindset',
+    label: 'Step 1 of 6 — Mindset',
     question: 'Which area of your life feels most stuck right now?',
     sub: 'Be honest — this is where we focus first.',
     key: 'stuck_area',
@@ -919,7 +1027,7 @@ var obSteps = [
     options: ['Mindset & beliefs', 'Confidence', 'Time & focus', 'Goals & direction', 'Relationships']
   },
   {
-    label: 'Step 2 of 5 — Obstacle',
+    label: 'Step 2 of 6 — Obstacle',
     question: 'What is your biggest obstacle to being more effective?',
     sub: 'From the book: awareness is the first step to change.',
     key: 'obstacle',
@@ -927,7 +1035,7 @@ var obSteps = [
     options: ['Distraction & procrastination', 'Lack of clarity', 'No accountability', 'Overwhelm', 'Fear of failure']
   },
   {
-    label: 'Step 3 of 5 — Vision',
+    label: 'Step 3 of 6 — Vision',
     question: 'What does going from Good to Great look like for you?',
     sub: 'Your answer personalizes everything — coach, goals, daily plan.',
     key: 'good_to_great',
@@ -935,7 +1043,7 @@ var obSteps = [
     placeholder: 'Example: Building a business while having time for my family...'
   },
   {
-    label: 'Step 4 of 5 — Growth',
+    label: 'Step 4 of 6 — Growth',
     question: 'How do you prefer to grow?',
     sub: 'We will weight your Effectiveness Score around this.',
     key: 'growth_style',
@@ -943,7 +1051,15 @@ var obSteps = [
     options: ['Learning & knowledge', 'Taking action fast', 'Accountability & check-ins', 'Systems & structure']
   },
   {
-    label: 'Step 5 of 5 — Your First Goal',
+    label: 'Step 5 of 6 — Peak Performance',
+    question: 'What time of day do you feel most sharp?',
+    sub: 'The shift from good to great is about working when your mind is sharpest — not working more.',
+    key: 'peak_hour',
+    type: 'options',
+    options: ['Early morning (5–8am)', 'Morning (8–11am)', 'Midday (11am–2pm)', 'Afternoon (2–5pm)', 'Evening (5–9pm)']
+  },
+  {
+    label: 'Step 6 of 6 — Your First Goal',
     question: 'What is one goal you want to achieve in the next 90 days?',
     sub: 'We will create it as your first goal automatically.',
     key: 'goal_90days',
@@ -1033,6 +1149,7 @@ async function obNext() {
     btn.textContent = 'Setting up your app...';
     btn.disabled = true;
     obAnswers.name = USER?.name || '';
+    try { localStorage.setItem('luhv_onboarding', JSON.stringify(obAnswers)); } catch(e) {}
     try {
       var result = await api('/api/onboarding/complete', { method: 'POST', body: JSON.stringify({ data: obAnswers }) });
       document.getElementById('onboarding-modal').style.display = 'none';
@@ -1443,7 +1560,7 @@ function switchPage(name) {
   document.getElementById('ni-' + name).classList.add('active');
   if (name === 'journal') { loadJournal(); loadGoals(); }
   if (name === 'goals')   loadGoals();
-  if (name === 'focus')   loadFocusPage();
+  if (name === 'focus')   { loadFocusPage(); loadPeakTimerBadge(); }
   if (name === 'habits')  loadHabitsPage();
 }
 

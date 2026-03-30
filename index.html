@@ -353,21 +353,85 @@ body{background:
     <button class="welcome-btn" onclick="closeWelcome()">Let's Go 🔥</button>
   </div>
 </div>
-<!-- TOUR OVERLAY -->
-<div id="tour-overlay" style="display:none">
-  <div class="tour-box">
-    <div class="tour-step-label" id="tour-label">Step 1 of 4</div>
-    <div class="tour-step-icon" id="tour-icon">🏠</div>
-    <div class="tour-step-title" id="tour-title">Today</div>
-    <div class="tour-step-text" id="tour-text">Your focus, progress, and next move.</div>
-    <div class="tour-dots" id="tour-dots"></div>
-    <div class="tour-btns">
-      <button class="tour-btn-skip" onclick="endTour()">Skip</button>
-      <button class="tour-btn-next" id="tour-next-btn" onclick="tourNext()">Next →</button>
+<!-- APP GUIDE MODAL -->
+<div id="guide-modal" style="display:none;position:fixed;inset:0;z-index:1500;background:rgba(0,0,0,.85);display:none;align-items:flex-end;justify-content:center" onclick="closeGuideIfOutside(event)">
+  <div style="background:linear-gradient(180deg,#0d1520,#080f18);border-radius:28px 28px 0 0;padding:28px 24px 40px;width:100%;max-width:390px;max-height:85vh;overflow-y:auto">
+    <div style="width:36px;height:4px;border-radius:99px;background:rgba(255,255,255,.15);margin:0 auto 24px"></div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px;margin-bottom:4px">HOW TO GET THE MOST</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:24px">From the book to your daily life — here is how Luhv+ works.</div>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="padding:14px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+          <span style="font-size:20px">📍</span>
+          <div style="font-size:13px;font-weight:700;color:var(--blue)">Today — Your daily dashboard</div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.6">Start here every morning. Check your Effectiveness Score, see your Peak Window, review today's habits and get your coach message.</div>
+      </div>
+
+      <div style="padding:14px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+          <span style="font-size:20px">🎯</span>
+          <div style="font-size:13px;font-weight:700;color:var(--teal)">Goals — Your 90-day roadmap</div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.6">Set 2-3 big goals. Use + and − to update progress. The coach tracks your momentum and calls you out if you stall.</div>
+      </div>
+
+      <div style="padding:14px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+          <span style="font-size:20px">✅</span>
+          <div style="font-size:13px;font-weight:700;color:var(--teal)">Habits — Daily non-negotiables</div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.6">Add habits you do every day. Use Daily check for yes/no habits, or Daily target for things like glasses of water. Streak builds here.</div>
+      </div>
+
+      <div style="padding:14px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+          <span style="font-size:20px">⏱️</span>
+          <div style="font-size:13px;font-weight:700;color:var(--blue)">Focus — Protect your time</div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.6">Use Deep Work (25min) during your Peak Window for maximum output. The timer notifies you when done, even if you leave the app.</div>
+      </div>
+
+      <div style="padding:14px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+          <span style="font-size:20px">⚡</span>
+          <div style="font-size:13px;font-weight:700;color:var(--purple)">Coach — Your AI accountability partner</div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.6">Ask anything. The coach knows your goals, habits and history. Use it when stuck, planning your week, or needing a push. Messages can be copied and shared.</div>
+      </div>
+
+      <div style="padding:14px;border-radius:14px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2)">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+          <span style="font-size:20px">🎯</span>
+          <div style="font-size:13px;font-weight:700;color:var(--purple)">Decision Check — Hidden gem</div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.6">Before making any decision, tap the purple button on the left. The coach will tell you if it aligns with your goals — instantly.</div>
+      </div>
+
+      <div style="padding:14px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+          <span style="font-size:20px">📈</span>
+          <div style="font-size:13px;font-weight:700;color:var(--blue)">Progress — See your growth</div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.6">Weekly review from the coach, energy tracking, peak performance report and full check-in log. Check this on Sundays.</div>
+      </div>
+
+      <div style="padding:14px;border-radius:14px;background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2)">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+          <span style="font-size:20px">⚡</span>
+          <div style="font-size:13px;font-weight:700;color:#fbbf24">Peak Performance Window</div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.6">Set your preferred working hours in Profile (top right). The Creativity window is 5am-12pm — the best time for deep work. Aspire to shift your schedule toward it.</div>
+      </div>
     </div>
+
+    <button onclick="closeGuideModal()" style="width:100%;padding:14px;border:none;border-radius:14px;background:linear-gradient(135deg,var(--blue),var(--teal));color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:20px">
+      Got it. Let's go 🏆
+    </button>
   </div>
 </div>
-<button class="help-btn" id="help-btn" onclick="startTour()" title="App guide">?</button>
+<button class="help-btn" id="help-btn" onclick="openGuideModal()" title="App guide">?</button>
 
 <!-- DECISION CHECK FAB -->
 <button class="decision-fab" id="decision-fab" onclick="openDecisionModal()">🎯 Decision Check</button>
@@ -2223,31 +2287,6 @@ if (TOKEN && USER) initApp();
 
 <script>
 // ── ONBOARDING SYSTEM ──────────────────────────────────────
-const TOUR_STEPS = [
-  {
-    icon: '🏠',
-    title: 'Today',
-    text: 'Your focus, roadmap, and next step. This is where the app feels more like a productivity dashboard.'
-  },
-  {
-    icon: '🎯',
-    title: 'Goals',
-    text: 'Set your big goals with a deadline. Tap "Update progress" on any goal to log how far you\'ve come. Progress is tracked as a percentage.'
-  },
-  {
-    icon: '⚡',
-    title: 'Coach',
-    text: 'Coach helps you get clarity, accountability, and the next move when you feel stuck.'
-  },
-  {
-    icon: '📓',
-    title: 'Progress',
-    text: 'Track consistency, check-ins, and momentum so progress is visible at a glance.'
-  }
-];
-
-let tourStep = 0;
-
 function showWelcome() {
   document.getElementById('welcome-modal').style.display = 'flex';
 }
@@ -2255,48 +2294,28 @@ function showWelcome() {
 function closeWelcome() {
   document.getElementById('welcome-modal').style.display = 'none';
   localStorage.setItem('luhv_welcomed', '1');
-  setTimeout(startTour, 400);
+  setTimeout(openGuideModal, 400);
 }
 
-function startTour() {
-  tourStep = 0;
-  renderTourStep();
-  document.getElementById('tour-overlay').style.display = 'flex';
+function openGuideModal() {
+  var modal = document.getElementById('guide-modal');
+  if (modal) { modal.style.display = 'flex'; }
 }
 
-function renderTourStep() {
-  const step = TOUR_STEPS[tourStep];
-  document.getElementById('tour-label').textContent = 'Step ' + (tourStep + 1) + ' of ' + TOUR_STEPS.length;
-  document.getElementById('tour-icon').textContent  = step.icon;
-  document.getElementById('tour-title').textContent = step.title;
-  document.getElementById('tour-text').textContent  = step.text;
-  document.getElementById('tour-next-btn').textContent = tourStep === TOUR_STEPS.length - 1 ? 'Let\'s go 🏆' : 'Next →';
-
-  // dots
-  const dots = document.getElementById('tour-dots');
-  dots.innerHTML = TOUR_STEPS.map((_, i) =>
-    '<div class="tour-dot' + (i === tourStep ? ' active' : '') + '"></div>'
-  ).join('');
-
-  // switch page to match step
-  const pages = ['home', 'goals', 'ai', 'journal'];
-  switchPage(pages[tourStep]);
-}
-
-function tourNext() {
-  if (tourStep < TOUR_STEPS.length - 1) {
-    tourStep++;
-    renderTourStep();
-  } else {
-    endTour();
-  }
-}
-
-function endTour() {
-  document.getElementById('tour-overlay').style.display = 'none';
-  switchPage('home');
+function closeGuideModal() {
+  var modal = document.getElementById('guide-modal');
+  if (modal) modal.style.display = 'none';
   localStorage.setItem('luhv_tour_done', '1');
 }
+
+function closeGuideIfOutside(e) {
+  if (e.target === document.getElementById('guide-modal')) closeGuideModal();
+}
+
+// Keep these as stubs so nothing breaks
+function startTour() { openGuideModal(); }
+function endTour() { closeGuideModal(); }
+function tourNext() { closeGuideModal(); }
 
 
 </script>
@@ -2322,3 +2341,4 @@ if ('serviceWorker' in navigator) {
 </script>
 </body>
 </html>
+ 

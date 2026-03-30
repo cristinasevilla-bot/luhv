@@ -653,9 +653,13 @@ body{background:
         <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--blue);font-weight:700;margin-bottom:10px;">Add Goal</div>
         <input id="goal-title-input" type="text" placeholder="Example: Improve time efficiency"
           style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:var(--light);font-size:14px;outline:none;margin-bottom:10px;" />
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px;line-height:1.5">💡 Phrase as a positive action — <em>"Run 3x a week"</em> not <em>"Stop being lazy"</em></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-          <input id="goal-deadline-input" type="date"
-            style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:var(--light);font-size:14px;outline:none;" />
+          <div>
+            <input id="goal-deadline-input" type="date" required
+              style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:var(--light);font-size:14px;outline:none;" />
+            <div style="font-size:10px;color:var(--muted);margin-top:4px;padding-left:2px">Deadline required ↑</div>
+          </div>
           <select id="goal-category-input"
             style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:var(--light);font-size:14px;outline:none;">
             <option value="Productivity">Productivity</option>
@@ -870,7 +874,7 @@ body{background:
       <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px;margin-bottom:4px">FOCUS</div>
       <div style="font-size:13px;color:var(--muted)">Protect your time. Do the work that matters.</div>
     </div>
-    <div style="display:flex;gap:8px;margin:0 20px 16px">
+    <div style="display:flex;gap:8px;margin:0 20px 10px">
       <div class="focus-mode active" id="mode-deep" onclick="setMode('deep',25)">
         <div class="focus-mode-label">Deep Work</div>
         <div class="focus-mode-sub">25 min</div>
@@ -883,6 +887,15 @@ body{background:
         <div class="focus-mode-label">Break</div>
         <div class="focus-mode-sub">5 min</div>
       </div>
+      <div class="focus-mode" id="mode-custom" onclick="setMode('custom',0)">
+        <div class="focus-mode-label">Custom</div>
+        <div class="focus-mode-sub" id="custom-sub">— min</div>
+      </div>
+    </div>
+    <div id="custom-duration-row" style="display:none;margin:0 20px 14px;display:none">
+      <input id="custom-minutes" type="number" min="1" max="180" placeholder="Minutes (e.g. 90)"
+        style="width:100%;padding:11px 14px;border-radius:12px;border:1px solid rgba(14,165,233,.3);background:rgba(255,255,255,.04);color:#fff;font-size:14px;outline:none;"
+        oninput="updateCustomDuration(this.value)" />
     </div>
     <div class="focus-timer">
       <div id="peak-timer-badge" style="display:none" class="peak-badge">🔥 PEAK HOUR — Your sharpest time</div>
@@ -895,6 +908,10 @@ body{background:
       </div>
     </div>
     <div style="margin:0 20px 16px">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);font-weight:700;margin-bottom:8px">Link a goal (optional)</div>
+      <select id="focus-goal-select" style="width:100%;padding:11px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:var(--light);font-size:14px;outline:none;margin-bottom:10px">
+        <option value="">No goal linked</option>
+      </select>
       <div style="font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);font-weight:700;margin-bottom:8px">What are you working on?</div>
       <textarea id="focus-task" rows="2" placeholder="One thing. Be specific."
         style="width:100%;background:var(--card);border:0.5px solid var(--border);border-radius:14px;padding:13px 16px;color:#fff;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;resize:none"></textarea>
@@ -1078,7 +1095,13 @@ async function initApp() {
   var greetText = hour < 12 ? 'Good morning,' : hour < 17 ? 'Good afternoon,' : 'Good evening,';
   document.getElementById('time-greet').textContent = greetText;
   document.getElementById('user-name-display').textContent = USER.name.toUpperCase() + ' 👊';
-  document.getElementById('streak-count').textContent      = USER.streak || 0;
+  var streakVal = USER.streak || 0;
+  var streakPill = document.querySelector('.streak-pill');
+  if (streakVal === 0) {
+    if (streakPill) streakPill.innerHTML = '🔥 Day 1 — Starting strong';
+  } else {
+    document.getElementById('streak-count').textContent = streakVal;
+  }
   document.getElementById('welcome-msg').textContent       = `Hey ${USER.name}! Let's move one goal forward today. Tell Coach where you feel stuck, what you want to improve, or what your next step should be.`;
   loadQuotes();
   loadHabits();
@@ -1675,6 +1698,7 @@ async function addGoal() {
   const msgEl = document.getElementById('goal-form-msg');
   const title = titleEl?.value?.trim();
   if (!title) { msgEl.textContent = 'Please enter a goal title.'; msgEl.style.color = '#fbbf24'; return; }
+  if (!deadlineEl?.value) { msgEl.textContent = 'Please set a deadline — goals without dates lose momentum.'; msgEl.style.color = '#fbbf24'; deadlineEl?.focus(); return; }
   try {
     msgEl.textContent = 'Adding goal...'; msgEl.style.color = 'var(--muted)';
     const result = await api('/api/goals', { method: 'POST', body: JSON.stringify({ title: `[${categoryEl.value}] ${title}`, deadline: deadlineEl.value || null, target: 100, unit: '%' }) });
@@ -1899,7 +1923,16 @@ function timerTick() {
     renderSessions(); timerSeconds = timerTotal;
     document.getElementById('timer-display').textContent = String(Math.floor(timerSeconds/60)).padStart(2,'0')+':00';
     sendTimerNotification(task);
-    if (timerMode !== 'break') showGoalLinkModal();
+    var preLinkedGoal = document.getElementById('focus-goal-select')?.value;
+    if (timerMode !== 'break') {
+      if (preLinkedGoal) {
+        // Auto-log progress to pre-linked goal (+5%)
+        api('/api/goals/' + preLinkedGoal + '/progress', { method: 'PATCH', body: JSON.stringify({ progress: Math.min(100, 5) }) }).then(function() { loadGoals(); });
+        document.getElementById('timer-status').textContent = 'Progress logged to your goal. One win. 🏆';
+      } else {
+        showGoalLinkModal();
+      }
+    }
   }
 }
 
@@ -1938,6 +1971,22 @@ function renderSessions() {
   el.innerHTML = sessionsToday.map(s => '<div style="background:rgba(14,165,233,.1);border:0.5px solid rgba(14,165,233,.25);border-radius:10px;padding:8px 12px;font-size:12px;font-weight:600;color:var(--blue)">✓ '+s.task+' <span style="opacity:.6;font-weight:400">· '+s.time+'</span></div>').join('');
 }
 
+async function loadFocusGoalSelect() {
+  var sel = document.getElementById('focus-goal-select');
+  if (!sel) return;
+  var goals = await api('/api/goals');
+  sel.innerHTML = '<option value="">No goal linked</option>';
+  if (goals && goals.length) {
+    goals.filter(g => Math.round((g.progress/g.target)*100) < 100).forEach(function(g) {
+      var nm = g.title.replace(/^\[.*?\]\s*/, '');
+      var opt = document.createElement('option');
+      opt.value = g.id;
+      opt.textContent = nm;
+      sel.appendChild(opt);
+    });
+  }
+}
+
 async function loadFocusPage() {
   var habits = await api('/api/habits');
   var list = document.getElementById('focus-habits-list'); if (!list) return;
@@ -1946,6 +1995,7 @@ async function loadFocusPage() {
     var colors = ['b','t','y','p'];
     list.innerHTML = habits.map((h,i) => '<div class="hitem '+(h.done?'done':'')+'" onclick="toggleHabit(this,\''+h.id+'\')" style="margin-bottom:8px"><div class="hico '+colors[i%4]+'">'+(h.icon||'⚡')+'</div><div class="hinfo"><div class="hn">'+h.name+'</div><div class="hs">'+(h.time||'')+'</div></div><div class="hchk">'+(h.done?'✓':'')+'</div></div>').join('');
   }
+  loadFocusGoalSelect();
   var qi = Math.floor(Date.now()/3600000)%focusQuotes.length;
   var qEl = document.getElementById('focus-quote'); if (qEl) qEl.textContent = focusQuotes[qi];
   renderSessions();
@@ -2341,4 +2391,3 @@ if ('serviceWorker' in navigator) {
 </script>
 </body>
 </html>
- 

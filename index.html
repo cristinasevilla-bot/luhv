@@ -493,17 +493,28 @@ body{background:
     </div>
 
     <!-- 4. PEAK HOUR WINDOW -->
-    <div class="peak-window-card" id="peak-window-card" style="display:none">
-      <div class="peak-window-icon">⚡</div>
-      <div class="peak-window-body">
-        <div class="peak-window-label">Peak Performance Window</div>
-        <div class="peak-window-text" id="peak-window-text">Loading...</div>
-        <div class="peak-window-sub" id="peak-window-sub"></div>
+    <div id="peak-window-card" style="display:none;flex-direction:column;gap:10px;margin:0 20px 16px">
+      <div id="true-window-row" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03)">
+        <div id="true-window-icon" style="font-size:22px;flex-shrink:0">&#127749;</div>
+        <div style="flex:1">
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:2px">Now &#8212; True Window</div>
+          <div id="true-window-name" style="font-size:14px;font-weight:700;color:#06d6a0">Creativity</div>
+          <div id="true-window-desc" style="font-size:11px;color:var(--muted);margin-top:1px">5am&#8211;12pm &#183; Best time for deep work</div>
+        </div>
       </div>
-      <button class="peak-edit-btn" onclick="openProfile()">Edit</button>
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;border:1px solid rgba(251,191,36,.2);background:rgba(251,191,36,.05)">
+        <div style="font-size:22px;flex-shrink:0">&#9889;</div>
+        <div style="flex:1">
+          <div style="font-size:9px;color:#fbbf24;text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:2px">Preferred Performance Window</div>
+          <div id="peak-window-text" style="font-size:14px;font-weight:700;color:#fff">Not set</div>
+          <div id="peak-window-sub" style="font-size:11px;margin-top:2px;color:var(--muted)">Set your preferred window in Profile</div>
+        </div>
+        <button class="peak-edit-btn" onclick="openProfile()">Edit</button>
+      </div>
+      <div id="ppw-alignment-msg" style="display:none;padding:10px 14px;border-radius:12px;font-size:12px;line-height:1.5"></div>
     </div>
 
-    <!-- 5. QUICK STATS -->
+        <!-- 5. QUICK STATS -->
     <div class="prow">
       <div class="pcard"><div class="pnum" id="stat-habits">0</div><div class="plbl">Habits done</div></div>
       <div class="pcard"><div class="pnum" id="stat-goals">0<span style="font-size:16px;color:var(--muted)">%</span></div><div class="plbl">Goals avg</div></div>
@@ -1019,36 +1030,75 @@ function getPeakHourPref() {
   return null;
 }
 
-function loadPeakHourCard() {
-  // Also update header pill
-  var pill = document.getElementById('peak-pill');
-  if (pill) pill.style.display = isPeakHour() ? 'inline-flex' : 'none';
-  var card = document.getElementById('peak-window-card');
-  var textEl = document.getElementById('peak-window-text');
-  var subEl = document.getElementById('peak-window-sub');
-  if (!card) return;
-  var pref = getPeakHourPref();
-  if (!pref) { card.style.display = 'none'; return; }
-  card.style.display = 'flex';
-  textEl.textContent = pref;
-  var isPeak = isPeakHour();
-  if (isPeak) {
-    card.style.borderColor = 'rgba(251,191,36,.4)';
-    subEl.textContent = 'You are in your peak window right now — make it count.';
-    subEl.style.color = '#fbbf24';
-  } else {
-    var range = PEAK_RANGES[pref];
-    var h = new Date().getHours();
-    card.style.borderColor = 'rgba(251,191,36,.2)';
-    if (range && h < range.start) {
-      var hoursUntil = range.start - h;
-      subEl.textContent = 'Your peak window starts in ' + hoursUntil + ' hour' + (hoursUntil > 1 ? 's' : '') + '. Use this time to prepare.';
-    } else {
-      subEl.textContent = 'Peak window passed. Plan your next one for tomorrow.';
-    }
-    subEl.style.color = 'var(--muted)';
-  }
+var TRUE_WINDOWS = [
+  { name: 'Creativity',  icon: '🎨', start: 5,  end: 12, desc: '5am-12pm - Best time for deep work',       color: '#06d6a0' },
+  { name: 'Discovery',   icon: '🔍', start: 12, end: 18, desc: '12pm-6pm - Learning, exploring, connecting', color: '#0ea5e9' },
+  { name: 'Recovery',    icon: '🔄', start: 18, end: 24, desc: '6pm-11pm - Rest, reflect, recharge',        color: '#6366f1' },
+  { name: 'Early Start', icon: '🌙', start: 0,  end: 5,  desc: '12am-5am - Sleep is performance too',      color: '#6b7280' }
+];
+
+function getTrueWindow() {
+  var h = new Date().getHours();
+  return TRUE_WINDOWS.find(function(w){ return h >= w.start && h < w.end; }) || TRUE_WINDOWS[0];
 }
+
+function loadPeakHourCard() {
+  var pill = document.getElementById('peak-pill');
+  var tw = getTrueWindow();
+  var h = new Date().getHours();
+  var pref = getPeakHourPref();
+  var prefInCreativity = false;
+  if (pref && PEAK_RANGES[pref]) {
+    var r = PEAK_RANGES[pref];
+    prefInCreativity = r.start >= 5 && r.end <= 12;
+  }
+  if (pill) pill.style.display = tw.name === 'Creativity' ? 'inline-flex' : 'none';
+  var card = document.getElementById('peak-window-card');
+  if (!card) return;
+  card.style.display = 'flex';
+  // True window
+  var iconEl = document.getElementById('true-window-icon');
+  var nameEl = document.getElementById('true-window-name');
+  var descEl = document.getElementById('true-window-desc');
+  var trueRow = document.getElementById('true-window-row');
+  if (iconEl) iconEl.textContent = tw.icon;
+  if (nameEl) { nameEl.textContent = tw.name; nameEl.style.color = tw.color; }
+  if (descEl) descEl.textContent = tw.desc;
+  if (trueRow) trueRow.style.borderColor = tw.color + '44';
+  // Preferred window
+  var textEl = document.getElementById('peak-window-text');
+  var subEl  = document.getElementById('peak-window-sub');
+  var msgEl  = document.getElementById('ppw-alignment-msg');
+  if (!pref) {
+    if (textEl) textEl.textContent = 'Not set yet';
+    if (subEl)  { subEl.textContent = 'Tap Edit to set your preferred working hours.'; subEl.style.color = 'var(--muted)'; }
+    if (msgEl)  msgEl.style.display = 'none';
+    return;
+  }
+  if (textEl) textEl.textContent = pref;
+  var range = PEAK_RANGES[pref];
+  var isPrefActive = range && h >= range.start && h < range.end;
+  if (isPrefActive) {
+    if (subEl) { subEl.textContent = 'Your preferred window is active now.'; subEl.style.color = '#fbbf24'; }
+  } else if (range && h < range.start) {
+    var hoursUntil = range.start - h;
+    if (subEl) { subEl.textContent = 'Starts in ' + hoursUntil + 'h. Use this time to prepare.'; subEl.style.color = 'var(--muted)'; }
+  } else {
+    if (subEl) { subEl.textContent = 'Window passed for today.'; subEl.style.color = 'var(--muted)'; }
+  }
+  if (msgEl) {
+    msgEl.style.display = 'block';
+    if (prefInCreativity) {
+      msgEl.style.cssText = 'display:block;padding:10px 14px;border-radius:12px;font-size:12px;line-height:1.5;background:rgba(6,214,160,.08);border:1px solid rgba(6,214,160,.2);color:#06d6a0';
+      msgEl.textContent = 'You are aligned with Creativity hours - the peak time for deep work.';
+    } else {
+      msgEl.style.cssText = 'display:block;padding:10px 14px;border-radius:12px;font-size:12px;line-height:1.5;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);color:#a5b4fc';
+      msgEl.textContent = 'Your preferred window is outside Creativity hours (5am-12pm). That is okay - aspire to shift toward morning hours to unlock your peak potential.';
+    }
+  }
+// REPLACED BELOW
+}
+
 
 function loadPeakTimerBadge() {
   var badge = document.getElementById('peak-timer-badge');

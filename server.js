@@ -622,7 +622,7 @@ COACHING SESSION CONTEXT:
     const response = await anthropic.messages.create({
       model:      'claude-sonnet-4-20250514',
       max_tokens: 300,
-      system:     buildCoachSystem(userContext, sessionContext),
+      system:     buildCoachSystem(userContext, sessionContext) + '\n\nIMPORTANT: End every response with ONE specific follow-up question based on what was just discussed. Make it feel natural, not formulaic.',
       messages: [
         ...history.map(m => ({ role: m.role, content: m.content })),
         { role: 'user', content: message }
@@ -1122,26 +1122,66 @@ Last mood logged: ${lastMood || 'none'}
 Days since last coach chat: ${daysSinceChat}
 `;
 
-    const prompt = `Generate a short, proactive opening message from the coach for ${user.name} this ${timeOfDay}.
+    // Also get today's habits for chip personalisation
+    const today = new Date().toISOString().split('T')[0];
+    const { rows: habits } = await db.query(
+      `SELECT h.name, CASE WHEN h.target_type='check' THEN (hc.id IS NOT NULL)
+        ELSE (COALESCE(hc.value,0) >= h.daily_target) END as done
+       FROM habits h LEFT JOIN habit_completions hc ON hc.habit_id=h.id AND hc.user_id=$1 AND hc.date=$2
+       WHERE h.user_id=$1`, [req.user.id, today]);
+    const { rows: energy } = await db.query(
+      "SELECT level FROM energy_logs WHERE user_id=$1 ORDER BY logged_at DESC LIMIT 1", [req.user.id]);
+
+    const habitsDone = habits.filter(h => h.done).length;
+    const energyLevel = energy[0]?.level || null;
+    const fullContext = context + `
+Habits today: ${habitsDone}/${habits.length} done
+Today's energy: ${energyLevel ? energyLevel + '/5' : 'not logged'}
+Pending habits: ${habits.filter(h => !h.done).map(h => h.name).join(', ') || 'all done'}`;
+
+    const prompt = `Generate a short proactive opening message from the coach for ${user.name} this ${timeOfDay}.
 
 Rules:
 - Max 2 sentences. No more.
-- Be specific — reference their actual goals, streak or mood if relevant.
-- If they have stalled goals, gently call one out with a question.
+- Be specific — reference one real data point (goal, habit, streak, energy).
+- If stalled goals exist, call one out with a direct question.
 - If streak > 3, acknowledge it with energy.
-- If it's morning, set the tone for the day. If evening, reflect on progress.
+- If habits are incomplete, nudge toward the most important one.
 - Sound like a real coach, not a motivational poster.
-- End with either a question or a direct challenge. Never both.
-- No emojis at the start. One max at the end if it fits naturally.`;
+- End with a question OR a direct challenge. Never both.
+- No emojis at the start. One max at the end.`;
 
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 120,
-      system: buildCoachSystem(context, '', 'chat'),
-      messages: [{ role: 'user', content: prompt }]
-    });
+    // Generate chips based on actual data
+    const chipPrompt = `Based on this user data, generate exactly 4 short coach conversation starters as a JSON array.
+Each should be a complete sentence the user would send (15 words max).
+Make them specific to their actual situation — reference real goals, habits or patterns.
+Return ONLY a JSON array of 4 strings, nothing else.
 
-    res.json({ greeting: response.content[0].text });
+User data:
+${fullContext}`;
+
+    const [greetingRes, chipRes] = await Promise.all([
+      anthropic.messages.create({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 120,
+        system: buildCoachSystem(fullContext, '', 'chat'),
+        messages: [{ role: 'user', content: prompt }]
+      }),
+      anthropic.messages.create({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 200,
+        system: 'You generate JSON arrays of conversation starters. Return ONLY valid JSON, no markdown.',
+        messages: [{ role: 'user', content: chipPrompt }]
+      })
+    ]);
+
+    let chips = [];
+    try {
+      chips = JSON.parse(chipRes.content[0].text);
+      if (!Array.isArray(chips)) chips = [];
+    } catch(e) { chips = []; }
+
+    res.json({ greeting: greetingRes.content[0].text, chips });
   } catch (e) {
     console.error('Greeting error:', e);
     res.json({ greeting: null });

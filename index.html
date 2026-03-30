@@ -427,14 +427,19 @@ body{background:
   </div>
 
   <!-- HOME -->
-  <div class="page active" id="page-home">
+  <div class="page active" id="page-home" style="overflow-y:auto;padding-bottom:100px">
+
+    <!-- 1. HEADER -->
     <div class="hero">
-      <div class="greet">Good morning,</div>
+      <div class="greet" id="time-greet">Good morning,</div>
       <div class="hname" id="user-name-display">CHAMPION 👊</div>
-      <div class="streak-pill">🔥 <span id="streak-count">0</span>-Day Streak</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap">
+        <div class="streak-pill">🔥 <span id="streak-count">0</span>-Day Streak</div>
+        <div id="peak-pill" style="display:none;align-items:center;gap:5px;background:rgba(251,191,36,0.1);border:0.5px solid rgba(251,191,36,0.3);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;color:#fbbf24">⚡ Peak Hour</div>
+      </div>
     </div>
 
-    <!-- EFFECTIVENESS SCORE -->
+    <!-- 2. EFFECTIVENESS SCORE -->
     <div class="score-card" id="score-card" style="display:none">
       <div class="score-top">
         <div class="score-circle" id="score-circle">
@@ -456,17 +461,7 @@ body{background:
       </div>
     </div>
 
-    <!-- PEAK HOUR WINDOW -->
-    <div class="peak-window-card" id="peak-window-card" style="display:none">
-      <div class="peak-window-icon">⚡</div>
-      <div class="peak-window-body">
-        <div class="peak-window-label">Peak Performance Window</div>
-        <div class="peak-window-text" id="peak-window-text">Loading...</div>
-        <div class="peak-window-sub" id="peak-window-sub"></div>
-      </div>
-      <button class="peak-edit-btn" onclick="editPeakHour()">Edit</button>
-    </div>
-
+    <!-- 3. COACH GREETING -->
     <div id="coach-greeting-card" class="coach-greeting" style="display:none">
       <div class="coach-greeting-avatar">
         <img src="https://ggfvluqiwcnhbmetxxao.supabase.co/storage/v1/object/public/coach/coach.png" alt="Coach">
@@ -480,72 +475,31 @@ body{background:
       </div>
     </div>
 
-    <div class="demo-hero">
-      <div class="demo-photo">
-        <div class="demo-badge">Coach</div>
-        <img src="https://ggfvluqiwcnhbmetxxao.supabase.co/storage/v1/object/public/coach/coach.png" alt="Coach portrait">
+    <!-- 4. PEAK HOUR WINDOW -->
+    <div class="peak-window-card" id="peak-window-card" style="display:none">
+      <div class="peak-window-icon">⚡</div>
+      <div class="peak-window-body">
+        <div class="peak-window-label">Peak Performance Window</div>
+        <div class="peak-window-text" id="peak-window-text">Loading...</div>
+        <div class="peak-window-sub" id="peak-window-sub"></div>
       </div>
-      <div class="demo-copy">
-        <div class="demo-eyebrow">Today</div>
-        <div class="demo-title">MORE EFFECTIVE. IN LESS TIME.</div>
-        <div class="demo-sub">Clarity on what to do next. Direction on how to do it. Every single day.</div>
-        <div class="demo-actions">
-          <button class="demo-btn primary" onclick="switchPage('ai')">Open Coach</button>
-          <button class="demo-btn secondary" onclick="document.getElementById('coach-section').scrollIntoView({behavior:'smooth'})">See Progress</button>
-        </div>
-      </div>
+      <button class="peak-edit-btn" onclick="openProfile()">Edit</button>
     </div>
 
-    <div class="slabel">Your Progress</div>
+    <!-- 5. QUICK STATS -->
     <div class="prow">
       <div class="pcard"><div class="pnum" id="stat-habits">0</div><div class="plbl">Habits done</div></div>
-      <div class="pcard"><div class="pnum" id="stat-goals">0<span style="font-size:16px;color:var(--muted)">%</span></div><div class="plbl">On track</div></div>
-      <div class="pcard"><div class="pnum" id="stat-journal">0</div><div class="plbl">Progress</div></div>
+      <div class="pcard"><div class="pnum" id="stat-goals">0<span style="font-size:16px;color:var(--muted)">%</span></div><div class="plbl">Goals avg</div></div>
+      <div class="pcard"><div class="pnum" id="stat-journal">0</div><div class="plbl">Check-ins</div></div>
     </div>
 
-    <div class="nudge-section">
-      <div class="slabel" style="padding:0;margin-bottom:10px">Today's Roadmap</div>
-      <div class="nudge-stack">
-        <div class="nudge-card">
-          <button class="nudge-close">×</button>
-          <div class="nudge-top">
-            <div class="nudge-icon">🎯</div>
-            <div class="nudge-meta">
-              <div class="nudge-eyebrow">Main Focus</div>
-              <div class="nudge-title">Improve time efficiency</div>
-              <div class="nudge-copy">Reduce distractions and build a rhythm you can actually keep.</div>
-            </div>
-          </div>
-          <div class="nudge-actions">
-            <button class="nudge-btn primary" onclick="switchPage('goals')">View Goal</button>
-            <button class="nudge-btn secondary" onclick="switchPage('ai')">Ask Coach</button>
-          </div>
-        </div>
-
-        <div class="nudge-card">
-          <div class="nudge-top">
-            <div class="nudge-icon">🧭</div>
-            <div class="nudge-meta">
-              <div class="nudge-eyebrow">Current Phase</div>
-              <div class="nudge-title">Focus blocks</div>
-              <div class="nudge-copy">Your next move is simple: complete one 25-minute deep work session today.</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="nudge-card">
-          <div class="nudge-top">
-            <div class="nudge-icon">📈</div>
-            <div class="nudge-meta">
-              <div class="nudge-eyebrow">Weekly Progress</div>
-              <div class="nudge-title">3 / 5 actions completed</div>
-              <div class="nudge-copy">Momentum is building. Keep the streak alive with one more focused action.</div>
-            </div>
-          </div>
-        </div>
-      </div>
+    <!-- 6. TODAY'S HABITS -->
+    <div class="slabel">Today's Habits</div>
+    <div class="hlist" id="habits-list">
+      <div style="padding:16px;text-align:center;color:var(--muted);font-size:13px">Loading habits...</div>
     </div>
 
+    <!-- 7. QUOTE OF THE DAY -->
     <div class="qcard" onclick="nextQuote()">
       <div class="qlabel">Quote of the Day</div>
       <div class="qtext" id="qtext">You are the MVP in your life — act like it.</div>
@@ -553,42 +507,20 @@ body{background:
       <div class="qtap">Tap to refresh ↻</div>
     </div>
 
-    <div class="section" id="coach-section" style="padding:0 20px;">
-      <div class="section-head">
-        <div class="section-title">Meet your coach</div>
-        <a href="javascript:void(0)" class="section-link" onclick="switchPage('ai')">Open coach</a>
-      </div>
-      <div class="coach-panel">
-        <div class="coach-thumb"><img src="https://ggfvluqiwcnhbmetxxao.supabase.co/storage/v1/object/public/coach/coach.png" alt="Coach portrait"></div>
-        <div>
-          <div class="coach-name">Your Daily Coach</div>
-          <div class="coach-copy">A focused voice for accountability, clarity and momentum. Built for daily accountability, momentum and clear next steps.</div>
-          <div class="coach-tags">
-            <span class="coach-tag">Motivation</span>
-            <span class="coach-tag">Accountability</span>
-            <span class="coach-tag">Daily reset</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-
-    <div class="slabel">Smart Reminders</div>
-    <div class="nudge-section">
-      <div class="nudge-stack" id="inapp-reminders">
-        <div style="padding:14px;text-align:center;color:var(--muted);font-size:13px">Loading reminders...</div>
-      </div>
-    </div>
-
-    <div class="slabel" style="margin-top:2px">This Week's Activity</div>
+    <!-- 8. THIS WEEK'S ACTIVITY -->
+    <div class="slabel">This Week's Activity</div>
     <div style="margin:0 20px 16px;background:linear-gradient(180deg, rgba(17,24,39,.92), rgba(12,18,28,.96));border:0.5px solid var(--border);border-radius:16px;padding:16px 14px">
       <div style="display:flex;align-items:flex-end;justify-content:space-between;height:70px;gap:6px" id="streak-chart"></div>
       <div style="display:flex;justify-content:space-between;margin-top:8px" id="streak-chart-labels"></div>
     </div>
-    <div class="slabel">Today's Habits</div>
-    <div class="hlist" id="habits-list">
-      <div style="padding:16px;text-align:center;color:var(--muted);font-size:13px">Loading habits...</div>
+
+    <!-- 9. OPEN COACH CTA -->
+    <div style="padding:0 20px 24px">
+      <button onclick="switchPage('ai')" style="width:100%;padding:16px;border:none;border-radius:16px;background:linear-gradient(135deg,var(--blue),var(--teal));color:#fff;font-size:15px;font-weight:800;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px">
+        ⚡ Open Coach
+      </button>
     </div>
+
   </div>
 
   <!-- GOALS -->
@@ -995,6 +927,9 @@ async function initApp() {
   document.getElementById('app-screen').style.display  = 'block';
   const initials = USER.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   document.getElementById('user-avatar').textContent       = initials;
+  var hour = new Date().getHours();
+  var greetText = hour < 12 ? 'Good morning,' : hour < 17 ? 'Good afternoon,' : 'Good evening,';
+  document.getElementById('time-greet').textContent = greetText;
   document.getElementById('user-name-display').textContent = USER.name.toUpperCase() + ' 👊';
   document.getElementById('streak-count').textContent      = USER.streak || 0;
   document.getElementById('welcome-msg').textContent       = `Hey ${USER.name}! Let's move one goal forward today. Tell Coach where you feel stuck, what you want to improve, or what your next step should be.`;
@@ -1064,6 +999,9 @@ function getPeakHourPref() {
 }
 
 function loadPeakHourCard() {
+  // Also update header pill
+  var pill = document.getElementById('peak-pill');
+  if (pill) pill.style.display = isPeakHour() ? 'inline-flex' : 'none';
   var card = document.getElementById('peak-window-card');
   var textEl = document.getElementById('peak-window-text');
   var subEl = document.getElementById('peak-window-sub');

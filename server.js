@@ -1219,6 +1219,104 @@ app.patch('/api/onboarding/peak-hour', auth, async (req, res) => {
   }
 });
 
+
+// ── WEEKLY REVIEW ─────────────────────────────────────────────────────────────
+app.get('/api/weekly-review', auth, async (req, res) => {
+  try {
+    const { rows: [user] }   = await db.query('SELECT name, streak FROM users WHERE id=$1', [req.user.id]);
+    const { rows: goals }    = await db.query("SELECT title, progress, target FROM goals WHERE user_id=$1 AND status='active'", [req.user.id]);
+    const { rows: habits }   = await db.query(
+      `SELECT h.name, COUNT(hc.id) as completions
+       FROM habits h LEFT JOIN habit_completions hc
+         ON hc.habit_id=h.id AND hc.user_id=$1 AND hc.date >= CURRENT_DATE - INTERVAL '7 days'
+       WHERE h.user_id=$1 GROUP BY h.id, h.name`, [req.user.id]);
+    const { rows: checkins } = await db.query(
+      "SELECT mood, created_at FROM journal_entries WHERE user_id=$1 AND created_at >= NOW() - INTERVAL '7 days' ORDER BY created_at DESC",
+      [req.user.id]);
+    const { rows: decisions }= await db.query(
+      "SELECT alignment FROM decision_log WHERE user_id=$1 AND created_at >= NOW() - INTERVAL '7 days'",
+      [req.user.id]);
+    const { rows: energy }   = await db.query(
+      "SELECT level, logged_at FROM energy_logs WHERE user_id=$1 AND logged_at >= NOW() - INTERVAL '7 days' ORDER BY logged_at",
+      [req.user.id]);
+
+    const avgGoal   = goals.length ? Math.round(goals.reduce((a,g) => a+(g.progress/g.target)*100, 0)/goals.length) : 0;
+    const habitDone = habits.filter(h => parseInt(h.completions) > 0).length;
+    const aligned   = decisions.filter(d => d.alignment === 'aligned').length;
+    const avgEnergy = energy.length ? Math.round(energy.reduce((a,e) => a+e.level, 0)/energy.length*10)/10 : null;
+
+    const context = `
+WEEKLY REVIEW DATA for ${user.name}:
+- Streak: ${user.streak} days
+- Active goals: ${goals.map(g => g.title.replace(/^\[.*?\]\s*/,'')+' ('+Math.round((g.progress/g.target)*100)+'%)').join(', ') || 'none'}
+- Average goal progress: ${avgGoal}%
+- Habits active this week: ${habitDone}/${habits.length}
+- Check-ins logged: ${checkins.length}
+- Moods this week: ${checkins.map(c => c.mood).join(', ') || 'none'}
+- Decisions aligned: ${aligned}/${decisions.length}
+- Average energy level: ${avgEnergy !== null ? avgEnergy+'/5' : 'not tracked'}
+`;
+
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 400,
+      system: buildCoachSystem(context, '', 'chat'),
+      messages: [{ role: 'user', content: `Write a weekly performance review for ${user.name}. 
+Rules:
+- 3-4 sentences max, no bullet points
+- Reference specific data (goals, habits, energy)
+- One clear win to celebrate
+- One specific challenge for next week
+- End with a direct motivational push in Shaun Crumme style
+- Sound like a real coach, not a report` }]
+    });
+
+    res.json({
+      summary: response.content[0].text,
+      stats: { avgGoal, habitDone, totalHabits: habits.length, checkins: checkins.length, aligned, totalDecisions: decisions.length, avgEnergy }
+    });
+  } catch(e) {
+    console.error('Weekly review error:', e);
+    res.status(500).json({ error: 'Could not generate review' });
+  }
+});
+
+// ── PEAK PERFORMANCE REPORT ───────────────────────────────────────────────────
+// SQL (run once):
+// ALTER TABLE habit_completions ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ DEFAULT NOW();
+app.get('/api/peak-report', auth, async (req, res) => {
+  try {
+    // Get habit completions by hour over last 30 days
+    const { rows: byHour } = await db.query(
+      `SELECT EXTRACT(HOUR FROM COALESCE(completed_at, created_at)) as hour, COUNT(*) as count
+       FROM habit_completions
+       WHERE user_id=$1 AND date >= CURRENT_DATE - INTERVAL '30 days'
+       GROUP BY hour ORDER BY hour`,
+      [req.user.id]);
+
+    // Get energy logs by hour
+    const { rows: energyByHour } = await db.query(
+      `SELECT EXTRACT(HOUR FROM logged_at) as hour, AVG(level) as avg_energy
+       FROM energy_logs
+       WHERE user_id=$1 AND logged_at >= NOW() - INTERVAL '30 days'
+       GROUP BY hour ORDER BY hour`,
+      [req.user.id]);
+
+    // Get intentions completion rate by day of week
+    const { rows: byDay } = await db.query(
+      `SELECT TO_CHAR(date, 'Dy') as day, alignment, COUNT(*) as count
+       FROM daily_intentions
+       WHERE user_id=$1 AND date >= CURRENT_DATE - INTERVAL '30 days'
+       GROUP BY day, alignment`,
+      [req.user.id]);
+
+    res.json({ byHour, energyByHour, byDay });
+  } catch(e) {
+    console.error('Peak report error:', e);
+    res.status(500).json({ error: 'Could not generate report' });
+  }
+});
+
 app.get('/health', (_, res) => res.json({ status: 'ok', service: 'Luhv+ API' }));
 
 app.listen(PORT, '0.0.0.0', () => console.log(`🏆 Luhv+ API running on port ${PORT}`));

@@ -252,6 +252,22 @@ body{background:
 .peak-window-text{font-size:14px;font-weight:600;color:#fff}
 .peak-window-sub{font-size:12px;color:var(--muted);margin-top:2px}
 .peak-edit-btn{font-size:11px;color:var(--muted);background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:8px;border:1px solid rgba(255,255,255,.08)}
+.profile-modal{position:fixed;inset:0;z-index:1500;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.7);padding:0}
+.profile-box{background:linear-gradient(180deg,#0d1520,#080f18);border-radius:28px 28px 0 0;padding:28px 24px 40px;width:100%;max-width:390px}
+.profile-handle{width:36px;height:4px;border-radius:99px;background:rgba(255,255,255,.15);margin:0 auto 24px}
+.profile-avatar-big{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;margin:0 auto 10px;border:3px solid rgba(14,165,233,.4)}
+.profile-name{font-family:"Bebas Neue",sans-serif;font-size:26px;letter-spacing:1px;text-align:center;margin-bottom:4px}
+.profile-email{font-size:13px;color:var(--muted);text-align:center;margin-bottom:24px}
+.profile-section{margin-bottom:20px}
+.profile-section-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:10px}
+.profile-option{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;margin-bottom:8px;cursor:pointer;transition:background .2s}
+.profile-option:hover{background:rgba(255,255,255,.07)}
+.profile-option-label{font-size:14px;font-weight:500}
+.profile-option-value{font-size:12px;color:var(--teal);font-weight:600}
+.profile-peak-opts{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.profile-peak-opt{padding:11px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);font-size:13px;cursor:pointer;transition:all .2s;text-align:left;color:#fff;font-family:"DM Sans",sans-serif;display:flex;align-items:center;justify-content:space-between}
+.profile-peak-opt.selected{border-color:#fbbf24;background:rgba(251,191,36,.1);color:#fbbf24}
+.profile-logout{width:100%;padding:14px;border:none;border-radius:14px;background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.2);color:#f43f5e;font-size:14px;font-weight:700;cursor:pointer;font-family:"DM Sans",sans-serif;margin-top:8px}
 
 /* ── ONBOARDING ── */
 #onboarding-modal{position:fixed;inset:0;z-index:2000;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.9);padding:0}
@@ -325,6 +341,33 @@ body{background:
   </div>
 </div>
 <button class="help-btn" id="help-btn" onclick="startTour()" title="App guide">?</button>
+<!-- PROFILE MODAL -->
+<div id="profile-modal" style="display:none" onclick="closeProfileIfOutside(event)">
+  <div class="profile-modal" id="profile-modal-inner">
+    <div class="profile-box">
+      <div class="profile-handle"></div>
+      <div class="profile-avatar-big" id="profile-avatar-big">?</div>
+      <div class="profile-name" id="profile-name">Champion</div>
+      <div class="profile-email" id="profile-email"></div>
+
+      <div class="profile-section">
+        <div class="profile-section-label">Peak Performance Window</div>
+        <div class="profile-peak-opts" id="profile-peak-opts"></div>
+      </div>
+
+      <div class="profile-section">
+        <div class="profile-section-label">Effectiveness Score</div>
+        <div class="profile-option" onclick="switchPage('journal');closeProfile()">
+          <span class="profile-option-label">View Progress</span>
+          <span class="profile-option-value">📈 Progress →</span>
+        </div>
+      </div>
+
+      <button class="profile-logout" onclick="logout()">Sign Out</button>
+    </div>
+  </div>
+</div>
+
 <!-- ONBOARDING MODAL -->
 <div id="onboarding-modal" style="display:none">
   <div class="ob-box">
@@ -367,7 +410,7 @@ body{background:
   <div class="top-bar">
     <div class="logo">LUHV<span>+</span></div>
     <div class="coins">⚡ <span id="coin-count">30</span></div>
-    <div class="avatar" id="user-avatar" title="Tap to sign out" onclick="logout()">?</div>
+    <div class="avatar" id="user-avatar" title="Profile" onclick="openProfile()">?</div>
   </div>
 
   <!-- HOME -->
@@ -845,6 +888,67 @@ async function register() {
     document.getElementById('auth-error').textContent = 'Connection error — please try again';
   }
   btn.disabled = false; btn.innerHTML = "Let's Go 🔥";
+}
+
+var PEAK_OPTIONS = [
+  'Early morning (5–8am)',
+  'Morning (8–11am)',
+  'Midday (11am–2pm)',
+  'Afternoon (2–5pm)',
+  'Evening (5–9pm)'
+];
+
+function openProfile() {
+  var modal = document.getElementById('profile-modal');
+  if (!modal) return;
+  // Fill user info
+  var initials = USER ? USER.name.split(' ').map(function(n){return n[0];}).join('').toUpperCase().slice(0,2) : '?';
+  document.getElementById('profile-avatar-big').textContent = initials;
+  document.getElementById('profile-name').textContent = USER?.name?.toUpperCase() || 'CHAMPION';
+  document.getElementById('profile-email').textContent = USER?.email || '';
+  // Fill peak options
+  var current = getPeakHourPref() || '';
+  var optsEl = document.getElementById('profile-peak-opts');
+  optsEl.innerHTML = '';
+  PEAK_OPTIONS.forEach(function(o) {
+    var btn = document.createElement('button');
+    btn.className = 'profile-peak-opt' + (o === current ? ' selected' : '');
+    btn.innerHTML = o + (o === current ? ' <span style="font-size:16px">⚡</span>' : '');
+    btn.onclick = function() { selectPeakHour(o); };
+    optsEl.appendChild(btn);
+  });
+  modal.style.display = 'flex';
+}
+
+function closeProfile() {
+  var modal = document.getElementById('profile-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function closeProfileIfOutside(e) {
+  if (e.target === document.getElementById('profile-modal')) closeProfile();
+}
+
+async function selectPeakHour(value) {
+  // Update UI immediately
+  document.querySelectorAll('.profile-peak-opt').forEach(function(btn) {
+    var isSelected = btn.textContent.startsWith(value);
+    btn.className = 'profile-peak-opt' + (isSelected ? ' selected' : '');
+    if (isSelected) btn.innerHTML = value + ' <span style="font-size:16px">⚡</span>';
+    else btn.textContent = btn.textContent.replace(' ⚡', '');
+  });
+  // Save locally
+  try {
+    var saved = JSON.parse(localStorage.getItem('luhv_onboarding') || '{}');
+    saved.peak_hour = value;
+    localStorage.setItem('luhv_onboarding', JSON.stringify(saved));
+  } catch(e) {}
+  // Save to server
+  await api('/api/onboarding/peak-hour', { method: 'PATCH', body: JSON.stringify({ peak_hour: value }) });
+  // Refresh peak cards
+  loadPeakHourCard();
+  loadPeakTimerBadge();
+  setTimeout(closeProfile, 600);
 }
 
 function logout() {

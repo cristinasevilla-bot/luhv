@@ -66,7 +66,9 @@ body{background:var(--black);font-family:'DM Sans',sans-serif;color:#fff;min-hei
 .pnum{font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--blue);line-height:1}
 .plbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:3px}
 .hlist{padding:0 20px;display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
-.hitem{background:var(--card);border:0.5px solid var(--border);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color .2s}
+.hitem{background:var(--card);border:0.5px solid var(--border);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color .2s,transform .15s,opacity .15s;position:relative;overflow:hidden;touch-action:pan-y}
+.hitem-swipe-bg{position:absolute;inset:0;background:linear-gradient(90deg,var(--teal),rgba(6,214,160,.6));display:flex;align-items:center;padding:0 20px;opacity:0;transition:opacity .15s;pointer-events:none;border-radius:12px}
+.hitem-swipe-bg span{font-size:20px;color:#07111b;font-weight:700}
 .hitem.done{border-color:var(--teal)}
 .hico{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
 .hico.b{background:rgba(14,165,233,.15)}.hico.t{background:rgba(6,214,160,.12)}.hico.y{background:rgba(251,191,36,.12)}.hico.p{background:rgba(99,102,241,.15)}
@@ -761,7 +763,9 @@ body{background:
       <div style="background:linear-gradient(180deg,rgba(17,24,39,.92),rgba(12,18,28,.96));border:0.5px solid var(--border);border-radius:16px;padding:14px;">
         <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:10px;">Add Habit</div>
         <input id="habit-name-input" type="text" placeholder="Example: Drink 8 glasses of water"
-          style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:var(--light);font-size:14px;outline:none;margin-bottom:10px;" />
+          style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:var(--light);font-size:14px;outline:none;margin-bottom:6px;"
+          oninput="showHabitTip(this.value)" />
+        <div id="habit-tip" style="font-size:11px;color:var(--muted);margin-bottom:10px;min-height:16px;line-height:1.5;padding-left:2px"></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
           <select id="habit-icon-input"
             style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:var(--light);font-size:14px;outline:none;">
@@ -1740,6 +1744,31 @@ async function loadGoals() {
   renderProgressGoals(goals);
 }
 
+var HABIT_TIPS = [
+  { words: ['soda','junk','sugar','less','stop','avoid','no ','quit','dont'],
+    tip: '💡 Phrase as a positive action — try "Limit soda to 1 per day" instead.' },
+  { words: ['water','drink'],
+    tip: '💧 Use Daily target type to track glasses. Example: 8 glasses.' },
+  { words: ['walk','run','exercise','gym','workout'],
+    tip: '💪 Link this to a fitness goal for automatic progress tracking.' },
+  { words: ['read','book','pages'],
+    tip: '📚 Try Daily target — set number of pages per day.' },
+  { words: ['sleep','bed','wake'],
+    tip: '⏰ Set a specific time to make this easier to track.' },
+  { words: ['meditat','breath','mindful'],
+    tip: '🧘 Even 5 minutes counts. Use Daily check for yes/no.' },
+];
+
+function showHabitTip(val) {
+  var tipEl = document.getElementById('habit-tip');
+  if (!tipEl) return;
+  var lower = val.toLowerCase();
+  var found = HABIT_TIPS.find(function(t) {
+    return t.words.some(function(w) { return lower.includes(w); });
+  });
+  tipEl.textContent = found ? found.tip : (val.length > 3 ? '✓ Sounds good. Add a time to stay consistent.' : '');
+}
+
 function toggleHabitTarget(type) {
   var targetEl = document.getElementById('habit-target-input');
   if (targetEl) targetEl.style.display = type === 'count' ? 'block' : 'none';
@@ -1768,6 +1797,50 @@ async function addHabit() {
     await loadHabitsPage();
     await loadHabits();
   } catch(e) { msgEl.textContent = 'Could not add habit.'; msgEl.style.color = '#f87171'; }
+}
+
+function addSwipeToHabit(div, habitId, isCount) {
+  if (isCount) return; // count habits use + button instead
+  var startX = 0, startY = 0, isDragging = false, swipeBg = null;
+
+  // Add swipe background
+  swipeBg = document.createElement('div');
+  swipeBg.className = 'hitem-swipe-bg';
+  swipeBg.innerHTML = '<span>✓ Done</span>';
+  div.insertBefore(swipeBg, div.firstChild);
+
+  div.addEventListener('touchstart', function(e) {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    isDragging = false;
+  }, { passive: true });
+
+  div.addEventListener('touchmove', function(e) {
+    var dx = e.touches[0].clientX - startX;
+    var dy = e.touches[0].clientY - startY;
+    if (!isDragging && Math.abs(dy) > Math.abs(dx)) return; // vertical scroll
+    isDragging = true;
+    if (dx > 0 && dx < 100) {
+      div.style.transform = 'translateX(' + dx + 'px)';
+      swipeBg.style.opacity = dx / 80;
+    }
+  }, { passive: true });
+
+  div.addEventListener('touchend', function(e) {
+    var dx = e.changedTouches[0].clientX - startX;
+    div.style.transform = '';
+    swipeBg.style.opacity = 0;
+    if (isDragging && dx > 60 && !div.classList.contains('done')) {
+      // Complete the habit with animation
+      div.style.transition = 'transform .2s,opacity .2s';
+      div.style.transform = 'translateX(100%)';
+      div.style.opacity = '0';
+      setTimeout(function() {
+        toggleHabit(div, habitId);
+      }, 200);
+    }
+    isDragging = false;
+  }, { passive: true });
 }
 
 async function loadHabitsPage() {
@@ -1818,7 +1891,10 @@ async function loadHabitsPage() {
       progRow.appendChild(fill);
       div.appendChild(progRow);
     }
-    if (!isCount) div.onclick = function() { toggleHabit(div, h.id); };
+    if (!isCount) {
+      div.onclick = function(e) { if (!e._swipe) toggleHabit(div, h.id); };
+      addSwipeToHabit(div, h.id, false);
+    }
     list.appendChild(div);
   });
 }

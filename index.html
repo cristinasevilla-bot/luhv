@@ -687,10 +687,10 @@ body{background:
 
   <!-- GOALS -->
   <div class="page" id="page-goals">
-    <div style="padding:18px 20px 14px">
-      <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:8px;">Goals</div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:1px;line-height:.95">Build goals you can actually track.</div>
-      <div style="font-size:13px;color:var(--muted);margin-top:8px">Create a goal, add a deadline, and update your progress over time.</div>
+    <div style="padding:18px 20px 14px;border-bottom:1px solid rgba(255,255,255,.05)">
+      <div style="font-size:10px;color:var(--teal);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:4px">Goals</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;line-height:1">BUILD GOALS YOU TRACK.</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">Set a goal. Add a deadline. Update progress daily.</div>
     </div>
     <div style="padding:0 20px 14px">
       <div style="background:linear-gradient(180deg, rgba(17,24,39,.92), rgba(12,18,28,.96));border:0.5px solid var(--border);border-radius:16px;padding:14px;">
@@ -725,10 +725,10 @@ body{background:
 
   <!-- HABITS -->
   <div class="page" id="page-habits" style="overflow-y:auto;padding-bottom:100px">
-    <div style="padding:18px 20px 14px">
-      <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:8px;">Habits</div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:1px;line-height:.95">Daily actions build great results.</div>
-      <div style="font-size:13px;color:var(--muted);margin-top:8px">Habits are done every day. Goals are achieved over time.</div>
+    <div style="padding:18px 20px 14px;border-bottom:1px solid rgba(255,255,255,.05)">
+      <div style="font-size:10px;color:var(--teal);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:4px">Habits</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;line-height:1">DAILY ACTIONS. GREAT RESULTS.</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">Habits are done every day. Goals are achieved over time.</div>
     </div>
     <div style="padding:0 20px 14px">
       <div style="background:linear-gradient(180deg,rgba(17,24,39,.92),rgba(12,18,28,.96));border:0.5px solid var(--border);border-radius:16px;padding:14px;">
@@ -804,9 +804,10 @@ body{background:
   <!-- JOURNAL -->
   <div class="page" id="page-journal">
   <div class="jpage">
-    <div style="padding:20px 20px 12px">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px;margin-bottom:4px">PROGRESS</div>
-      <div style="font-size:13px;color:var(--muted)">Are you getting more effective over time?</div>
+    <div style="padding:18px 20px 14px;border-bottom:1px solid rgba(255,255,255,.05)">
+      <div style="font-size:10px;color:var(--blue);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:4px">Progress</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;line-height:1">ARE YOU IMPROVING?</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">Weekly review, energy, peak hours and check-in log.</div>
     </div>
     <div class="prow" style="padding:0 20px 16px">
       <div class="jstat"><div class="jstat-num" id="prog-checkins">0</div><div class="jstat-lbl">Check-ins<br>logged</div></div>
@@ -914,9 +915,10 @@ body{background:
 </div>
 
   <div class="page" id="page-focus" style="overflow-y:auto;padding-bottom:100px">
-    <div style="padding:20px 20px 12px">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px;margin-bottom:4px">FOCUS</div>
-      <div style="font-size:13px;color:var(--muted)">Protect your time. Do the work that matters.</div>
+    <div style="padding:18px 20px 14px;border-bottom:1px solid rgba(255,255,255,.05)">
+      <div style="font-size:10px;color:var(--purple);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:4px">Focus</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;line-height:1">PROTECT YOUR TIME.</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">Work when your mind is sharpest. One session at a time.</div>
     </div>
     <div style="display:flex;gap:8px;margin:0 20px 10px">
       <div class="focus-mode active" id="mode-deep" onclick="setMode('deep',25)">
@@ -1213,34 +1215,82 @@ function getPeakHourPref() {
   return null;
 }
 
+var TRUE_WINDOWS = [
+  { name: 'Creativity',  icon: '🎨', start: 5,  end: 12, desc: '5am-12pm · Deep work', color: '#06d6a0' },
+  { name: 'Discovery',   icon: '🔍', start: 12, end: 18, desc: '12pm-6pm · Learning & connecting', color: '#0ea5e9' },
+  { name: 'Recovery',    icon: '🔄', start: 18, end: 24, desc: '6pm-11pm · Rest & reflect', color: '#6366f1' },
+  { name: 'Early Start', icon: '🌙', start: 0,  end: 5,  desc: '12am-5am · Sleep is performance', color: '#6b7280' }
+];
+
+function getTrueWindow() {
+  var h = new Date().getHours();
+  return TRUE_WINDOWS.find(function(w){ return h >= w.start && h < w.end; }) || TRUE_WINDOWS[0];
+}
+
 function loadPeakHourCard() {
-  // Also update header pill
-  var pill = document.getElementById('peak-pill');
-  if (pill) pill.style.display = isPeakHour() ? 'inline-flex' : 'none';
-  var card = document.getElementById('peak-window-card');
-  var textEl = document.getElementById('peak-window-text');
-  var subEl = document.getElementById('peak-window-sub');
-  if (!card) return;
+  var tw = getTrueWindow();
+  var h  = new Date().getHours();
   var pref = getPeakHourPref();
-  if (!pref) { card.style.display = 'none'; return; }
-  card.style.display = 'flex';
-  textEl.textContent = pref;
-  var isPeak = isPeakHour();
-  if (isPeak) {
-    card.style.borderColor = 'rgba(251,191,36,.4)';
-    subEl.textContent = 'You are in your peak window right now — make it count.';
-    subEl.style.color = '#fbbf24';
-  } else {
-    var range = PEAK_RANGES[pref];
-    var h = new Date().getHours();
-    card.style.borderColor = 'rgba(251,191,36,.2)';
-    if (range && h < range.start) {
-      var hoursUntil = range.start - h;
-      subEl.textContent = 'Your peak window starts in ' + hoursUntil + ' hour' + (hoursUntil > 1 ? 's' : '') + '. Use this time to prepare.';
+
+  // Header pill — only show during Creativity window
+  var pill = document.getElementById('peak-pill');
+  if (pill) pill.style.display = tw.name === 'Creativity' ? 'inline-flex' : 'none';
+
+  var card     = document.getElementById('peak-window-card');
+  var emptyEl  = document.getElementById('peak-window-empty');
+  var iconEl   = document.getElementById('true-window-icon');
+  var nameEl   = document.getElementById('true-window-name');
+  var descEl   = document.getElementById('true-window-desc');
+  var textEl   = document.getElementById('peak-window-text');
+  var subEl    = document.getElementById('peak-window-sub');
+  var msgEl    = document.getElementById('ppw-alignment-msg');
+
+  if (!card) return;
+
+  // Always show true window
+  if (iconEl) iconEl.textContent = tw.icon;
+  if (nameEl) { nameEl.textContent = tw.name; nameEl.style.color = tw.color; }
+  if (descEl) descEl.textContent = tw.desc;
+  card.style.borderColor = tw.color + '33';
+  card.style.display = 'block';
+  if (emptyEl) emptyEl.style.display = 'none';
+
+  if (!pref) {
+    if (textEl) textEl.textContent = 'Not set';
+    if (subEl)  { subEl.textContent = ''; }
+    if (msgEl)  msgEl.style.display = 'none';
+    return;
+  }
+
+  // Preferred window
+  if (textEl) textEl.textContent = pref;
+  var range = PEAK_RANGES[pref];
+  var isPrefActive = range && h >= range.start && h < range.end;
+
+  if (subEl) {
+    if (isPrefActive) {
+      subEl.textContent = 'Your preferred window is active now — make it count.';
+      subEl.style.color = '#fbbf24';
+    } else if (range && h < range.start) {
+      subEl.textContent = 'Starts in ' + (range.start - h) + 'h. Use this time to prepare.';
+      subEl.style.color = 'var(--muted)';
     } else {
-      subEl.textContent = 'Peak window passed. Plan your next one for tomorrow.';
+      subEl.textContent = 'Window passed for today.';
+      subEl.style.color = 'var(--muted)';
     }
-    subEl.style.color = 'var(--muted)';
+  }
+
+  // Alignment message
+  if (msgEl) {
+    var prefInCreativity = range && range.start >= 5 && range.end <= 12;
+    msgEl.style.display = 'block';
+    if (prefInCreativity) {
+      msgEl.style.cssText = 'display:block;margin-top:8px;font-size:11px;line-height:1.5;padding:7px 10px;border-radius:8px;background:rgba(6,214,160,.08);border:1px solid rgba(6,214,160,.2);color:#06d6a0';
+      msgEl.textContent = '✓ Aligned with Creativity hours — the peak time for deep work.';
+    } else {
+      msgEl.style.cssText = 'display:block;margin-top:8px;font-size:11px;line-height:1.5;padding:7px 10px;border-radius:8px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);color:#a5b4fc';
+      msgEl.textContent = '💡 Outside Creativity hours (5am-12pm). Aspire to shift toward mornings for peak output.';
+    }
   }
 }
 

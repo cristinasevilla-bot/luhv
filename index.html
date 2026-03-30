@@ -180,6 +180,10 @@ body{background:
 .pcard,.gcard,.jentry,.jnew,.hitem{background:linear-gradient(180deg, rgba(17,24,39,.92), rgba(12,18,28,.96))}
 .add-btn{background:rgba(14,165,233,.06)}
 .help-btn{bottom:96px}
+.decision-fab{position:fixed;bottom:96px;left:16px;z-index:500;display:none;align-items:center;gap:8px;padding:10px 16px;border-radius:24px;background:linear-gradient(135deg,var(--purple),var(--blue));border:none;color:#fff;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(99,102,241,.4);font-family:"DM Sans",sans-serif}
+.decision-modal{position:fixed;inset:0;z-index:1500;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.7)}
+.decision-modal-box{background:linear-gradient(180deg,#0d1520,#080f18);border-radius:28px 28px 0 0;padding:28px 24px 40px;width:100%;max-width:390px}
+.decision-modal-handle{width:36px;height:4px;border-radius:99px;background:rgba(255,255,255,.15);margin:0 auto 20px}
 
 
 .nudge-section{padding:0 20px 16px}
@@ -364,6 +368,29 @@ body{background:
   </div>
 </div>
 <button class="help-btn" id="help-btn" onclick="startTour()" title="App guide">?</button>
+
+<!-- DECISION CHECK FAB -->
+<button class="decision-fab" id="decision-fab" onclick="openDecisionModal()">🎯 Decision Check</button>
+
+<!-- DECISION CHECK MODAL -->
+<div id="decision-modal" style="display:none" onclick="closeDecisionIfOutside(event)">
+  <div class="decision-modal">
+    <div class="decision-modal-box">
+      <div class="decision-modal-handle"></div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;margin-bottom:4px">DECISION CHECK</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.5">Is this decision aligned with your goals? Get instant coach clarity.</div>
+      <textarea id="decision-modal-input" rows="3" placeholder="Example: Should I take on this new client?"
+        style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:13px 16px;color:#fff;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;resize:none;margin-bottom:10px"></textarea>
+      <textarea id="decision-modal-context" rows="1" placeholder="Any context? (optional)"
+        style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:11px 14px;color:#fff;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;resize:none;margin-bottom:14px"></textarea>
+      <button onclick="submitDecisionModal()" id="decision-modal-btn"
+        style="width:100%;padding:14px;border:none;border-radius:14px;background:linear-gradient(135deg,var(--purple),var(--blue));color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">
+        Get Clarity ⚡
+      </button>
+      <div id="decision-modal-result" style="margin-top:14px;font-size:13px;line-height:1.6;display:none;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.08)"></div>
+    </div>
+  </div>
+</div>
 <!-- PROFILE MODAL -->
 <div id="profile-modal" style="display:none" onclick="closeProfileIfOutside(event)">
   <div class="profile-modal" id="profile-modal-inner">
@@ -1000,6 +1027,7 @@ async function initApp() {
   checkOnboarding();
   loadPeakHourCard();
   document.getElementById('help-btn').style.display = 'flex';
+  document.getElementById('decision-fab').style.display = 'flex';
   restoreTimerIfRunning();
   if (!localStorage.getItem('luhv_welcomed')) { setTimeout(showWelcome, 600); }
 }
@@ -2062,6 +2090,52 @@ async function loadDecisionsLog() {
       return '<div class="dec-card"><div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:13px;font-weight:600;flex:1;margin-right:8px">'+d.decision+'</div><span class="align-badge '+(d.alignment||'needs_adjustment')+'">'+(labels[d.alignment]||d.alignment)+'</span></div>'+(d.foundation?'<div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">'+d.foundation+'</div>':'')+'<div style="font-size:12px;color:var(--muted)">'+date+'</div></div>';
     }).join('');
   }
+}
+
+function openDecisionModal() {
+  document.getElementById('decision-modal').style.display = 'flex';
+  document.getElementById('decision-modal-input').focus();
+  document.getElementById('decision-modal-result').style.display = 'none';
+  document.getElementById('decision-modal-input').value = '';
+  document.getElementById('decision-modal-context').value = '';
+}
+
+function closeDecisionModal() {
+  document.getElementById('decision-modal').style.display = 'none';
+}
+
+function closeDecisionIfOutside(e) {
+  if (e.target === document.getElementById('decision-modal')) closeDecisionModal();
+}
+
+async function submitDecisionModal() {
+  var input  = document.getElementById('decision-modal-input');
+  var ctx    = document.getElementById('decision-modal-context');
+  var btn    = document.getElementById('decision-modal-btn');
+  var result = document.getElementById('decision-modal-result');
+  var val    = input.value.trim();
+  if (!val) return;
+  btn.disabled = true; btn.textContent = 'Getting clarity...';
+  result.style.display = 'none';
+  try {
+    var data = await api('/api/decisions', { method:'POST', body:JSON.stringify({ decision:val, context:ctx.value.trim()||null }) });
+    if (data && data.alignment) {
+      var labels = { aligned:'Aligned', needs_adjustment:'Needs Adjustment', not_aligned:'Not Aligned' };
+      var colors = { aligned:'#06d6a0', needs_adjustment:'#fbbf24', not_aligned:'#f43f5e' };
+      var icons  = { aligned:'✓', needs_adjustment:'~', not_aligned:'✗' };
+      var c = colors[data.alignment] || '#fbbf24';
+      result.innerHTML = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">' +
+        '<span style="padding:4px 10px;border-radius:20px;background:' + c + '22;color:' + c + ';border:1px solid ' + c + '44;font-size:12px;font-weight:700">' + icons[data.alignment] + ' ' + (labels[data.alignment]||data.alignment) + '</span>' +
+        (data.foundation ? '<span style="font-size:11px;color:var(--muted);text-transform:uppercase">' + data.foundation + '</span>' : '') + '</div>' +
+        '<div style="color:var(--light);line-height:1.6">' + (data.coachReply||'') + '</div>' +
+        '<button onclick="closeDecisionModal()" style="margin-top:12px;width:100%;padding:10px;border:none;border-radius:10px;background:rgba(255,255,255,.06);color:var(--muted);font-size:13px;cursor:pointer;font-family:sans-serif">Close</button>';
+      result.style.display = 'block';
+      result.style.borderColor = c + '44';
+      input.value = ''; ctx.value = '';
+      loadDecisionsLog();
+    }
+  } catch(e) { result.innerHTML = 'Could not connect.'; result.style.display = 'block'; }
+  btn.disabled = false; btn.textContent = 'Get Clarity ⚡';
 }
 
 async function submitDecision() {

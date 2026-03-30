@@ -218,6 +218,19 @@ body{background:
 .jmom-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--blue),var(--teal));transition:width .5s}
 .jmom-note{font-size:12px;color:var(--muted)}
 .checkin-entry{background:linear-gradient(180deg,rgba(17,24,39,.95),rgba(12,18,28,.98));border:0.5px solid var(--border);border-radius:16px;padding:14px 16px;display:flex;gap:14px;align-items:flex-start;transition:border-color .2s}
+.energy-card{margin:0 20px 16px;background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(14,165,233,.05));border:1px solid rgba(99,102,241,.2);border-radius:18px;padding:18px}
+.energy-label{font-size:10px;color:var(--purple);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:6px}
+.energy-title{font-size:16px;font-weight:700;margin-bottom:14px}
+.energy-scale{display:flex;gap:8px;margin-bottom:14px}
+.energy-btn{flex:1;padding:10px 4px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);cursor:pointer;font-size:18px;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:3px}
+.energy-btn span{font-size:10px;color:var(--muted);font-weight:600}
+.energy-btn.selected{border-color:var(--purple);background:rgba(99,102,241,.15);transform:scale(1.05)}
+.energy-btn:hover{background:rgba(255,255,255,.08)}
+.energy-chart{display:flex;align-items:flex-end;gap:4px;height:48px;margin-top:8px}
+.energy-bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
+.energy-bar{width:100%;border-radius:4px 4px 2px 2px;transition:height .4s;min-height:4px}
+.energy-bar-day{font-size:9px;color:var(--muted)}
+.energy-today-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;margin-bottom:10px}
 .checkin-entry:hover{border-color:rgba(14,165,233,.3)}
 .checkin-dot{width:36px;height:36px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px}
 .checkin-meta{flex:1;min-width:0}
@@ -738,6 +751,23 @@ body{background:
         <div id="decision-result" style="margin-top:10px;font-size:13px;line-height:1.6;display:none"></div>
       </div>
       <div id="decisions-log" style="display:flex;flex-direction:column;gap:8px;margin-top:10px"></div>
+    </div>
+    <div class="section-lbl">Energy Tracker</div>
+    <div class="energy-card">
+      <div class="energy-label">Daily Energy</div>
+      <div class="energy-title">How is your energy right now?</div>
+      <div id="energy-today-badge"></div>
+      <div class="energy-scale" id="energy-scale">
+        <button class="energy-btn" data-level="1" onclick="selectEnergy(1)"><span style="font-size:22px">😴</span><span>1</span></button>
+        <button class="energy-btn" data-level="2" onclick="selectEnergy(2)"><span style="font-size:22px">😐</span><span>2</span></button>
+        <button class="energy-btn" data-level="3" onclick="selectEnergy(3)"><span style="font-size:22px">🙂</span><span>3</span></button>
+        <button class="energy-btn" data-level="4" onclick="selectEnergy(4)"><span style="font-size:22px">😊</span><span>4</span></button>
+        <button class="energy-btn" data-level="5" onclick="selectEnergy(5)"><span style="font-size:22px">🔥</span><span>5</span></button>
+      </div>
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;font-weight:600">Last 7 days</div>
+      <div class="energy-chart" id="energy-chart">
+        <div style="font-size:12px;color:var(--muted)">Loading...</div>
+      </div>
     </div>
     <div class="section-lbl">Recent Moods</div>
     <div id="recent-moods" style="display:flex;gap:8px;flex-wrap:wrap;padding:0 20px;margin-bottom:20px"></div>
@@ -1614,6 +1644,7 @@ async function loadJournal() {
   }
   loadTodayIntention();
   loadDecisionsLog();
+  loadEnergyTracker();
 }
 
 async function loadPrompt() {
@@ -1817,6 +1848,76 @@ async function loadFocusPage() {
   var qi = Math.floor(Date.now()/3600000)%focusQuotes.length;
   var qEl = document.getElementById('focus-quote'); if (qEl) qEl.textContent = focusQuotes[qi];
   renderSessions();
+}
+
+// ── ENERGY TRACKER ──────────────────────────────────────────────────────────
+var selectedEnergyLevel = null;
+var ENERGY_LABELS = ['', 'Drained', 'Low', 'Neutral', 'Good', 'Peak'];
+var ENERGY_COLORS = ['', '#6b7280', '#0ea5e9', '#fbbf24', '#06d6a0', '#f43f5e'];
+var ENERGY_EMOJIS = ['', '😴', '😐', '🙂', '😊', '🔥'];
+
+async function loadEnergyTracker() {
+  // Load today
+  var today = await api('/api/energy/today');
+  var badgeEl = document.getElementById('energy-today-badge');
+  if (today && badgeEl) {
+    var c = ENERGY_COLORS[today.level];
+    badgeEl.innerHTML = '<span class="energy-today-badge" style="background:' + c + '22;color:' + c + ';border:1px solid ' + c + '44">' +
+      ENERGY_EMOJIS[today.level] + ' ' + ENERGY_LABELS[today.level] + ' · logged today</span>';
+    // Mark selected
+    document.querySelectorAll('.energy-btn').forEach(function(btn) {
+      btn.classList.toggle('selected', parseInt(btn.dataset.level) === today.level);
+    });
+    selectedEnergyLevel = today.level;
+  }
+  // Load chart
+  var logs = await api('/api/energy');
+  renderEnergyChart(logs);
+}
+
+function renderEnergyChart(logs) {
+  var chart = document.getElementById('energy-chart');
+  if (!chart) return;
+  if (!logs || !logs.length) { chart.innerHTML = '<div style="font-size:12px;color:var(--muted)">No energy logs yet.</div>'; return; }
+  // Get last 7 days
+  var days = [];
+  for (var i = 6; i >= 0; i--) {
+    var d = new Date(); d.setDate(d.getDate() - i);
+    days.push(d.toISOString().split('T')[0]);
+  }
+  var dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  chart.innerHTML = '';
+  days.forEach(function(date) {
+    var log = logs.find(function(l) { return l.logged_at && l.logged_at.startsWith(date); });
+    var level = log ? log.level : 0;
+    var heightPct = level ? Math.round((level/5)*100) : 8;
+    var color = level ? ENERGY_COLORS[level] : 'rgba(255,255,255,.06)';
+    var d = new Date(date + 'T12:00:00');
+    var dayName = dayNames[d.getDay()];
+    var isToday = date === new Date().toISOString().split('T')[0];
+    var col = document.createElement('div');
+    col.className = 'energy-bar-col';
+    col.innerHTML = '<div class="energy-bar" style="height:' + heightPct + '%;background:' + color + ';width:100%;' + (isToday ? 'box-shadow:0 0 8px ' + color : '') + '"></div>' +
+      '<div class="energy-bar-day" style="color:' + (isToday ? 'var(--blue)' : 'var(--muted)') + ';font-weight:' + (isToday ? '700' : '400') + '">' + dayName + '</div>';
+    chart.appendChild(col);
+  });
+}
+
+async function selectEnergy(level) {
+  selectedEnergyLevel = level;
+  document.querySelectorAll('.energy-btn').forEach(function(btn) {
+    btn.classList.toggle('selected', parseInt(btn.dataset.level) === level);
+  });
+  var result = await api('/api/energy', { method: 'POST', body: JSON.stringify({ level: level }) });
+  if (result && !result.error) {
+    var badgeEl = document.getElementById('energy-today-badge');
+    var c = ENERGY_COLORS[level];
+    if (badgeEl) badgeEl.innerHTML = '<span class="energy-today-badge" style="background:' + c + '22;color:' + c + ';border:1px solid ' + c + '44">' +
+      ENERGY_EMOJIS[level] + ' ' + ENERGY_LABELS[level] + ' · logged today</span>';
+    // Reload chart
+    var logs = await api('/api/energy');
+    renderEnergyChart(logs);
+  }
 }
 
 async function loadTodayIntention() {

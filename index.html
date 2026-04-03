@@ -731,107 +731,109 @@ body{background:
     </div>
   </div>
 
-  <!-- GOALS -->
-  <div class="page" id="page-goals">
-    <div style="padding:18px 20px 14px;border-bottom:1px solid rgba(255,255,255,.05)">
-      <div style="font-size:10px;color:var(--teal);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:4px">Goals</div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;line-height:1">BUILD GOALS YOU TRACK.</div>
-      <div style="font-size:12px;color:var(--muted);margin-top:4px">Set a goal. Add a deadline. Update progress daily.</div>
+  <!-- ROADMAP — unified Goals + Habits + Life Domains -->
+  <div class="page" id="page-roadmap" style="overflow-y:auto;padding-bottom:100px">
+
+    <!-- HEADER -->
+    <div style="padding:16px 20px 12px;border-bottom:1px solid rgba(255,255,255,.05);display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:10px;color:var(--teal);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:2px">Roadmap</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;line-height:1">YOUR PATH TO PEAK.</div>
+      </div>
+      <button onclick="switchPage('home')" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:var(--muted);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
     </div>
-    <div style="padding:12px 20px 4px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none">
-      <div style="flex-shrink:0;display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;background:rgba(6,214,160,.08);border:1px solid rgba(6,214,160,.2);font-size:11px;font-weight:700;color:var(--teal)">1. Create goal</div>
-      <div style="flex-shrink:0;color:var(--muted);display:flex;align-items:center">→</div>
-      <div style="flex-shrink:0;display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);font-size:11px;font-weight:700;color:var(--muted)">2. Set deadline</div>
-      <div style="flex-shrink:0;color:var(--muted);display:flex;align-items:center">→</div>
-      <div style="flex-shrink:0;display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);font-size:11px;font-weight:700;color:var(--muted)">3. Update daily</div>
+
+    <!-- SECTION TABS -->
+    <div style="display:flex;gap:0;padding:12px 20px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+      <button id="rtab-domains" onclick="switchRoadmapTab('domains')" style="flex:1;padding:8px;border:none;background:none;color:var(--teal);font-size:12px;font-weight:700;cursor:pointer;border-bottom:2px solid var(--teal);font-family:'DM Sans',sans-serif">Life</button>
+      <button id="rtab-goals" onclick="switchRoadmapTab('goals')" style="flex:1;padding:8px;border:none;background:none;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;border-bottom:2px solid transparent;font-family:'DM Sans',sans-serif">Goals</button>
+      <button id="rtab-habits" onclick="switchRoadmapTab('habits')" style="flex:1;padding:8px;border:none;background:none;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;border-bottom:2px solid transparent;font-family:'DM Sans',sans-serif">Habits</button>
     </div>
-    <div style="padding:0 20px 14px">
-      <div style="background:linear-gradient(180deg, rgba(17,24,39,.92), rgba(12,18,28,.96));border:0.5px solid var(--border);border-radius:16px;padding:14px;">
-        <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--blue);font-weight:700;margin-bottom:10px;">Add Goal</div>
-        <input id="goal-title-input" type="text" placeholder="Example: Improve time efficiency"
-          style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:var(--light);font-size:14px;outline:none;margin-bottom:10px;" />
-        <div style="font-size:11px;color:var(--muted);margin-bottom:6px;line-height:1.5">💡 Phrase as a positive action — <em>"Run 3x a week"</em> not <em>"Stop being lazy"</em></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+
+    <!-- DOMAINS TAB -->
+    <div id="rsection-domains" style="display:block">
+      <div style="padding:12px 20px 4px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none">
+        <button onclick="addPresetDomain('finance')" style="flex-shrink:0;padding:6px 12px;border-radius:20px;border:1px solid rgba(6,214,160,.3);background:rgba(6,214,160,.08);color:var(--teal);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">💰 Finance</button>
+        <button onclick="addPresetDomain('fitness')" style="flex-shrink:0;padding:6px 12px;border-radius:20px;border:1px solid rgba(14,165,233,.3);background:rgba(14,165,233,.08);color:var(--blue);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">💪 Fitness</button>
+        <button onclick="addPresetDomain('business')" style="flex-shrink:0;padding:6px 12px;border-radius:20px;border:1px solid rgba(99,102,241,.3);background:rgba(99,102,241,.08);color:var(--purple);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">📈 Business</button>
+        <button onclick="addPresetDomain('mindset')" style="flex-shrink:0;padding:6px 12px;border-radius:20px;border:1px solid rgba(251,191,36,.3);background:rgba(251,191,36,.08);color:#fbbf24;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">🧠 Mindset</button>
+        <button onclick="openAddDomainModal()" style="flex-shrink:0;padding:6px 12px;border-radius:20px;border:1px dashed rgba(255,255,255,.15);background:none;color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">+ Custom</button>
+      </div>
+      <div id="domains-list" style="padding:8px 0 0">
+        <div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">Loading life dashboard...</div>
+      </div>
+    </div>
+
+    <!-- GOALS TAB -->
+    <div id="rsection-goals" style="display:none;padding:12px 20px">
+      <div style="background:linear-gradient(180deg,rgba(17,24,39,.92),rgba(12,18,28,.96));border:0.5px solid var(--border);border-radius:16px;padding:14px;margin-bottom:14px">
+        <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--blue);font-weight:700;margin-bottom:10px">Add Goal</div>
+        <input id="goal-title-input" type="text" placeholder="Example: Close 10 clients this month"
+          style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:var(--light);font-size:14px;outline:none;margin-bottom:6px;" />
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.5">💡 Phrase as a positive action — what will you achieve?</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
           <div>
             <input id="goal-deadline-input" type="date" required
               style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:var(--light);font-size:14px;outline:none;" />
-            <div style="font-size:10px;color:var(--muted);margin-top:4px;padding-left:2px">Deadline required ↑</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:4px">Deadline required ↑</div>
           </div>
-          <select id="goal-category-input"
-            style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:var(--light);font-size:14px;outline:none;">
-            <option value="Productivity">Productivity</option>
-            <option value="Budgeting">Budgeting</option>
-            <option value="Confidence">Confidence</option>
-            <option value="Consistency">Consistency</option>
+          <select id="goal-category-input" style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:var(--light);font-size:14px;outline:none;">
+            <option value="Finance">💰 Finance</option>
+            <option value="Fitness">💪 Fitness</option>
+            <option value="Business">📈 Business</option>
+            <option value="Mindset">🧠 Mindset</option>
+            <option value="Productivity">⚡ Productivity</option>
           </select>
         </div>
-        <button onclick="addGoal()" style="margin-top:12px;width:100%;padding:12px 14px;border:none;border-radius:12px;background:linear-gradient(90deg,var(--blue),var(--teal));color:#07111b;font-weight:800;font-size:14px;cursor:pointer;">
-          + Add Goal
-        </button>
-        <div id="goal-form-msg" style="margin-top:10px;font-size:12px;color:var(--muted);min-height:16px;"></div>
+        <button onclick="addGoal()" style="width:100%;padding:12px 14px;border:none;border-radius:12px;background:linear-gradient(90deg,var(--blue),var(--teal));color:#07111b;font-weight:800;font-size:14px;cursor:pointer">+ Add Goal</button>
+        <div id="goal-form-msg" style="margin-top:8px;font-size:12px;color:var(--muted);min-height:16px"></div>
+      </div>
+      <div class="glist" id="goals-list">
+        <div style="padding:16px;text-align:center;color:var(--muted);font-size:13px">Loading goals...</div>
       </div>
     </div>
-    <div class="glist" id="goals-list">
-      <div style="padding:16px;text-align:center;color:var(--muted);font-size:13px">Loading goals...</div>
-    </div>
-  </div>
 
-  <!-- HABITS -->
-  <div class="page" id="page-habits" style="overflow-y:auto;padding-bottom:100px">
-    <div style="padding:18px 20px 14px;border-bottom:1px solid rgba(255,255,255,.05)">
-      <div style="font-size:10px;color:var(--teal);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:4px">Habits</div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;line-height:1">DAILY ACTIONS. GREAT RESULTS.</div>
-      <div style="font-size:12px;color:var(--muted);margin-top:4px">Habits are done every day. Goals are achieved over time.</div>
-    </div>
-    <div style="padding:12px 20px 4px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none">
-      <div style="flex-shrink:0;display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;background:rgba(6,214,160,.08);border:1px solid rgba(6,214,160,.2);font-size:11px;font-weight:700;color:var(--teal)">1. Add habit</div>
-      <div style="flex-shrink:0;color:var(--muted);display:flex;align-items:center">→</div>
-      <div style="flex-shrink:0;display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);font-size:11px;font-weight:700;color:var(--muted)">2. Check daily</div>
-      <div style="flex-shrink:0;color:var(--muted);display:flex;align-items:center">→</div>
-      <div style="flex-shrink:0;display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);font-size:11px;font-weight:700;color:var(--muted)">3. Build streak</div>
-    </div>
-    <div style="padding:0 20px 14px">
-      <div style="background:linear-gradient(180deg,rgba(17,24,39,.92),rgba(12,18,28,.96));border:0.5px solid var(--border);border-radius:16px;padding:14px;">
-        <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:10px;">Add Habit</div>
-        <input id="habit-name-input" type="text" placeholder="Example: Drink 8 glasses of water"
-          style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:var(--light);font-size:14px;outline:none;margin-bottom:6px;"
-          oninput="showHabitTip(this.value)" />
-        <div id="habit-tip" style="font-size:11px;color:var(--muted);margin-bottom:10px;min-height:16px;line-height:1.5;padding-left:2px"></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-          <select id="habit-icon-input"
-            style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:var(--light);font-size:14px;outline:none;">
-            <option value="💧">💧 Water</option>
-            <option value="🏃">🏃 Exercise</option>
-            <option value="🧘">🧘 Meditation</option>
-            <option value="📚">📚 Reading</option>
-            <option value="⏰">⏰ Wake up</option>
-            <option value="💪">💪 Workout</option>
-            <option value="🧠">🧠 Learning</option>
-            <option value="✍️">✍️ Journaling</option>
-            <option value="🥗">🥗 Nutrition</option>
-            <option value="⚡">⚡ Custom</option>
-          </select>
-          <input id="habit-time-input" type="text" placeholder="Time (e.g. 7:00 AM)"
-            style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:var(--light);font-size:14px;outline:none;" />
+    <!-- HABITS TAB -->
+    <div id="rsection-habits" style="display:none">
+      <div style="padding:12px 20px">
+        <div style="background:linear-gradient(180deg,rgba(17,24,39,.92),rgba(12,18,28,.96));border:0.5px solid var(--border);border-radius:16px;padding:14px;">
+          <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:10px">Add Habit</div>
+          <input id="habit-name-input" type="text" placeholder="Example: Drink 8 glasses of water"
+            style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:var(--light);font-size:14px;outline:none;margin-bottom:6px;"
+            oninput="showHabitTip(this.value)" />
+          <div id="habit-tip" style="font-size:11px;color:var(--muted);margin-bottom:8px;min-height:16px;line-height:1.5;padding-left:2px"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+            <select id="habit-icon-input" style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:var(--light);font-size:14px;outline:none;">
+              <option value="💧">💧 Water</option>
+              <option value="🏃">🏃 Exercise</option>
+              <option value="🧘">🧘 Meditation</option>
+              <option value="📚">📚 Reading</option>
+              <option value="⏰">⏰ Wake up</option>
+              <option value="💪">💪 Workout</option>
+              <option value="🧠">🧠 Learning</option>
+              <option value="✍️">✍️ Journaling</option>
+              <option value="🥗">🥗 Nutrition</option>
+              <option value="⚡">⚡ Custom</option>
+            </select>
+            <input id="habit-time-input" type="text" placeholder="Time (e.g. 7:00 AM)"
+              style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:var(--light);font-size:14px;outline:none;" />
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+            <select id="habit-type-input" onchange="toggleHabitTarget(this.value)" style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:var(--light);font-size:14px;outline:none;">
+              <option value="check">✓ Daily check</option>
+              <option value="count">🔢 Daily target</option>
+            </select>
+            <input id="habit-target-input" type="number" min="1" max="100" placeholder="Target (e.g. 8)"
+              style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:var(--light);font-size:14px;outline:none;display:none;" />
+          </div>
+          <button onclick="addHabit()" style="width:100%;padding:12px 14px;border:none;border-radius:12px;background:linear-gradient(90deg,var(--teal),var(--blue));color:#07111b;font-weight:800;font-size:14px;cursor:pointer">+ Add Habit</button>
+          <div id="habit-form-msg" style="margin-top:8px;font-size:12px;color:var(--muted);min-height:16px"></div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-          <select id="habit-type-input" onchange="toggleHabitTarget(this.value)"
-            style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:var(--light);font-size:14px;outline:none;">
-            <option value="check">✓ Daily check</option>
-            <option value="count">🔢 Daily target</option>
-          </select>
-          <input id="habit-target-input" type="number" min="1" max="100" placeholder="Target (e.g. 8)"
-            style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:var(--light);font-size:14px;outline:none;display:none;" />
-        </div>
-        <button onclick="addHabit()" style="width:100%;padding:12px 14px;border:none;border-radius:12px;background:linear-gradient(90deg,var(--teal),var(--blue));color:#07111b;font-weight:800;font-size:14px;cursor:pointer;">
-          + Add Habit
-        </button>
-        <div id="habit-form-msg" style="margin-top:10px;font-size:12px;color:var(--muted);min-height:16px;"></div>
       </div>
-    </div>
-    <div style="padding:0 20px;font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);font-weight:700;margin-bottom:10px">Today's Habits</div>
-    <div class="hlist" id="habits-page-list">
-      <div style="padding:16px;text-align:center;color:var(--muted);font-size:13px">Loading habits...</div>
+      <div style="padding:0 20px;font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);font-weight:700;margin-bottom:10px">All Habits</div>
+      <div class="hlist" id="habits-page-list">
+        <div style="padding:16px;text-align:center;color:var(--muted);font-size:13px">Loading habits...</div>
+      </div>
     </div>
   </div>
 
@@ -840,9 +842,12 @@ body{background:
     <div style="position:relative;height:160px;overflow:hidden;flex-shrink:0">
       <img src="https://ggfvluqiwcnhbmetxxao.supabase.co/storage/v1/object/public/coach/coach.png" alt="Coach" style="width:100%;height:100%;object-fit:cover;object-position:center 15%">
       <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.1) 0%,rgba(10,10,15,.95) 100%)"></div>
-      <div style="position:absolute;bottom:14px;left:20px;right:20px">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px">COACH</div>
-        <div style="font-size:12px;color:rgba(255,255,255,.65);margin-top:2px">Ask anything. Get clarity. Move faster.</div>
+      <div style="position:absolute;bottom:14px;left:20px;right:20px;display:flex;align-items:flex-end;justify-content:space-between">
+        <div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px">COACH</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.65);margin-top:2px">Ask anything. Get clarity. Move faster.</div>
+        </div>
+        <button onclick="switchPage('home')" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.3);color:rgba(255,255,255,.7);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">✕</button>
       </div>
     </div>
     <div class="chat-wrap" id="chat-msgs">
@@ -866,10 +871,12 @@ body{background:
   <!-- JOURNAL -->
   <div class="page" id="page-journal">
   <div class="jpage">
-    <div style="padding:18px 20px 14px;border-bottom:1px solid rgba(255,255,255,.05)">
-      <div style="font-size:10px;color:var(--blue);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:4px">Progress</div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;line-height:1">ARE YOU IMPROVING?</div>
-      <div style="font-size:12px;color:var(--muted);margin-top:4px">Weekly review, energy, peak hours and check-in log.</div>
+    <div style="padding:16px 20px 12px;border-bottom:1px solid rgba(255,255,255,.05);display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:10px;color:var(--blue);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:2px">Progress</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;line-height:1">ARE YOU IMPROVING?</div>
+      </div>
+      <button onclick="switchPage('home')" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:var(--muted);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
     </div>
     <div style="padding:12px 20px 4px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none">
       <div style="flex-shrink:0;display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;background:rgba(14,165,233,.08);border:1px solid rgba(14,165,233,.2);font-size:11px;font-weight:700;color:var(--blue)">1. Log energy</div>
@@ -984,10 +991,12 @@ body{background:
 </div>
 
   <div class="page" id="page-focus" style="overflow-y:auto;padding-bottom:100px">
-    <div style="padding:18px 20px 14px;border-bottom:1px solid rgba(255,255,255,.05)">
-      <div style="font-size:10px;color:var(--purple);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:4px">Focus</div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;line-height:1">PROTECT YOUR TIME.</div>
-      <div style="font-size:12px;color:var(--muted);margin-top:4px">Work when your mind is sharpest. One session at a time.</div>
+    <div style="padding:16px 20px 12px;border-bottom:1px solid rgba(255,255,255,.05);display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:10px;color:var(--purple);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:2px">Focus</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;line-height:1">PROTECT YOUR TIME.</div>
+      </div>
+      <button onclick="switchPage('home')" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:var(--muted);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
     </div>
     <div style="padding:12px 20px 4px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none">
       <div style="flex-shrink:0;display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.3);font-size:11px;font-weight:700;color:var(--purple)">1. Link a goal</div>
@@ -1055,9 +1064,7 @@ body{background:
 
 <div class="bnav">
     <div class="ni active" id="ni-home" onclick="switchPage('home')"><span class="nico">📍</span><span class="nlbl">Today</span></div>
-    <div class="ni" id="ni-domains" onclick="switchPage('domains')"><span class="nico">🏆</span><span class="nlbl">Life</span></div>
-    <div class="ni" id="ni-goals" onclick="switchPage('goals')"><span class="nico">🎯</span><span class="nlbl">Goals</span></div>
-    <div class="ni" id="ni-habits" onclick="switchPage('habits')"><span class="nico">✅</span><span class="nlbl">Habits</span></div>
+    <div class="ni" id="ni-roadmap" onclick="switchPage('roadmap')"><span class="nico">🗺️</span><span class="nlbl">Roadmap</span></div>
     <div class="ni" id="ni-focus" onclick="switchPage('focus')"><span class="nico">⏱️</span><span class="nlbl">Focus</span></div>
     <div class="ni" id="ni-ai" onclick="switchPage('ai')"><span class="nico">⚡</span><span class="nlbl">Coach</span></div>
     <div class="ni" id="ni-journal" onclick="switchPage('journal')"><span class="nico">📈</span><span class="nlbl">Progress</span></div>
@@ -1579,6 +1586,24 @@ function openAddMetricModal(domainId, color) {
     method: 'POST',
     body: JSON.stringify({ name, target: parseFloat(target), unit, period })
   }).then(function() { loadDomainsPage(); });
+}
+
+function switchRoadmapTab(tab) {
+  var tabs = ['domains', 'goals', 'habits'];
+  tabs.forEach(function(t) {
+    var sec = document.getElementById('rsection-' + t);
+    var btn = document.getElementById('rtab-' + t);
+    if (sec) sec.style.display = t === tab ? 'block' : 'none';
+    if (btn) {
+      var color = t === 'domains' ? 'var(--teal)' : t === 'goals' ? 'var(--blue)' : 'var(--teal)';
+      btn.style.color = t === tab ? color : 'var(--muted)';
+      btn.style.borderBottomColor = t === tab ? color : 'transparent';
+    }
+  });
+  // Load data for active tab
+  if (tab === 'goals') loadGoals();
+  if (tab === 'habits') loadHabitsPage();
+  if (tab === 'domains') loadDomainsPage();
 }
 
 async function loadEffectivenessScore() {
@@ -2277,13 +2302,18 @@ function showTyping() {
 }
 function removeTyping() { const t = document.getElementById('ti'); if (t) t.remove(); }
 
+var VALID_PAGES = ['home','roadmap','focus','ai','journal'];
 function switchPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.ni').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
   document.getElementById('ni-' + name).classList.add('active');
   if (name === 'journal') { loadJournal(); loadGoals(); }
-  if (name === 'domains') loadDomainsPage();
+  if (name === 'roadmap') { loadDomainsPage(); }
+  // Legacy support - redirect old pages to roadmap with correct tab
+  if (name === 'goals')  { switchPage('roadmap'); setTimeout(function(){ switchRoadmapTab('goals'); }, 50); return; }
+  if (name === 'habits') { switchPage('roadmap'); setTimeout(function(){ switchRoadmapTab('habits'); }, 50); return; }
+  if (name === 'domains') { switchPage('roadmap'); setTimeout(function(){ switchRoadmapTab('domains'); }, 50); return; }
   if (name === 'goals')   loadGoals();
   if (name === 'focus')   { loadFocusPage(); loadPeakTimerBadge(); }
   if (name === 'habits')  loadHabitsPage();

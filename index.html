@@ -336,7 +336,7 @@ body{background:
 .ob-next.ready{opacity:1}
 
 /* ── EFFECTIVENESS SCORE ── */
-.score-card{margin:0 20px 16px;background:linear-gradient(135deg,rgba(14,165,233,.1),rgba(6,214,160,.06));border:1px solid rgba(14,165,233,.25);border-radius:20px;padding:20px}
+.score-card{margin:0 20px 16px;background:linear-gradient(135deg,rgba(14,165,233,.1),rgba(6,214,160,.06));border:1px solid rgba(14,165,233,.25);border-radius:20px;padding:20px;display:flex;flex-direction:column}
 .score-top{display:flex;align-items:center;gap:16px;margin-bottom:16px}
 .score-circle{width:72px;height:72px;border-radius:50%;background:conic-gradient(var(--teal) 0%, rgba(255,255,255,.08) 0%);display:flex;align-items:center;justify-content:center;flex-direction:column;flex-shrink:0;position:relative}
 .score-circle-inner{width:58px;height:58px;border-radius:50%;background:#080f18;display:flex;align-items:center;justify-content:center;flex-direction:column;position:absolute}
@@ -548,164 +548,120 @@ body{background:
     <div class="avatar" id="user-avatar" title="Profile" onclick="openProfile()">?</div>
   </div>
 
-  <!-- HOME -->
+  <!-- HOME — DASHBOARD -->
   <div class="page active" id="page-home" style="overflow-y:auto;padding-bottom:100px">
 
-    <!-- HEADER -->
-    <div style="padding:16px 20px 0">
-      <div style="font-size:12px;color:var(--muted)" id="time-greet">Good morning,</div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px" id="user-name-display">CHAMPION 👊</div>
-      <div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap">
+    <!-- TOP: Greeting + streak + peak pill -->
+    <div style="padding:14px 20px 10px;display:flex;align-items:flex-start;justify-content:space-between">
+      <div>
+        <div style="font-size:11px;color:var(--muted)" id="time-greet">Good morning,</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;line-height:1.1" id="user-name-display">CHAMPION 👊</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;margin-top:2px">
         <div class="streak-pill">🔥 <span id="streak-count">0</span>-Day Streak</div>
-        <div id="peak-pill" style="display:none;align-items:center;gap:5px;background:rgba(251,191,36,0.1);border:0.5px solid rgba(251,191,36,0.3);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;color:#fbbf24">⚡ Peak Hour</div>
+        <div id="peak-pill" style="display:none;align-items:center;gap:5px;background:rgba(251,191,36,0.1);border:0.5px solid rgba(251,191,36,0.3);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;color:#fbbf24">⚡ Peak Hour</div>
       </div>
     </div>
 
-    <!-- COACH HERO PHOTO -->
-    <div class="demo-hero" style="margin:12px 0 0">
-      <div class="demo-photo">
-        <div class="demo-badge">Coach</div>
-        <img src="https://ggfvluqiwcnhbmetxxao.supabase.co/storage/v1/object/public/coach/coach.png" alt="Coach portrait">
-      </div>
-      <div class="demo-copy">
-        <div class="demo-eyebrow">Becoming More Effective</div>
-        <div class="demo-title">IN LESS TIME.</div>
-        <div class="demo-sub">Work when your mind is sharpest. The shift from good to great starts here.</div>
-      </div>
-    </div>
-
-    <!-- EFFECTIVENESS SCORE — compact -->
-    <div class="score-card" id="score-card" style="display:none;margin-top:14px">
-      <div class="score-top">
-        <div class="score-circle" id="score-circle">
+    <!-- SCORE + COACH ROW -->
+    <div style="display:flex;gap:10px;padding:0 20px 12px;align-items:stretch">
+      <!-- Score circle compact -->
+      <div class="score-card" id="score-card" style="display:none;flex-direction:column;align-items:center;justify-content:center;padding:14px;min-width:90px;flex-shrink:0;margin:0">
+        <div class="score-circle" id="score-circle" style="width:64px;height:64px;margin:0 0 6px">
           <div class="score-circle-inner">
-            <div class="score-num" id="score-num">—</div>
-            <div class="score-label">Score</div>
+            <div class="score-num" id="score-num" style="font-size:18px">—</div>
+            <div class="score-label" style="font-size:8px">Score</div>
           </div>
         </div>
-        <div class="score-info">
-          <div class="score-level" id="score-level">LOADING...</div>
-          <div class="score-msg" id="score-msg">Calculating your effectiveness...</div>
-        </div>
+        <div class="score-level" id="score-level" style="font-size:11px;text-align:center">—</div>
       </div>
-      <div class="score-bars">
-        <div class="score-bar-row"><div class="score-bar-label">Mindset</div><div class="score-bar-track"><div class="score-bar-fill" id="bar-mindset" style="width:0%;background:var(--purple)"></div></div><div class="score-bar-val" id="val-mindset" style="color:var(--purple)">0</div></div>
-        <div class="score-bar-row"><div class="score-bar-label">Action</div><div class="score-bar-track"><div class="score-bar-fill" id="bar-action" style="width:0%;background:var(--blue)"></div></div><div class="score-bar-val" id="val-action" style="color:var(--blue)">0</div></div>
-        <div class="score-bar-row"><div class="score-bar-label">Momentum</div><div class="score-bar-track"><div class="score-bar-fill" id="bar-momentum" style="width:0%;background:var(--teal)"></div></div><div class="score-bar-val" id="val-momentum" style="color:var(--teal)">0</div></div>
-        <div class="score-bar-row"><div class="score-bar-label">Alignment</div><div class="score-bar-track"><div class="score-bar-fill" id="bar-alignment" style="width:0%;background:var(--yellow)"></div></div><div class="score-bar-val" id="val-alignment" style="color:var(--yellow)">0</div></div>
-      </div>
-    </div>
-
-    <!-- DAILY ROADMAP — step by step -->
-    <div style="padding:16px 20px 0">
-      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:12px">Your daily roadmap</div>
-
-      <!-- STEP 1: Coach message -->
-      <div style="display:flex;gap:12px;margin-bottom:14px;align-items:flex-start">
-        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0">
-          <div style="width:28px;height:28px;border-radius:50%;background:rgba(6,214,160,.15);border:1.5px solid var(--teal);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--teal)">1</div>
-          <div style="width:1.5px;height:40px;background:rgba(255,255,255,.06)"></div>
-        </div>
-        <div style="flex:1;padding-top:2px">
-          <div style="font-size:11px;color:var(--teal);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Coach message</div>
-          <div id="coach-greeting-card" style="background:linear-gradient(135deg,rgba(6,214,160,.06),rgba(14,165,233,.04));border:1px solid rgba(6,214,160,.2);border-radius:14px;padding:12px 14px;display:flex;gap:10px;align-items:flex-start">
-            <img src="https://ggfvluqiwcnhbmetxxao.supabase.co/storage/v1/object/public/coach/coach.png" style="width:32px;height:32px;border-radius:8px;object-fit:cover;object-position:center top;flex-shrink:0">
-            <div id="coach-greeting-text" style="font-size:13px;color:var(--light);line-height:1.55;flex:1">
-              <div class="coach-greeting-skeleton"></div>
-              <div class="coach-greeting-skeleton short"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- STEP 2: Peak window -->
-      <div style="display:flex;gap:12px;margin-bottom:14px;align-items:flex-start">
-        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0">
-          <div style="width:28px;height:28px;border-radius:50%;background:rgba(251,191,36,.12);border:1.5px solid #fbbf24;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fbbf24">2</div>
-          <div style="width:1.5px;height:40px;background:rgba(255,255,255,.06)"></div>
-        </div>
-        <div style="flex:1;padding-top:2px">
-          <div style="font-size:11px;color:#fbbf24;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Peak window</div>
-          <div id="peak-window-card" style="display:none;background:rgba(251,191,36,.05);border:1px solid rgba(251,191,36,.2);border-radius:14px;padding:12px 14px">
-            <div style="display:flex;align-items:center;gap:8px">
-              <span id="true-window-icon" style="font-size:18px">🎨</span>
-              <div style="flex:1">
-                <div id="true-window-name" style="font-size:13px;font-weight:700;color:#06d6a0">Creativity</div>
-                <div id="true-window-desc" style="font-size:11px;color:var(--muted)">5am-12pm</div>
-              </div>
-              <div style="text-align:right">
-                <div id="peak-window-text" style="font-size:12px;font-weight:600;color:#fbbf24">Not set</div>
-                <button class="peak-edit-btn" onclick="openProfile()" style="margin-top:2px">Edit</button>
-              </div>
-            </div>
-            <div id="peak-window-sub" style="font-size:11px;color:var(--muted);margin-top:6px"></div>
-            <div id="ppw-alignment-msg" style="display:none;margin-top:8px;font-size:11px;line-height:1.5;padding:8px 10px;border-radius:8px"></div>
-          </div>
-          <div id="peak-window-empty" style="font-size:12px;color:var(--muted)">Set your peak window in <button onclick="openProfile()" style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:12px;padding:0">Profile ↗</button></div>
-        </div>
-      </div>
-
-      <!-- STEP 3: Habits -->
-      <div style="display:flex;gap:12px;margin-bottom:14px;align-items:flex-start">
-        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0">
-          <div style="width:28px;height:28px;border-radius:50%;background:rgba(14,165,233,.12);border:1.5px solid var(--blue);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--blue)">3</div>
-          <div style="width:1.5px;height:40px;background:rgba(255,255,255,.06)"></div>
-        </div>
-        <div style="flex:1;padding-top:2px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-            <div style="font-size:11px;color:var(--blue);font-weight:700;text-transform:uppercase;letter-spacing:1px">Today's habits</div>
-            <div style="font-size:11px;color:var(--muted)" id="habits-progress-label"></div>
-          </div>
-          <div class="hlist" id="habits-list" style="padding:0;margin:0">
-            <div style="padding:12px;text-align:center;color:var(--muted);font-size:13px">Loading...</div>
-          </div>
-          <button onclick="switchPage('habits')" style="margin-top:8px;padding:7px 14px;border:1px solid rgba(255,255,255,.08);border-radius:10px;background:none;color:var(--muted);font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif">+ Add habit</button>
-          <button onclick="switchPage('domains')" style="margin-top:6px;padding:7px 14px;border:1px solid rgba(6,214,160,.2);border-radius:10px;background:rgba(6,214,160,.06);color:var(--teal);font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif">🏆 Life Dashboard</button>
-        </div>
-      </div>
-
-      <!-- STEP 4: Focus session -->
-      <div style="display:flex;gap:12px;margin-bottom:14px;align-items:flex-start">
-        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0">
-          <div style="width:28px;height:28px;border-radius:50%;background:rgba(99,102,241,.12);border:1.5px solid var(--purple);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--purple)">4</div>
-          <div style="width:1.5px;height:40px;background:rgba(255,255,255,.06)"></div>
-        </div>
-        <div style="flex:1;padding-top:2px">
-          <div style="font-size:11px;color:var(--purple);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Focus session</div>
-          <button onclick="switchPage('focus')" style="width:100%;padding:12px 16px;border:1px solid rgba(99,102,241,.25);border-radius:14px;background:rgba(99,102,241,.08);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:space-between">
-            <span>Start Deep Work ⏱️</span>
-            <span style="font-size:12px;color:var(--purple);font-weight:600">25 min</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- STEP 5: End of day check-in -->
-      <div style="display:flex;gap:12px;margin-bottom:20px;align-items:flex-start">
-        <div style="flex-shrink:0">
-          <div style="width:28px;height:28px;border-radius:50%;background:rgba(244,63,94,.1);border:1.5px solid rgba(244,63,94,.4);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--red)">5</div>
-        </div>
-        <div style="flex:1;padding-top:2px">
-          <div style="font-size:11px;color:var(--red);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">End of day — check in</div>
-          <button onclick="switchPage('ai')" style="width:100%;padding:12px 16px;border:1px solid rgba(244,63,94,.2);border-radius:14px;background:rgba(244,63,94,.06);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:space-between">
-            <span>Log with Coach ⚡</span>
-            <span style="font-size:12px;color:var(--red);font-weight:600">2 min</span>
-          </button>
+      <!-- Coach greeting -->
+      <div id="coach-greeting-card" style="flex:1;background:linear-gradient(135deg,rgba(6,214,160,.06),rgba(14,165,233,.04));border:1px solid rgba(6,214,160,.2);border-radius:16px;padding:12px;display:flex;gap:8px;align-items:flex-start;min-height:80px">
+        <img src="https://ggfvluqiwcnhbmetxxao.supabase.co/storage/v1/object/public/coach/coach.png" style="width:28px;height:28px;border-radius:7px;object-fit:cover;object-position:center top;flex-shrink:0">
+        <div id="coach-greeting-text" style="font-size:12px;color:var(--light);line-height:1.5;flex:1">
+          <div class="coach-greeting-skeleton"></div>
+          <div class="coach-greeting-skeleton short"></div>
         </div>
       </div>
     </div>
 
-    <!-- QUICK STATS -->
-    <div style="padding:0 20px">
-      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:10px">Today's numbers</div>
+    <!-- SCORE BARS (collapsible, shown below) -->
+    <div id="score-bars-row" style="display:none;padding:0 20px 12px">
+      <div style="background:linear-gradient(135deg,rgba(14,165,233,.06),rgba(6,214,160,.04));border:1px solid rgba(14,165,233,.15);border-radius:14px;padding:12px 14px">
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:8px" id="score-msg">Calculating...</div>
+        <div class="score-bars">
+          <div class="score-bar-row"><div class="score-bar-label">Mindset</div><div class="score-bar-track"><div class="score-bar-fill" id="bar-mindset" style="width:0%;background:var(--purple)"></div></div><div class="score-bar-val" id="val-mindset" style="color:var(--purple)">0</div></div>
+          <div class="score-bar-row"><div class="score-bar-label">Action</div><div class="score-bar-track"><div class="score-bar-fill" id="bar-action" style="width:0%;background:var(--blue)"></div></div><div class="score-bar-val" id="val-action" style="color:var(--blue)">0</div></div>
+          <div class="score-bar-row"><div class="score-bar-label">Momentum</div><div class="score-bar-track"><div class="score-bar-fill" id="bar-momentum" style="width:0%;background:var(--teal)"></div></div><div class="score-bar-val" id="val-momentum" style="color:var(--teal)">0</div></div>
+          <div class="score-bar-row"><div class="score-bar-label">Alignment</div><div class="score-bar-track"><div class="score-bar-fill" id="bar-alignment" style="width:0%;background:var(--yellow)"></div></div><div class="score-bar-val" id="val-alignment" style="color:var(--yellow)">0</div></div>
+        </div>
+      </div>
     </div>
-    <div class="prow" style="padding:0 20px 16px">
-      <div class="pcard"><div class="pnum" id="stat-habits">0</div><div class="plbl">Habits done</div></div>
-      <div class="pcard"><div class="pnum" id="stat-goals">0<span style="font-size:16px;color:var(--muted)">%</span></div><div class="plbl">Goals avg</div></div>
-      <div class="pcard"><div class="pnum" id="stat-journal">0</div><div class="plbl">Check-ins</div></div>
+
+    <!-- PEAK WINDOW — compact inline -->
+    <div id="peak-window-card" style="display:none;margin:0 20px 10px;background:rgba(251,191,36,.05);border:1px solid rgba(251,191,36,.18);border-radius:12px;padding:10px 14px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span id="true-window-icon" style="font-size:16px">🎨</span>
+        <div style="flex:1">
+          <span id="true-window-name" style="font-size:12px;font-weight:700;color:#06d6a0">Creativity</span>
+          <span id="true-window-desc" style="font-size:11px;color:var(--muted);margin-left:6px">5am-12pm</span>
+        </div>
+        <div style="text-align:right">
+          <div id="peak-window-text" style="font-size:11px;font-weight:600;color:#fbbf24">Not set</div>
+        </div>
+        <button class="peak-edit-btn" onclick="openProfile()">Edit</button>
+      </div>
+      <div id="peak-window-sub" style="font-size:10px;color:var(--muted);margin-top:4px"></div>
+      <div id="ppw-alignment-msg" style="display:none;margin-top:6px;font-size:10px;line-height:1.5;padding:6px 8px;border-radius:7px"></div>
+    </div>
+    <div id="peak-window-empty" style="display:none;margin:0 20px 10px;font-size:12px;color:var(--muted)">Set your peak window in <button onclick="openProfile()" style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:12px;padding:0">Profile ↗</button></div>
+
+    <!-- QUICK STATS ROW -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:0 20px 12px">
+      <div style="background:rgba(255,255,255,.04);border:0.5px solid rgba(255,255,255,.07);border-radius:12px;padding:10px 12px;text-align:center">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--teal)" id="stat-habits">0</div>
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Habits</div>
+      </div>
+      <div style="background:rgba(255,255,255,.04);border:0.5px solid rgba(255,255,255,.07);border-radius:12px;padding:10px 12px;text-align:center">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--blue)" id="stat-goals">0<span style="font-size:13px">%</span></div>
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Goals</div>
+      </div>
+      <div style="background:rgba(255,255,255,.04);border:0.5px solid rgba(255,255,255,.07);border-radius:12px;padding:10px 12px;text-align:center">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--purple)" id="stat-journal">0</div>
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Check-ins</div>
+      </div>
+    </div>
+
+    <!-- LIFE DOMAINS PREVIEW -->
+    <div style="padding:0 20px 4px;display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700">Life Dashboard</div>
+      <button onclick="switchPage('domains')" style="font-size:11px;color:var(--teal);background:none;border:none;cursor:pointer;padding:0">View all →</button>
+    </div>
+    <div id="today-domains-preview" style="padding:0 20px 12px">
+      <div style="font-size:12px;color:var(--muted);padding:8px 0">Add domains in the Life tab to see them here.</div>
+    </div>
+
+    <!-- TODAY'S HABITS -->
+    <div style="padding:0 20px 4px;display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700">Today's Habits</div>
+      <span style="font-size:11px;color:var(--muted)" id="habits-progress-label"></span>
+    </div>
+    <div class="hlist" id="habits-list" style="margin:0 20px 12px;padding:0">
+      <div style="padding:12px;text-align:center;color:var(--muted);font-size:13px">Loading...</div>
+    </div>
+
+    <!-- ACTION BUTTONS -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 20px 12px">
+      <button onclick="switchPage('focus')" style="padding:14px;border:1px solid rgba(99,102,241,.25);border-radius:14px;background:rgba(99,102,241,.08);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px">
+        ⏱️ Focus
+      </button>
+      <button onclick="switchPage('ai')" style="padding:14px;border:1px solid rgba(6,214,160,.2);border-radius:14px;background:rgba(6,214,160,.06);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px">
+        ⚡ Coach
+      </button>
     </div>
 
     <!-- QUOTE -->
-    <div class="qcard" onclick="nextQuote()" style="margin-bottom:24px">
+    <div class="qcard" onclick="nextQuote()" style="margin:0 20px 24px">
       <div class="qlabel">Quote of the Day</div>
       <div class="qtext" id="qtext">You are the MVP in your life — act like it.</div>
       <div class="qauthor" id="qauthor">— Luhv+ Coach</div>
@@ -717,6 +673,8 @@ body{background:
       <div id="streak-chart"></div>
       <div id="streak-chart-labels"></div>
     </div>
+
+  </div>
 
   </div>
 
@@ -1278,6 +1236,7 @@ async function initApp() {
   loadEffectivenessScore();
   checkOnboarding();
   loadPeakHourCard();
+  loadTodayDomainsPreview();
   document.getElementById('help-btn').style.display = 'flex';
   document.getElementById('decision-fab').style.display = 'flex';
   restoreTimerIfRunning();
@@ -1625,7 +1584,7 @@ function openAddMetricModal(domainId, color) {
 async function loadEffectivenessScore() {
   var card = document.getElementById('score-card');
   if (!card) return;
-  card.style.display = 'block';
+  card.style.display = 'flex';
   try {
     var data = await api('/api/effectiveness-score');
     if (!data || data.error) { card.style.display = 'none'; return; }
@@ -1634,6 +1593,8 @@ async function loadEffectivenessScore() {
     document.getElementById('score-msg').textContent = data.message;
     var levelColors = { Peak: '#06d6a0', Effective: '#0ea5e9', Great: '#fbbf24', Good: '#6b7280' };
     document.getElementById('score-level').style.color = levelColors[data.level] || '#fff';
+    var barsRow = document.getElementById('score-bars-row');
+    if (barsRow) barsRow.style.display = 'block';
     var b = data.breakdown;
     var pct = function(v) { return Math.round((v/25)*100); };
     document.getElementById('bar-mindset').style.width  = pct(b.mindset)   + '%';
@@ -1879,6 +1840,39 @@ async function quickProgress(id, currentPct, delta) {
   var newPct = Math.min(100, Math.max(0, currentPct + delta));
   var result = await api('/api/goals/' + id + '/progress', { method: 'PATCH', body: JSON.stringify({ progress: newPct }) });
   if (result && !result.error) await loadGoals();
+}
+
+async function loadTodayDomainsPreview() {
+  var el = document.getElementById('today-domains-preview');
+  if (!el) return;
+  var domains = await api('/api/domains');
+  if (!domains || !domains.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px 0">No domains yet. <span onclick="switchPage(\'domains\')" style="color:var(--teal);cursor:pointer">Add Finance, Fitness...</span></div>';
+    return;
+  }
+  // Show first 3 domains as compact cards
+  var html = '<div style="display:flex;flex-direction:column;gap:8px">';
+  domains.slice(0, 3).forEach(function(d) {
+    if (!d.metrics || !d.metrics.length) return;
+    var m = d.metrics[0]; // show first metric
+    var pct = Math.min(100, Math.round((m.current_value / m.target) * 100)) || 0;
+    html += '<div style="background:' + d.color + '0d;border:1px solid ' + d.color + '2a;border-radius:12px;padding:10px 12px">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">' +
+        '<div style="display:flex;align-items:center;gap:6px">' +
+          '<span style="font-size:14px">' + (d.icon||'⚡') + '</span>' +
+          '<span style="font-size:12px;font-weight:700;color:' + d.color + '">' + d.name.toUpperCase() + '</span>' +
+        '</div>' +
+        '<span style="font-size:12px;font-weight:700;color:' + d.color + '">' + pct + '%</span>' +
+      '</div>' +
+      '<div style="background:rgba(255,255,255,.07);border-radius:99px;height:5px;overflow:hidden">' +
+        '<div style="height:100%;border-radius:99px;width:' + pct + '%;background:' + d.color + ';transition:width .4s"></div>' +
+      '</div>' +
+      '<div style="font-size:10px;color:var(--muted);margin-top:4px">' + m.name + ': ' + (m.current_value||0) + ' / ' + m.target + ' ' + (m.unit||'') + '</div>' +
+    '</div>';
+  });
+  if (domains.length > 3) html += '<span onclick="switchPage(\'domains\')" style="font-size:11px;color:var(--muted);cursor:pointer;display:block;padding:4px 0">+' + (domains.length-3) + ' more domains →</span>';
+  html += '</div>';
+  el.innerHTML = html;
 }
 
 async function loadHabits() {

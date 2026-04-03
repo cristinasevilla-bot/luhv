@@ -236,6 +236,25 @@ body{background:
 .energy-bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
 .energy-bar{width:100%;border-radius:4px 4px 2px 2px;transition:height .4s;min-height:4px}
 .energy-bar-day{font-size:9px;color:var(--muted)}
+.domain-card{margin:0 20px 16px;border-radius:20px;overflow:hidden;border:1px solid rgba(255,255,255,.08)}
+.domain-header{padding:14px 16px 12px;display:flex;align-items:center;gap:10px;justify-content:space-between}
+.domain-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.domain-title{font-family:"Bebas Neue",sans-serif;font-size:18px;letter-spacing:.5px;flex:1}
+.domain-metrics{padding:0 16px 14px;display:flex;flex-direction:column;gap:10px}
+.metric-row{background:rgba(255,255,255,.03);border-radius:12px;padding:12px 14px}
+.metric-name{font-size:11px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;font-weight:600}
+.metric-values{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.metric-current{font-family:"Bebas Neue",sans-serif;font-size:28px;line-height:1}
+.metric-target{font-size:12px;color:rgba(255,255,255,.4)}
+.metric-bar{height:6px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden}
+.metric-fill{height:100%;border-radius:99px;transition:width .5s}
+.metric-input-row{display:flex;gap:8px;margin-top:10px;align-items:center}
+.metric-input{flex:1;padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:#fff;font-size:14px;outline:none;font-family:"DM Sans",sans-serif}
+.metric-log-btn{padding:8px 16px;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:"DM Sans",sans-serif;white-space:nowrap}
+.add-domain-btn{display:flex;align-items:center;justify-content:center;gap:8px;margin:0 20px 16px;padding:14px;border:1.5px dashed rgba(255,255,255,.15);border-radius:16px;background:none;color:rgba(255,255,255,.4);font-size:13px;font-weight:600;cursor:pointer;font-family:"DM Sans",sans-serif;width:calc(100% - 40px);transition:border-color .2s}
+.add-domain-btn:hover{border-color:rgba(255,255,255,.3);color:#fff}
+.domain-modal{position:fixed;inset:0;z-index:1500;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.7)}
+.domain-modal-box{background:linear-gradient(180deg,#0d1520,#080f18);border-radius:28px 28px 0 0;padding:24px 24px 40px;width:100%;max-width:390px;max-height:85vh;overflow-y:auto}
 .weekly-card{margin:0 20px 16px;background:linear-gradient(135deg,rgba(6,214,160,.08),rgba(14,165,233,.05));border:1px solid rgba(6,214,160,.2);border-radius:18px;padding:18px}
 .weekly-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:14px 0}
 .weekly-stat{background:rgba(255,255,255,.04);border-radius:12px;padding:10px;text-align:center}
@@ -641,6 +660,7 @@ body{background:
             <div style="padding:12px;text-align:center;color:var(--muted);font-size:13px">Loading...</div>
           </div>
           <button onclick="switchPage('habits')" style="margin-top:8px;padding:7px 14px;border:1px solid rgba(255,255,255,.08);border-radius:10px;background:none;color:var(--muted);font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif">+ Add habit</button>
+          <button onclick="switchPage('domains')" style="margin-top:6px;padding:7px 14px;border:1px solid rgba(6,214,160,.2);border-radius:10px;background:rgba(6,214,160,.06);color:var(--teal);font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif">🏆 Life Dashboard</button>
         </div>
       </div>
 
@@ -698,6 +718,59 @@ body{background:
       <div id="streak-chart-labels"></div>
     </div>
 
+  </div>
+
+  <!-- LIFE DOMAINS -->
+  <div class="page" id="page-domains" style="overflow-y:auto;padding-bottom:100px">
+    <div style="padding:18px 20px 14px;border-bottom:1px solid rgba(255,255,255,.05)">
+      <div style="font-size:10px;color:var(--teal);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:4px">Life Dashboard</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;line-height:1">YOUR LIFE. YOUR METRICS.</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">Track what matters in every area of your life.</div>
+    </div>
+
+    <!-- PRESET DOMAIN TEMPLATES -->
+    <div style="padding:12px 20px 4px">
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:8px">Quick add</div>
+      <div style="display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px">
+        <button onclick="addPresetDomain('finance')" style="flex-shrink:0;padding:7px 14px;border-radius:20px;border:1px solid rgba(6,214,160,.3);background:rgba(6,214,160,.08);color:var(--teal);font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">💰 Finance</button>
+        <button onclick="addPresetDomain('fitness')" style="flex-shrink:0;padding:7px 14px;border-radius:20px;border:1px solid rgba(14,165,233,.3);background:rgba(14,165,233,.08);color:var(--blue);font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">💪 Fitness</button>
+        <button onclick="addPresetDomain('business')" style="flex-shrink:0;padding:7px 14px;border-radius:20px;border:1px solid rgba(99,102,241,.3);background:rgba(99,102,241,.08);color:var(--purple);font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">📈 Business</button>
+        <button onclick="addPresetDomain('mindset')" style="flex-shrink:0;padding:7px 14px;border-radius:20px;border:1px solid rgba(251,191,36,.3);background:rgba(251,191,36,.08);color:#fbbf24;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">🧠 Mindset</button>
+      </div>
+    </div>
+
+    <!-- DOMAINS LIST -->
+    <div id="domains-list" style="padding:12px 0 0">
+      <div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">Loading your life dashboard...</div>
+    </div>
+
+    <!-- ADD CUSTOM DOMAIN -->
+    <button class="add-domain-btn" onclick="openAddDomainModal()">+ Add custom domain</button>
+  </div>
+
+  <!-- ADD DOMAIN MODAL -->
+  <div id="add-domain-modal" style="display:none" onclick="closeAddDomainIfOutside(event)">
+    <div class="domain-modal">
+      <div class="domain-modal-box">
+        <div style="width:36px;height:4px;border-radius:99px;background:rgba(255,255,255,.15);margin:0 auto 20px"></div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;margin-bottom:16px">ADD DOMAIN</div>
+        <input id="domain-name-input" type="text" placeholder="e.g. Finance, Fitness, Business..."
+          style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:#fff;font-size:14px;outline:none;margin-bottom:10px;font-family:'DM Sans',sans-serif">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+          <input id="domain-icon-input" type="text" placeholder="Icon e.g. 💰"
+            style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:#fff;font-size:14px;outline:none;font-family:'DM Sans',sans-serif">
+          <select id="domain-color-input" style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(14,20,30,1);color:#fff;font-size:14px;outline:none">
+            <option value="#06d6a0">Teal</option>
+            <option value="#0ea5e9">Blue</option>
+            <option value="#6366f1">Purple</option>
+            <option value="#fbbf24">Gold</option>
+            <option value="#f43f5e">Red</option>
+          </select>
+        </div>
+        <button onclick="createDomain()" style="width:100%;padding:14px;border:none;border-radius:14px;background:linear-gradient(135deg,var(--blue),var(--teal));color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">Create Domain</button>
+        <div id="domain-modal-msg" style="margin-top:8px;font-size:12px;color:var(--muted);text-align:center;min-height:16px"></div>
+      </div>
+    </div>
   </div>
 
   <!-- GOALS -->
@@ -1024,6 +1097,7 @@ body{background:
 
 <div class="bnav">
     <div class="ni active" id="ni-home" onclick="switchPage('home')"><span class="nico">📍</span><span class="nlbl">Today</span></div>
+    <div class="ni" id="ni-domains" onclick="switchPage('domains')"><span class="nico">🏆</span><span class="nlbl">Life</span></div>
     <div class="ni" id="ni-goals" onclick="switchPage('goals')"><span class="nico">🎯</span><span class="nlbl">Goals</span></div>
     <div class="ni" id="ni-habits" onclick="switchPage('habits')"><span class="nico">✅</span><span class="nlbl">Habits</span></div>
     <div class="ni" id="ni-focus" onclick="switchPage('focus')"><span class="nico">⏱️</span><span class="nlbl">Focus</span></div>
@@ -1384,6 +1458,168 @@ async function editPeakHour() {
     loadPeakHourCard();
     loadPeakTimerBadge();
   }
+}
+
+// ── LIFE DOMAINS ──────────────────────────────────────────────────────────────
+
+var DOMAIN_PRESETS = {
+  finance: {
+    name: 'Finance', icon: '💰', color: '#06d6a0',
+    metrics: [
+      { name: 'Monthly Revenue', unit: '$', target: 10000, period: 'monthly' },
+      { name: 'Sales Closed', unit: 'sales', target: 10, period: 'monthly' },
+      { name: 'Outreach Made', unit: 'contacts', target: 50, period: 'monthly' }
+    ]
+  },
+  fitness: {
+    name: 'Fitness', icon: '💪', color: '#0ea5e9',
+    metrics: [
+      { name: 'Target Weight', unit: 'kg', target: 80, period: 'monthly' },
+      { name: 'Gym Sessions', unit: 'sessions', target: 12, period: 'monthly' },
+      { name: 'Cardio Minutes', unit: 'min', target: 300, period: 'monthly' }
+    ]
+  },
+  business: {
+    name: 'Business', icon: '📈', color: '#6366f1',
+    metrics: [
+      { name: 'Revenue Goal', unit: '$', target: 50000, period: 'monthly' },
+      { name: 'New Clients', unit: 'clients', target: 5, period: 'monthly' },
+      { name: 'Tasks Completed', unit: 'tasks', target: 20, period: 'weekly' }
+    ]
+  },
+  mindset: {
+    name: 'Mindset', icon: '🧠', color: '#fbbf24',
+    metrics: [
+      { name: 'Meditation Days', unit: 'days', target: 20, period: 'monthly' },
+      { name: 'Books Read', unit: 'books', target: 2, period: 'monthly' },
+      { name: 'Journal Entries', unit: 'entries', target: 15, period: 'monthly' }
+    ]
+  }
+};
+
+async function loadDomainsPage() {
+  var list = document.getElementById('domains-list');
+  if (!list) return;
+  var domains = await api('/api/domains');
+  if (!domains || !domains.length) {
+    list.innerHTML = '<div style="padding:16px 20px;text-align:center;color:var(--muted);font-size:13px">No domains yet — add Finance, Fitness or create your own above.</div>';
+    return;
+  }
+  list.innerHTML = '';
+  domains.forEach(function(d) { list.appendChild(buildDomainCard(d)); });
+}
+
+function buildDomainCard(domain) {
+  var wrapper = document.createElement('div');
+  wrapper.className = 'domain-card';
+  wrapper.style.background = 'linear-gradient(135deg,' + domain.color + '12,' + domain.color + '06)';
+  wrapper.style.borderColor = domain.color + '33';
+
+  var header = '<div class="domain-header">' +
+    '<div class="domain-icon" style="background:' + domain.color + '22">' + (domain.icon||'⚡') + '</div>' +
+    '<div class="domain-title" style="color:' + domain.color + '">' + domain.name.toUpperCase() + '</div>' +
+    '<button onclick="deleteDomain(' + domain.id + ')" style="width:26px;height:26px;border-radius:8px;border:1px solid rgba(244,63,94,.2);background:rgba(244,63,94,.06);color:#f43f5e;cursor:pointer;font-size:12px">🗑</button>' +
+    '</div>';
+
+  var metricsHtml = '';
+  if (domain.metrics && domain.metrics.length) {
+    metricsHtml = '<div class="domain-metrics">';
+    domain.metrics.forEach(function(m) {
+      var pct = Math.min(100, Math.round((m.current_value / m.target) * 100)) || 0;
+      metricsHtml += '<div class="metric-row">' +
+        '<div class="metric-name">' + m.name + (m.unit ? ' (' + m.unit + ')' : '') + ' · ' + m.period + '</div>' +
+        '<div class="metric-values">' +
+          '<span class="metric-current" style="color:' + domain.color + '">' + (m.current_value || 0) + '</span>' +
+          '<span class="metric-target">/ ' + m.target + ' ' + (m.unit||'') + '</span>' +
+        '</div>' +
+        '<div class="metric-bar"><div class="metric-fill" style="width:' + pct + '%;background:' + domain.color + '"></div></div>' +
+        '<div class="metric-input-row">' +
+          '<input class="metric-input" type="number" placeholder="Update value..." id="metric-val-' + m.id + '">' +
+          '<button class="metric-log-btn" style="background:' + domain.color + '22;color:' + domain.color + ';border:1px solid ' + domain.color + '44" onclick="logMetric(' + m.id + ',' + domain.id + ')">Log ↑</button>' +
+        '</div>' +
+      '</div>';
+    });
+    metricsHtml += '</div>';
+  } else {
+    metricsHtml = '<div style="padding:8px 16px 14px;font-size:12px;color:var(--muted)">No metrics yet — tap + to add one.</div>';
+  }
+
+  // Add metric button
+  var addMetricHtml = '<div style="padding:0 16px 14px">' +
+  '<button onclick="openAddMetricModal(' + domain.id + ')" style="width:100%;padding:9px;border:1px dashed rgba(255,255,255,.12);border-radius:10px;background:none;color:rgba(255,255,255,.4);font-size:12px;cursor:pointer">+ Add metric</button>' +
+  '</div>';
+
+  wrapper.innerHTML = header + metricsHtml + addMetricHtml;
+  return wrapper;
+}
+
+async function logMetric(metricId, domainId) {
+  var input = document.getElementById('metric-val-' + metricId);
+  var val = parseFloat(input?.value);
+  if (isNaN(val)) return;
+  await api('/api/domains/metrics/' + metricId + '/log', { method: 'POST', body: JSON.stringify({ value: val }) });
+  input.value = '';
+  loadDomainsPage();
+}
+
+async function deleteDomain(id) {
+  if (!confirm('Delete this domain and all its metrics?')) return;
+  await api('/api/domains/' + id, { method: 'DELETE' });
+  loadDomainsPage();
+}
+
+async function addPresetDomain(type) {
+  var preset = DOMAIN_PRESETS[type];
+  if (!preset) return;
+  var domain = await api('/api/domains', { method: 'POST', body: JSON.stringify({ name: preset.name, icon: preset.icon, color: preset.color }) });
+  if (!domain || domain.error) return;
+  for (var m of preset.metrics) {
+    await api('/api/domains/' + domain.id + '/metrics', { method: 'POST', body: JSON.stringify(m) });
+  }
+  loadDomainsPage();
+  switchPage('domains');
+}
+
+function openAddDomainModal() {
+  document.getElementById('add-domain-modal').style.display = 'flex';
+}
+
+function closeAddDomainIfOutside(e) {
+  if (e.target === document.getElementById('add-domain-modal')) document.getElementById('add-domain-modal').style.display = 'none';
+}
+
+async function createDomain() {
+  var name = document.getElementById('domain-name-input').value.trim();
+  var icon = document.getElementById('domain-icon-input').value.trim() || '⚡';
+  var color = document.getElementById('domain-color-input').value;
+  var msg = document.getElementById('domain-modal-msg');
+  if (!name) { msg.textContent = 'Please enter a domain name.'; return; }
+  var domain = await api('/api/domains', { method: 'POST', body: JSON.stringify({ name, icon, color }) });
+  if (domain && !domain.error) {
+    document.getElementById('add-domain-modal').style.display = 'none';
+    document.getElementById('domain-name-input').value = '';
+    loadDomainsPage();
+    switchPage('domains');
+  }
+}
+
+var addMetricDomainId = null;
+var addMetricColor = '#0ea5e9';
+
+function openAddMetricModal(domainId, color) {
+  addMetricDomainId = domainId;
+  addMetricColor = color || '#0ea5e9';
+  // Simple prompt approach
+  var name = prompt('Metric name (e.g. Monthly Revenue):');
+  if (!name) return;
+  var target = prompt('Target value (e.g. 10000):');
+  if (!target) return;
+  var unit = prompt('Unit (e.g. $, kg, sessions) — leave blank if none:') || '';
+  var period = prompt('Period: monthly, weekly, or daily?') || 'monthly';
+  api('/api/domains/' + domainId + '/metrics', {
+    method: 'POST',
+    body: JSON.stringify({ name, target: parseFloat(target), unit, period })
+  }).then(function() { loadDomainsPage(); });
 }
 
 async function loadEffectivenessScore() {
@@ -2053,6 +2289,7 @@ function switchPage(name) {
   document.getElementById('page-' + name).classList.add('active');
   document.getElementById('ni-' + name).classList.add('active');
   if (name === 'journal') { loadJournal(); loadGoals(); }
+  if (name === 'domains') loadDomainsPage();
   if (name === 'goals')   loadGoals();
   if (name === 'focus')   { loadFocusPage(); loadPeakTimerBadge(); }
   if (name === 'habits')  loadHabitsPage();

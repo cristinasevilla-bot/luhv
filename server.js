@@ -1357,6 +1357,76 @@ app.get('/api/peak-report', auth, async (req, res) => {
   }
 });
 
+
+// ── LIFE DOMAINS ──────────────────────────────────────────────────────────────
+
+// Get all domains with their metrics
+app.get('/api/domains', auth, async (req, res) => {
+  const { rows: domains } = await db.query(
+    'SELECT * FROM life_domains WHERE user_id=$1 ORDER BY created_at',
+    [req.user.id]
+  );
+  for (const d of domains) {
+    const { rows: metrics } = await db.query(
+      'SELECT * FROM domain_metrics WHERE domain_id=$1 AND user_id=$2 ORDER BY created_at',
+      [d.id, req.user.id]
+    );
+    d.metrics = metrics;
+  }
+  res.json(domains);
+});
+
+// Create a domain
+app.post('/api/domains', auth, async (req, res) => {
+  const { name, icon, color, domain_type } = req.body;
+  if (!name) return res.status(400).json({ error: 'Name required' });
+  const { rows } = await db.query(
+    'INSERT INTO life_domains (user_id, name, icon, color, domain_type) VALUES ($1,$2,$3,$4,$5) RETURNING *',
+    [req.user.id, name, icon||'⚡', color||'#0ea5e9', domain_type||'custom']
+  );
+  res.json({ ...rows[0], metrics: [] });
+});
+
+// Delete a domain
+app.delete('/api/domains/:id', auth, async (req, res) => {
+  await db.query('DELETE FROM life_domains WHERE id=$1 AND user_id=$2', [req.params.id, req.user.id]);
+  res.json({ success: true });
+});
+
+// Add a metric to a domain
+app.post('/api/domains/:id/metrics', auth, async (req, res) => {
+  const { name, metric_type, unit, target, period } = req.body;
+  if (!name || !target) return res.status(400).json({ error: 'Name and target required' });
+  const { rows } = await db.query(
+    'INSERT INTO domain_metrics (domain_id, user_id, name, metric_type, unit, target, period) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *',
+    [req.params.id, req.user.id, name, metric_type||'number', unit||'', target, period||'monthly']
+  );
+  res.json(rows[0]);
+});
+
+// Log a value for a metric
+app.post('/api/domains/metrics/:id/log', auth, async (req, res) => {
+  const { value, note } = req.body;
+  if (value === undefined) return res.status(400).json({ error: 'Value required' });
+  // Update current value
+  await db.query(
+    'UPDATE domain_metrics SET current_value=$1, updated_at=NOW() WHERE id=$2 AND user_id=$3',
+    [value, req.params.id, req.user.id]
+  );
+  // Log entry
+  const { rows } = await db.query(
+    'INSERT INTO domain_metric_logs (metric_id, user_id, value, note) VALUES ($1,$2,$3,$4) RETURNING *',
+    [req.params.id, req.user.id, value, note||null]
+  );
+  res.json(rows[0]);
+});
+
+// Delete a metric
+app.delete('/api/domains/metrics/:id', auth, async (req, res) => {
+  await db.query('DELETE FROM domain_metrics WHERE id=$1 AND user_id=$2', [req.params.id, req.user.id]);
+  res.json({ success: true });
+});
+
 app.get('/health', (_, res) => res.json({ status: 'ok', service: 'Luhv+ API' }));
 
 app.listen(PORT, '0.0.0.0', () => console.log(`🏆 Luhv+ API running on port ${PORT}`));

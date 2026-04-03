@@ -740,7 +740,7 @@ body{background:
         <div style="font-size:10px;color:var(--teal);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:2px">Roadmap</div>
         <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;line-height:1">YOUR PATH TO PEAK.</div>
       </div>
-      <button onclick="switchPage('home')" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:var(--muted);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+      <button onclick="switchPage('home')" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(14,165,233,.4);background:rgba(14,165,233,.12);color:var(--blue);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
     </div>
 
     <!-- SECTION TABS -->
@@ -847,7 +847,7 @@ body{background:
           <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px">COACH</div>
           <div style="font-size:12px;color:rgba(255,255,255,.65);margin-top:2px">Ask anything. Get clarity. Move faster.</div>
         </div>
-        <button onclick="switchPage('home')" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.3);color:rgba(255,255,255,.7);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">✕</button>
+        <button onclick="switchPage('home')" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(14,165,233,.4);background:rgba(14,165,233,.15);color:var(--blue);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">✕</button>
       </div>
     </div>
     <div class="chat-wrap" id="chat-msgs">
@@ -876,7 +876,7 @@ body{background:
         <div style="font-size:10px;color:var(--blue);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:2px">Progress</div>
         <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;line-height:1">ARE YOU IMPROVING?</div>
       </div>
-      <button onclick="switchPage('home')" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:var(--muted);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+      <button onclick="switchPage('home')" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(14,165,233,.4);background:rgba(14,165,233,.12);color:var(--blue);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
     </div>
     <div style="padding:12px 20px 4px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none">
       <div style="flex-shrink:0;display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;background:rgba(14,165,233,.08);border:1px solid rgba(14,165,233,.2);font-size:11px;font-weight:700;color:var(--blue)">1. Log energy</div>
@@ -996,7 +996,7 @@ body{background:
         <div style="font-size:10px;color:var(--purple);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:2px">Focus</div>
         <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;line-height:1">PROTECT YOUR TIME.</div>
       </div>
-      <button onclick="switchPage('home')" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:var(--muted);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+      <button onclick="switchPage('home')" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(14,165,233,.4);background:rgba(14,165,233,.12);color:var(--blue);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
     </div>
     <div style="padding:12px 20px 4px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none">
       <div style="flex-shrink:0;display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.3);font-size:11px;font-weight:700;color:var(--purple)">1. Link a goal</div>
@@ -1245,7 +1245,7 @@ async function initApp() {
   loadPeakHourCard();
   loadTodayDomainsPreview();
   document.getElementById('help-btn').style.display = 'flex';
-  document.getElementById('decision-fab').style.display = 'flex';
+  document.getElementById('decision-fab').style.display = 'none'; // only shown on roadmap
   restoreTimerIfRunning();
   if (!localStorage.getItem('luhv_welcomed')) { setTimeout(showWelcome, 600); }
 }
@@ -2310,6 +2310,12 @@ function switchPage(name) {
   document.getElementById('ni-' + name).classList.add('active');
   if (name === 'journal') { loadJournal(); loadGoals(); }
   if (name === 'roadmap') { loadDomainsPage(); }
+  // Decision FAB — only on roadmap
+  var fab = document.getElementById('decision-fab');
+  if (fab) fab.style.display = name === 'roadmap' ? 'flex' : 'none';
+  // Help button — hide on coach
+  var helpBtn = document.getElementById('help-btn');
+  if (helpBtn) helpBtn.style.display = name === 'ai' ? 'none' : 'flex';
   // Legacy support - redirect old pages to roadmap with correct tab
   if (name === 'goals')  { switchPage('roadmap'); setTimeout(function(){ switchRoadmapTab('goals'); }, 50); return; }
   if (name === 'habits') { switchPage('roadmap'); setTimeout(function(){ switchRoadmapTab('habits'); }, 50); return; }

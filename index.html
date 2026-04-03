@@ -551,33 +551,36 @@ body{background:
   <!-- HOME — DASHBOARD -->
   <div class="page active" id="page-home" style="overflow-y:auto;padding-bottom:100px">
 
-    <!-- TOP: Greeting + streak + peak pill -->
-    <div style="padding:14px 20px 10px;display:flex;align-items:flex-start;justify-content:space-between">
-      <div>
-        <div style="font-size:11px;color:var(--muted)" id="time-greet">Good morning,</div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;line-height:1.1" id="user-name-display">CHAMPION 👊</div>
-      </div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;margin-top:2px">
-        <div class="streak-pill">🔥 <span id="streak-count">0</span>-Day Streak</div>
-        <div id="peak-pill" style="display:none;align-items:center;gap:5px;background:rgba(251,191,36,0.1);border:0.5px solid rgba(251,191,36,0.3);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;color:#fbbf24">⚡ Peak Hour</div>
+    <!-- HERO HEADER with coach photo -->
+    <div style="position:relative;height:140px;overflow:hidden;flex-shrink:0">
+      <img src="https://ggfvluqiwcnhbmetxxao.supabase.co/storage/v1/object/public/coach/coach.png" alt="Coach" style="width:100%;height:100%;object-fit:cover;object-position:center 15%">
+      <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.2) 0%,rgba(10,10,15,.95) 100%)"></div>
+      <div style="position:absolute;bottom:12px;left:20px;right:20px;display:flex;align-items:flex-end;justify-content:space-between">
+        <div>
+          <div style="font-size:10px;color:rgba(255,255,255,.55)" id="time-greet">Good morning,</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;line-height:1" id="user-name-display">CHAMPION 👊</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+          <div class="streak-pill" style="margin:0">🔥 <span id="streak-count">0</span>-Day Streak</div>
+          <div id="peak-pill" style="display:none;align-items:center;gap:4px;background:rgba(251,191,36,0.15);border:0.5px solid rgba(251,191,36,0.4);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:600;color:#fbbf24">⚡ Peak</div>
+        </div>
       </div>
     </div>
 
-    <!-- SCORE + COACH ROW -->
-    <div style="display:flex;gap:10px;padding:0 20px 12px;align-items:stretch">
-      <!-- Score circle compact -->
-      <div class="score-card" id="score-card" style="display:none;flex-direction:column;align-items:center;justify-content:center;padding:14px;min-width:90px;flex-shrink:0;margin:0">
-        <div class="score-circle" id="score-circle" style="width:64px;height:64px;margin:0 0 6px">
+    <!-- SCORE + COACH GREETING ROW — always visible, no empty space -->
+    <div style="display:flex;gap:8px;padding:10px 20px 8px;align-items:stretch">
+      <!-- Score — shows skeleton until loaded -->
+      <div id="score-card" style="min-width:80px;flex-shrink:0;background:linear-gradient(135deg,rgba(14,165,233,.12),rgba(6,214,160,.08));border:1px solid rgba(14,165,233,.2);border-radius:14px;padding:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px">
+        <div class="score-circle" id="score-circle" style="width:52px;height:52px">
           <div class="score-circle-inner">
-            <div class="score-num" id="score-num" style="font-size:18px">—</div>
-            <div class="score-label" style="font-size:8px">Score</div>
+            <div class="score-num" id="score-num" style="font-size:16px">—</div>
+            <div class="score-label" style="font-size:7px">Score</div>
           </div>
         </div>
-        <div class="score-level" id="score-level" style="font-size:11px;text-align:center">—</div>
+        <div id="score-level" class="score-level" style="font-size:9px;text-align:center;letter-spacing:.5px">...</div>
       </div>
-      <!-- Coach greeting -->
-      <div id="coach-greeting-card" style="flex:1;background:linear-gradient(135deg,rgba(6,214,160,.06),rgba(14,165,233,.04));border:1px solid rgba(6,214,160,.2);border-radius:16px;padding:12px;display:flex;gap:8px;align-items:flex-start;min-height:80px">
-        <img src="https://ggfvluqiwcnhbmetxxao.supabase.co/storage/v1/object/public/coach/coach.png" style="width:28px;height:28px;border-radius:7px;object-fit:cover;object-position:center top;flex-shrink:0">
+      <!-- Coach greeting — always visible with skeleton -->
+      <div id="coach-greeting-card" style="flex:1;background:linear-gradient(135deg,rgba(6,214,160,.06),rgba(14,165,233,.04));border:1px solid rgba(6,214,160,.18);border-radius:14px;padding:10px 12px;display:flex;gap:8px;align-items:flex-start">
         <div id="coach-greeting-text" style="font-size:12px;color:var(--light);line-height:1.5;flex:1">
           <div class="coach-greeting-skeleton"></div>
           <div class="coach-greeting-skeleton short"></div>
@@ -585,10 +588,10 @@ body{background:
       </div>
     </div>
 
-    <!-- SCORE BARS (collapsible, shown below) -->
-    <div id="score-bars-row" style="display:none;padding:0 20px 12px">
-      <div style="background:linear-gradient(135deg,rgba(14,165,233,.06),rgba(6,214,160,.04));border:1px solid rgba(14,165,233,.15);border-radius:14px;padding:12px 14px">
-        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:8px" id="score-msg">Calculating...</div>
+    <!-- SCORE BARS — only appear after score loads, tap score to toggle -->
+    <div id="score-bars-row" style="display:none;padding:0 20px 8px">
+      <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:10px 12px">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:6px" id="score-msg"></div>
         <div class="score-bars">
           <div class="score-bar-row"><div class="score-bar-label">Mindset</div><div class="score-bar-track"><div class="score-bar-fill" id="bar-mindset" style="width:0%;background:var(--purple)"></div></div><div class="score-bar-val" id="val-mindset" style="color:var(--purple)">0</div></div>
           <div class="score-bar-row"><div class="score-bar-label">Action</div><div class="score-bar-track"><div class="score-bar-fill" id="bar-action" style="width:0%;background:var(--blue)"></div></div><div class="score-bar-val" id="val-action" style="color:var(--blue)">0</div></div>
@@ -598,74 +601,64 @@ body{background:
       </div>
     </div>
 
-    <!-- PEAK WINDOW — compact inline -->
-    <div id="peak-window-card" style="display:none;margin:0 20px 10px;background:rgba(251,191,36,.05);border:1px solid rgba(251,191,36,.18);border-radius:12px;padding:10px 14px">
-      <div style="display:flex;align-items:center;gap:8px">
-        <span id="true-window-icon" style="font-size:16px">🎨</span>
-        <div style="flex:1">
-          <span id="true-window-name" style="font-size:12px;font-weight:700;color:#06d6a0">Creativity</span>
-          <span id="true-window-desc" style="font-size:11px;color:var(--muted);margin-left:6px">5am-12pm</span>
-        </div>
-        <div style="text-align:right">
-          <div id="peak-window-text" style="font-size:11px;font-weight:600;color:#fbbf24">Not set</div>
-        </div>
-        <button class="peak-edit-btn" onclick="openProfile()">Edit</button>
-      </div>
-      <div id="peak-window-sub" style="font-size:10px;color:var(--muted);margin-top:4px"></div>
-      <div id="ppw-alignment-msg" style="display:none;margin-top:6px;font-size:10px;line-height:1.5;padding:6px 8px;border-radius:7px"></div>
+    <!-- PEAK WINDOW — single compact line -->
+    <div id="peak-window-card" style="display:none;margin:0 20px 8px;background:rgba(251,191,36,.05);border:1px solid rgba(251,191,36,.15);border-radius:10px;padding:8px 12px;display:flex;align-items:center;gap:8px">
+      <span id="true-window-icon">🎨</span>
+      <span id="true-window-name" style="font-size:12px;font-weight:700;color:#06d6a0">Creativity</span>
+      <span id="true-window-desc" style="font-size:10px;color:var(--muted)">5am-12pm</span>
+      <div style="flex:1"></div>
+      <span id="peak-window-text" style="font-size:11px;font-weight:600;color:#fbbf24"></span>
+      <button class="peak-edit-btn" onclick="openProfile()">Edit</button>
     </div>
-    <div id="peak-window-empty" style="display:none;margin:0 20px 10px;font-size:12px;color:var(--muted)">Set your peak window in <button onclick="openProfile()" style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:12px;padding:0">Profile ↗</button></div>
+    <div id="peak-window-sub" style="display:none"></div>
+    <div id="ppw-alignment-msg" style="display:none"></div>
+    <div id="peak-window-empty" style="display:none;margin:0 20px 8px;font-size:11px;color:var(--muted)">Set your peak window in <button onclick="openProfile()" style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:11px;padding:0">Profile ↗</button></div>
 
-    <!-- QUICK STATS ROW -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:0 20px 12px">
-      <div style="background:rgba(255,255,255,.04);border:0.5px solid rgba(255,255,255,.07);border-radius:12px;padding:10px 12px;text-align:center">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--teal)" id="stat-habits">0</div>
-        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Habits</div>
+    <!-- STATS + LIFE DOMAINS in one compact row -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;padding:0 20px 8px">
+      <div style="background:rgba(255,255,255,.04);border:0.5px solid rgba(255,255,255,.07);border-radius:10px;padding:8px;text-align:center">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--teal)" id="stat-habits">0</div>
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Habits</div>
       </div>
-      <div style="background:rgba(255,255,255,.04);border:0.5px solid rgba(255,255,255,.07);border-radius:12px;padding:10px 12px;text-align:center">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--blue)" id="stat-goals">0<span style="font-size:13px">%</span></div>
-        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Goals</div>
+      <div style="background:rgba(255,255,255,.04);border:0.5px solid rgba(255,255,255,.07);border-radius:10px;padding:8px;text-align:center">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--blue)" id="stat-goals">0<span style="font-size:11px">%</span></div>
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Goals</div>
       </div>
-      <div style="background:rgba(255,255,255,.04);border:0.5px solid rgba(255,255,255,.07);border-radius:12px;padding:10px 12px;text-align:center">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--purple)" id="stat-journal">0</div>
-        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Check-ins</div>
+      <div style="background:rgba(255,255,255,.04);border:0.5px solid rgba(255,255,255,.07);border-radius:10px;padding:8px;text-align:center">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--purple)" id="stat-journal">0</div>
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Check-ins</div>
       </div>
     </div>
 
-    <!-- LIFE DOMAINS PREVIEW -->
+    <!-- LIFE DOMAINS PREVIEW — compact horizontal scroll -->
     <div style="padding:0 20px 4px;display:flex;align-items:center;justify-content:space-between">
-      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700">Life Dashboard</div>
-      <button onclick="switchPage('domains')" style="font-size:11px;color:var(--teal);background:none;border:none;cursor:pointer;padding:0">View all →</button>
+      <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700">Life Dashboard</div>
+      <button onclick="switchPage('roadmap')" style="font-size:11px;color:var(--teal);background:none;border:none;cursor:pointer;padding:0">View →</button>
     </div>
-    <div id="today-domains-preview" style="padding:0 20px 12px">
-      <div style="font-size:12px;color:var(--muted);padding:8px 0">Add domains in the Life tab to see them here.</div>
+    <div id="today-domains-preview" style="padding:0 20px 8px">
+      <div style="font-size:11px;color:var(--muted)">Add domains in Roadmap to see them here.</div>
     </div>
 
     <!-- TODAY'S HABITS -->
     <div style="padding:0 20px 4px;display:flex;align-items:center;justify-content:space-between">
-      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700">Today's Habits</div>
-      <span style="font-size:11px;color:var(--muted)" id="habits-progress-label"></span>
+      <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700">Today's Habits</div>
+      <span style="font-size:10px;color:var(--muted)" id="habits-progress-label"></span>
     </div>
-    <div class="hlist" id="habits-list" style="margin:0 20px 12px;padding:0">
-      <div style="padding:12px;text-align:center;color:var(--muted);font-size:13px">Loading...</div>
+    <div class="hlist" id="habits-list" style="margin:0 20px 8px;padding:0">
+      <div style="padding:10px;text-align:center;color:var(--muted);font-size:12px">Loading...</div>
     </div>
 
     <!-- ACTION BUTTONS -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 20px 12px">
-      <button onclick="switchPage('focus')" style="padding:14px;border:1px solid rgba(99,102,241,.25);border-radius:14px;background:rgba(99,102,241,.08);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px">
-        ⏱️ Focus
-      </button>
-      <button onclick="switchPage('ai')" style="padding:14px;border:1px solid rgba(6,214,160,.2);border-radius:14px;background:rgba(6,214,160,.06);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px">
-        ⚡ Coach
-      </button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 20px 8px">
+      <button onclick="switchPage('focus')" style="padding:12px;border:1px solid rgba(99,102,241,.25);border-radius:12px;background:rgba(99,102,241,.08);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">⏱️ Focus</button>
+      <button onclick="switchPage('ai')" style="padding:12px;border:1px solid rgba(6,214,160,.2);border-radius:12px;background:rgba(6,214,160,.06);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">⚡ Coach</button>
     </div>
 
-    <!-- QUOTE -->
-    <div class="qcard" onclick="nextQuote()" style="margin:0 20px 24px">
+    <!-- QUOTE — compact -->
+    <div class="qcard" onclick="nextQuote()" style="margin:0 20px 20px;padding:12px 14px">
       <div class="qlabel">Quote of the Day</div>
-      <div class="qtext" id="qtext">You are the MVP in your life — act like it.</div>
+      <div class="qtext" id="qtext" style="font-size:13px">You are the MVP in your life — act like it.</div>
       <div class="qauthor" id="qauthor">— Luhv+ Coach</div>
-      <div class="qtap">Tap to refresh ↻</div>
     </div>
 
     <!-- Hidden elements still needed by JS -->
@@ -1609,7 +1602,6 @@ function switchRoadmapTab(tab) {
 async function loadEffectivenessScore() {
   var card = document.getElementById('score-card');
   if (!card) return;
-  card.style.display = 'flex';
   try {
     var data = await api('/api/effectiveness-score');
     if (!data || data.error) { card.style.display = 'none'; return; }
@@ -1620,6 +1612,13 @@ async function loadEffectivenessScore() {
     document.getElementById('score-level').style.color = levelColors[data.level] || '#fff';
     var barsRow = document.getElementById('score-bars-row');
     if (barsRow) barsRow.style.display = 'block';
+    // Make score card tappable to toggle bars
+    var scoreCard = document.getElementById('score-card');
+    if (scoreCard) scoreCard.style.cursor = 'pointer';
+    if (scoreCard) scoreCard.onclick = function() {
+      var b = document.getElementById('score-bars-row');
+      if (b) b.style.display = b.style.display === 'none' ? 'block' : 'none';
+    };
     var b = data.breakdown;
     var pct = function(v) { return Math.round((v/25)*100); };
     document.getElementById('bar-mindset').style.width  = pct(b.mindset)   + '%';
@@ -1635,7 +1634,7 @@ async function loadEffectivenessScore() {
     var color  = levelColors[data.level] || '#0ea5e9';
     var deg    = Math.round((data.total / 100) * 360);
     circle.style.background = 'conic-gradient(' + color + ' ' + deg + 'deg, rgba(255,255,255,.08) ' + deg + 'deg)';
-  } catch(e) { document.getElementById('score-card').style.display = 'none'; }
+  } catch(e) { /* score failed silently */ }
 }
 
 // ── ONBOARDING ────────────────────────────────────────────────────────────────

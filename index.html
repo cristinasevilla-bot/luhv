@@ -761,20 +761,30 @@ body{background:
       <div>
         <div style="font-size:10px;color:var(--teal);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:2px">Roadmap</div>
         <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;line-height:1">YOUR PATH TO PEAK.</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px">Set goals. Build habits. Track your life domains.</div>
       </div>
       <button onclick="switchPage('home')" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(14,165,233,.4);background:rgba(14,165,233,.12);color:var(--blue);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
     </div>
 
-    <!-- SECTION TABS -->
-    <div style="display:flex;gap:0;padding:12px 20px 0;border-bottom:1px solid rgba(255,255,255,.06)">
-      <button id="rtab-domains" onclick="switchRoadmapTab('domains')" style="flex:1;padding:8px;border:none;background:none;color:var(--teal);font-size:12px;font-weight:700;cursor:pointer;border-bottom:2px solid var(--teal);font-family:'DM Sans',sans-serif">Life</button>
-      <button id="rtab-goals" onclick="switchRoadmapTab('goals')" style="flex:1;padding:8px;border:none;background:none;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;border-bottom:2px solid transparent;font-family:'DM Sans',sans-serif">Goals</button>
-      <button id="rtab-habits" onclick="switchRoadmapTab('habits')" style="flex:1;padding:8px;border:none;background:none;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;border-bottom:2px solid transparent;font-family:'DM Sans',sans-serif">Habits</button>
+    <!-- SECTION TABS with explanations -->
+    <div style="display:flex;gap:0;padding:0 20px;border-bottom:1px solid rgba(255,255,255,.06)">
+      <button id="rtab-domains" onclick="switchRoadmapTab('domains')" style="flex:1;padding:10px 4px 8px;border:none;background:none;color:var(--teal);font-size:12px;font-weight:700;cursor:pointer;border-bottom:2px solid var(--teal);font-family:'DM Sans',sans-serif;text-align:center">
+        💰 Life<div style="font-size:9px;font-weight:400;color:var(--muted);margin-top:1px">Finance · Fitness</div>
+      </button>
+      <button id="rtab-goals" onclick="switchRoadmapTab('goals')" style="flex:1;padding:10px 4px 8px;border:none;background:none;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;border-bottom:2px solid transparent;font-family:'DM Sans',sans-serif;text-align:center">
+        🎯 Goals<div style="font-size:9px;font-weight:400;color:var(--muted);margin-top:1px">90-day targets</div>
+      </button>
+      <button id="rtab-habits" onclick="switchRoadmapTab('habits')" style="flex:1;padding:10px 4px 8px;border:none;background:none;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;border-bottom:2px solid transparent;font-family:'DM Sans',sans-serif;text-align:center">
+        ✅ Habits<div style="font-size:9px;font-weight:400;color:var(--muted);margin-top:1px">Daily actions</div>
+      </button>
     </div>
 
     <!-- DOMAINS TAB -->
     <div id="rsection-domains" style="display:block">
-      <div style="padding:12px 20px 4px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none">
+      <div style="margin:10px 20px 8px;padding:10px 12px;background:rgba(6,214,160,.06);border:1px solid rgba(6,214,160,.15);border-radius:10px;font-size:11px;color:var(--muted);line-height:1.5">
+        💡 <strong style="color:var(--teal)">Life domains</strong> are the areas of your life you want to track — Finance, Fitness, Business or custom. Add metrics and log your progress daily.
+      </div>
+      <div style="padding:0 20px 4px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none">
         <button onclick="addPresetDomain('finance')" style="flex-shrink:0;padding:6px 12px;border-radius:20px;border:1px solid rgba(6,214,160,.3);background:rgba(6,214,160,.08);color:var(--teal);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">💰 Finance</button>
         <button onclick="addPresetDomain('fitness')" style="flex-shrink:0;padding:6px 12px;border-radius:20px;border:1px solid rgba(14,165,233,.3);background:rgba(14,165,233,.08);color:var(--blue);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">💪 Fitness</button>
         <button onclick="addPresetDomain('business')" style="flex-shrink:0;padding:6px 12px;border-radius:20px;border:1px solid rgba(99,102,241,.3);background:rgba(99,102,241,.08);color:var(--purple);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">📈 Business</button>
@@ -787,7 +797,10 @@ body{background:
     </div>
 
     <!-- GOALS TAB -->
-    <div id="rsection-goals" style="display:none;padding:12px 20px">
+    <div id="rsection-goals" style="display:none;padding:12px 20px 0">
+      <div style="padding:10px 12px;background:rgba(14,165,233,.06);border:1px solid rgba(14,165,233,.15);border-radius:10px;font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:12px">
+        💡 <strong style="color:var(--blue)">Goals</strong> are your big targets — what you want to achieve in the next 90 days. Set a deadline, update your progress with +/−, and the coach tracks your momentum.
+      </div>
       <div style="background:linear-gradient(180deg,rgba(17,24,39,.92),rgba(12,18,28,.96));border:0.5px solid var(--border);border-radius:16px;padding:14px;margin-bottom:14px">
         <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--blue);font-weight:700;margin-bottom:10px">Add Goal</div>
         <input id="goal-title-input" type="text" placeholder="Example: Close 10 clients this month"
@@ -817,7 +830,10 @@ body{background:
 
     <!-- HABITS TAB -->
     <div id="rsection-habits" style="display:none">
-      <div style="padding:12px 20px">
+      <div style="margin:10px 20px 0;padding:10px 12px;background:rgba(6,214,160,.06);border:1px solid rgba(6,214,160,.15);border-radius:10px;font-size:11px;color:var(--muted);line-height:1.5">
+        💡 <strong style="color:var(--teal)">Habits</strong> are what you do every day to reach your goals. Check them off in the Dashboard. Use Daily check (yes/no) or Daily target (count — e.g. 8 glasses of water).
+      </div>
+      <div style="padding:12px 20px 0">
         <div style="background:linear-gradient(180deg,rgba(17,24,39,.92),rgba(12,18,28,.96));border:0.5px solid var(--border);border-radius:16px;padding:14px;">
           <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:10px">Add Habit</div>
           <input id="habit-name-input" type="text" placeholder="Example: Drink 8 glasses of water"
@@ -867,7 +883,8 @@ body{background:
       <div style="position:absolute;bottom:14px;left:20px;right:20px;display:flex;align-items:flex-end;justify-content:space-between">
         <div>
           <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px">COACH</div>
-          <div style="font-size:12px;color:rgba(255,255,255,.65);margin-top:2px">Ask anything. Get clarity. Move faster.</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.65);margin-top:1px">Ask anything. Your coach knows your goals and habits.</div>
+        <button onclick="downloadConversation()" style="margin-top:4px;padding:3px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:rgba(255,255,255,.6);font-size:10px;cursor:pointer;font-family:'DM Sans',sans-serif">⬇️ Save chat</button>
         </div>
         <button onclick="switchPage('home')" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(14,165,233,.4);background:rgba(14,165,233,.15);color:var(--blue);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">✕</button>
       </div>
@@ -897,6 +914,7 @@ body{background:
       <div>
         <div style="font-size:10px;color:var(--blue);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:2px">Progress</div>
         <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;line-height:1">ARE YOU IMPROVING?</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px">Log energy · Read your weekly review · Check peak hours</div>
       </div>
       <button onclick="switchPage('home')" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(14,165,233,.4);background:rgba(14,165,233,.12);color:var(--blue);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
     </div>
@@ -1033,6 +1051,7 @@ body{background:
       <div>
         <div style="font-size:10px;color:var(--purple);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:2px">Focus</div>
         <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;line-height:1">PROTECT YOUR TIME.</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px">Pick a mode → link a goal → start. Progress logs automatically.</div>
       </div>
       <button onclick="switchPage('home')" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(14,165,233,.4);background:rgba(14,165,233,.12);color:var(--blue);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
     </div>
@@ -1061,7 +1080,7 @@ body{background:
         <div class="focus-mode-sub" id="custom-sub">— min</div>
       </div>
     </div>
-    <div id="custom-duration-row" style="display:none;margin:0 20px 14px;display:none">
+    <div id="custom-duration-row" style="display:none;margin:0 20px 14px">
       <input id="custom-minutes" type="number" min="1" max="180" placeholder="Minutes (e.g. 90)"
         style="width:100%;padding:11px 14px;border-radius:12px;border:1px solid rgba(14,165,233,.3);background:rgba(255,255,255,.04);color:#fff;font-size:14px;outline:none;"
         oninput="updateCustomDuration(this.value)" />
@@ -1101,7 +1120,7 @@ body{background:
   </div>
 
 <div class="bnav">
-    <div class="ni active" id="ni-home" onclick="switchPage('home')"><span class="nico">📍</span><span class="nlbl">Today</span></div>
+    <div class="ni active" id="ni-home" onclick="switchPage('home')"><span class="nico">📊</span><span class="nlbl">Dashboard</span></div>
     <div class="ni" id="ni-roadmap" onclick="switchPage('roadmap')"><span class="nico">🗺️</span><span class="nlbl">Roadmap</span></div>
     <div class="ni" id="ni-focus" onclick="switchPage('focus')"><span class="nico">⏱️</span><span class="nlbl">Focus</span></div>
     <div class="ni" id="ni-ai" onclick="switchPage('ai')"><span class="nico">⚡</span><span class="nlbl">Coach</span></div>
@@ -2479,6 +2498,22 @@ async function sendMsg() {
   chatHistory.push({ role: 'assistant', content: reply });
 }
 
+function downloadConversation() {
+  var msgs = document.querySelectorAll('#chat-msgs .msg');
+  var lines = [];
+  msgs.forEach(function(m) {
+    var isCoach = m.classList.contains('a');
+    var text = m.querySelector('.mb')?.innerText || '';
+    if (text.trim()) lines.push((isCoach ? 'Coach: ' : 'You: ') + text.trim());
+  });
+  if (!lines.length) return;
+  var blob = new Blob([lines.join('\n\n')], { type: 'text/plain' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'luhv-coach-chat.txt';
+  a.click();
+}
+
 function sendSug(text) { document.getElementById('cin').value = text; sendMsg(); }
 
 function addMsg(text, role) {
@@ -2607,15 +2642,38 @@ function restoreTimerIfRunning() {
 var focusQuotes = ['One hour of focused work beats eight hours of busy work.','Clarity on what NOT to do is more valuable than a to-do list.','The most effective people protect their time like money.','Deep work is the skill that separates effective from busy.'];
 
 function setMode(mode, minutes) {
-  timerMode = mode; timerTotal = minutes*60; timerSeconds = timerTotal;
-  if (timerRunning) { clearInterval(timerInterval); timerRunning = false; }
+  timerMode = mode;
+  var customRow = document.getElementById('custom-duration-row');
+  if (mode === 'custom') {
+    if (customRow) customRow.style.display = 'block';
+    var customMins = parseInt(document.getElementById('custom-minutes')?.value) || 0;
+    if (customMins < 1) {
+      document.querySelectorAll('.focus-mode').forEach(el => el.classList.remove('active'));
+      var modeEl = document.getElementById('mode-custom'); if (modeEl) modeEl.classList.add('active');
+      var lbl = document.getElementById('timer-mode-label'); if (lbl) lbl.textContent = 'Custom — enter minutes below';
+      return;
+    }
+    minutes = customMins;
+  } else {
+    if (customRow) customRow.style.display = 'none';
+  }
+  timerTotal = minutes * 60; timerSeconds = timerTotal;
+  if (timerRunning) { clearInterval(timerInterval); timerRunning = false; clearTimerState(); }
   document.getElementById('timer-start-btn').textContent = 'Start ⚡';
   document.getElementById('timer-status').textContent = 'Ready when you are.';
   document.getElementById('timer-display').textContent = String(Math.floor(timerSeconds/60)).padStart(2,'0')+':00';
   document.querySelectorAll('.focus-mode').forEach(el => el.classList.remove('active'));
   var modeEl = document.getElementById('mode-'+mode); if (modeEl) modeEl.classList.add('active');
-  var labels = {deep:'Deep Work Session',quick:'Quick Sprint',break:'Recovery Break'};
-  var lbl = document.getElementById('timer-mode-label'); if (lbl) lbl.textContent = labels[mode]||mode;
+  var labels = {deep:'Deep Work Session — 25 min of full concentration',quick:'Quick Sprint — 15 min burst',break:'Recovery Break — rest and reset',custom:'Custom Session'};
+  var lbl = document.getElementById('timer-mode-label'); if (lbl) lbl.textContent = labels[mode] || mode;
+  var resetBtn = document.querySelector('.timer-btn.reset'); if (resetBtn) resetBtn.classList.remove('active');
+}
+
+function updateCustomDuration(val) {
+  var mins = parseInt(val);
+  var sub = document.getElementById('custom-sub');
+  if (sub) sub.textContent = (mins > 0 ? mins : '—') + ' min';
+  if (mins > 0) setMode('custom', mins);
 }
 
 function timerTick() {

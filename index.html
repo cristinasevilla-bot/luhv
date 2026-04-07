@@ -15,10 +15,10 @@
 <style>
 :root{--black:#0a0a0f;--blue:#0ea5e9;--teal:#06d6a0;--yellow:#fbbf24;--purple:#6366f1;--red:#f43f5e;--card:#111827;--border:rgba(14,165,233,0.15);--muted:#6b7280;--light:#e5e7eb}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{background:var(--black);font-family:'DM Sans',sans-serif;color:#fff;min-height:100vh}
+body{background:var(--black);font-family:'DM Sans',sans-serif;color:#fff;min-height:100vh;display:flex;justify-content:center;align-items:flex-start}
 
 /* AUTH */
-#auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+#auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;max-width:390px;width:100%}
 .auth-box{width:100%;max-width:380px}
 .auth-logo{font-family:'Bebas Neue',sans-serif;font-size:52px;letter-spacing:3px;text-align:center}
 .auth-logo span{color:var(--teal)}
@@ -39,8 +39,8 @@ body{background:var(--black);font-family:'DM Sans',sans-serif;color:#fff;min-hei
 @keyframes spin{to{transform:rotate(360deg)}}
 
 /* APP */
-#app-screen{display:none}
-.app-shell{max-width:390px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
+#app-screen{display:none;width:100%;max-width:390px;flex-shrink:0}
+.app-shell{max-width:390px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;position:relative}
 .top-bar{padding:16px 20px 10px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;background:rgba(10,10,15,0.95);backdrop-filter:blur(12px);border-bottom:0.5px solid rgba(14,165,233,0.1)}
 .logo{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;display:flex;align-items:center;gap:5px}
 .logo span{color:var(--teal)}
@@ -149,6 +149,12 @@ body{background:var(--black);font-family:'DM Sans',sans-serif;color:#fff;min-hei
 .tooltip { position:absolute; background:#0ea5e9; color:#fff; font-size:12px; padding:6px 10px; border-radius:8px; white-space:nowrap; z-index:200; pointer-events:none; opacity:0; transition:.2s; }
 .tooltip.show { opacity:1; }
 
+/* DESKTOP RESPONSIVE */
+@media(min-width:480px){
+  html{background:radial-gradient(circle at 20% 20%,rgba(14,165,233,.06),transparent 40%),linear-gradient(180deg,#03070d,#060c14)}
+  .app-shell{box-shadow:0 0 60px rgba(14,165,233,.06);border-left:1px solid rgba(14,165,233,.06);border-right:1px solid rgba(14,165,233,.06)}
+}
+
 /* DEMO ENHANCEMENTS */
 body{background:
   radial-gradient(circle at 15% 0%, rgba(14,165,233,.14), transparent 28%),
@@ -183,7 +189,7 @@ body{background:
 .add-btn{background:rgba(14,165,233,.06)}
 .help-btn{bottom:96px}
 .decision-fab{position:fixed;bottom:96px;left:16px;z-index:500;display:none;align-items:center;gap:8px;padding:10px 16px;border-radius:24px;background:linear-gradient(135deg,var(--purple),var(--blue));border:none;color:#fff;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(99,102,241,.4);font-family:"DM Sans",sans-serif}
-.decision-modal{position:fixed;inset:0;z-index:1500;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.7)}
+.decision-modal{position:fixed;inset:0;z-index:1500;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.7);backdrop-filter:blur(4px)}
 .decision-modal-box{background:linear-gradient(180deg,#0d1520,#080f18);border-radius:28px 28px 0 0;padding:28px 24px 40px;width:100%;max-width:390px}
 .decision-modal-handle{width:36px;height:4px;border-radius:99px;background:rgba(255,255,255,.15);margin:0 auto 20px}
 
@@ -236,6 +242,21 @@ body{background:
 .energy-bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
 .energy-bar{width:100%;border-radius:4px 4px 2px 2px;transition:height .4s;min-height:4px}
 .energy-bar-day{font-size:9px;color:var(--muted)}
+.weekly-tracker{margin:0 20px 16px;border-radius:18px;overflow:hidden;border:1px solid rgba(255,255,255,.07);background:linear-gradient(180deg,rgba(17,24,39,.95),rgba(12,18,28,.98))}
+.weekly-tracker-header{padding:14px 16px 10px;display:flex;align-items:center;justify-content:space-between}
+.weekly-day-cols{display:grid;padding:0 14px 14px;gap:2px}
+.wday-header{font-size:9px;color:var(--muted);text-align:center;font-weight:700;text-transform:uppercase;padding:4px 0}
+.wday-header.today{color:var(--blue)}
+.whabit-row{display:contents}
+.whabit-name{font-size:11px;color:var(--light);padding:5px 6px 5px 0;display:flex;align-items:center;gap:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wday-cell{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;margin:2px auto}
+.wday-cell.done{background:rgba(6,214,160,.2);color:var(--teal)}
+.wday-cell.miss{background:rgba(255,255,255,.04);color:rgba(255,255,255,.15)}
+.wday-cell.future{background:rgba(255,255,255,.02);color:rgba(255,255,255,.06)}
+.weekly-summary-row{display:flex;gap:6px;padding:0 14px 14px;overflow-x:auto;scrollbar-width:none}
+.wday-summary{flex-shrink:0;text-align:center;background:rgba(255,255,255,.04);border-radius:10px;padding:8px 6px;min-width:36px}
+.wday-pct{font-family:"Bebas Neue",sans-serif;font-size:16px}
+.wday-name{font-size:9px;color:var(--muted)}
 .domain-card{margin:0 20px 16px;border-radius:20px;overflow:hidden;border:1px solid rgba(255,255,255,.08)}
 .domain-header{padding:14px 16px 12px;display:flex;align-items:center;gap:10px;justify-content:space-between}
 .domain-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
@@ -924,6 +945,22 @@ body{background:
       </div>
       <div id="decisions-log" style="display:flex;flex-direction:column;gap:8px;margin-top:10px"></div>
     </div>
+    <div class="section-lbl">This Week — Habit Tracker</div>
+    <div class="weekly-tracker" id="weekly-tracker">
+      <div class="weekly-tracker-header">
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;font-weight:700">Mon → Sun</div>
+        <div id="weekly-overall-pct" style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--teal)">—%</div>
+      </div>
+      <!-- Day summary row -->
+      <div class="weekly-summary-row" id="weekly-summary-row">
+        <div style="padding:8px 16px;color:var(--muted);font-size:12px">Loading...</div>
+      </div>
+      <!-- Habit matrix -->
+      <div id="weekly-habit-matrix" style="padding:0 14px 14px">
+        <div style="color:var(--muted);font-size:12px;padding:8px 0">Loading habits...</div>
+      </div>
+    </div>
+
     <div class="section-lbl">Energy Tracker</div>
     <div class="energy-card">
       <div class="energy-label">Daily Energy</div>
@@ -2206,6 +2243,92 @@ async function updateProgress(id, current, target) {
   const result = await api("/api/goals/" + id + "/progress", { method: "PATCH", body: JSON.stringify({ progress: pct }) });
   if (!result || result.error) { alert(result?.error || "Could not update"); return; }
   await loadGoals();
+}
+
+async function loadWeeklyHabitTracker() {
+  var data = await api('/api/habits/weekly');
+  if (!data || !data.habits) return;
+
+  var DAY_NAMES = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  var today = new Date().toISOString().split('T')[0];
+
+  // Summary row — one circle per day
+  var summaryEl = document.getElementById('weekly-summary-row');
+  var matrixEl  = document.getElementById('weekly-habit-matrix');
+  var overallEl = document.getElementById('weekly-overall-pct');
+  if (!summaryEl || !matrixEl) return;
+
+  // Calculate % per day
+  var dayPcts = data.days.map(function(date, di) {
+    var done = data.habits.filter(function(h) { return h.days[di].done; }).length;
+    var total = data.habits.length;
+    return total > 0 ? Math.round((done/total)*100) : 0;
+  });
+
+  var overallPct = dayPcts.length > 0 ? Math.round(dayPcts.reduce(function(a,b){return a+b;},0)/dayPcts.length) : 0;
+  if (overallEl) overallEl.textContent = overallPct + '%';
+
+  // Day summary chips
+  summaryEl.innerHTML = '';
+  data.days.forEach(function(date, i) {
+    var pct = dayPcts[i];
+    var isToday = date === today;
+    var isFuture = date > today;
+    var color = pct >= 80 ? '#06d6a0' : pct >= 50 ? '#fbbf24' : pct > 0 ? '#f43f5e' : 'rgba(255,255,255,.15)';
+    var div = document.createElement('div');
+    div.className = 'wday-summary';
+    div.style.border = isToday ? '1.5px solid var(--blue)' : '1px solid rgba(255,255,255,.06)';
+    div.innerHTML = '<div class="wday-pct" style="color:' + (isFuture ? 'rgba(255,255,255,.15)' : color) + '">' +
+      (isFuture ? '—' : pct + '%') + '</div>' +
+      '<div class="wday-name" style="color:' + (isToday ? 'var(--blue)' : 'var(--muted)') + '">' + DAY_NAMES[i] + '</div>';
+    summaryEl.appendChild(div);
+  });
+
+  // Habit matrix
+  if (!data.habits.length) {
+    matrixEl.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px 0">No habits yet — add habits in Roadmap.</div>';
+    return;
+  }
+
+  // Build grid: 8 cols (name + 7 days)
+  var grid = document.createElement('div');
+  grid.style.cssText = 'display:grid;grid-template-columns:minmax(80px,1fr) repeat(7,28px);gap:2px;align-items:center';
+
+  // Header row
+  var nameHeader = document.createElement('div');
+  nameHeader.style.cssText = 'font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:700;padding-bottom:4px';
+  nameHeader.textContent = 'Habit';
+  grid.appendChild(nameHeader);
+
+  data.days.forEach(function(date, i) {
+    var isToday = date === today;
+    var h = document.createElement('div');
+    h.style.cssText = 'font-size:9px;text-align:center;font-weight:700;text-transform:uppercase;color:' + (isToday ? 'var(--blue)' : 'var(--muted)') + ';padding-bottom:4px';
+    h.textContent = DAY_NAMES[i];
+    grid.appendChild(h);
+  });
+
+  // Habit rows
+  data.habits.forEach(function(h) {
+    var nameEl = document.createElement('div');
+    nameEl.style.cssText = 'font-size:11px;color:var(--light);padding:3px 4px 3px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:4px';
+    nameEl.innerHTML = '<span>' + (h.icon||'⚡') + '</span><span>' + h.name + '</span>';
+    grid.appendChild(nameEl);
+
+    h.days.forEach(function(day) {
+      var isFuture = day.date > today;
+      var cell = document.createElement('div');
+      cell.style.cssText = 'width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;margin:2px auto;' +
+        (isFuture ? 'background:rgba(255,255,255,.02);color:rgba(255,255,255,.06)' :
+         day.done ? 'background:rgba(6,214,160,.18);color:var(--teal)' :
+         'background:rgba(255,255,255,.05);color:rgba(255,255,255,.2)');
+      cell.textContent = isFuture ? '·' : day.done ? '✓' : '✗';
+      grid.appendChild(cell);
+    });
+  });
+
+  matrixEl.innerHTML = '';
+  matrixEl.appendChild(grid);
 }
 
 async function loadJournal() {

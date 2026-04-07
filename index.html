@@ -589,36 +589,48 @@ body{background:
     </div>
 
     <!-- SCORE + COACH ROW -->
-    <div style="display:flex;gap:8px;padding:8px 16px;align-items:stretch">
-      <div id="score-card" style="min-width:76px;flex-shrink:0;background:linear-gradient(135deg,rgba(14,165,233,.12),rgba(6,214,160,.08));border:1px solid rgba(14,165,233,.2);border-radius:12px;padding:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer" onclick="toggleScoreBars()">
-        <div class="score-circle" id="score-circle" style="width:48px;height:48px">
-          <div class="score-circle-inner">
-            <div class="score-num" id="score-num" style="font-size:15px">—</div>
-            <div class="score-label" style="font-size:7px">Score</div>
+    <div style="padding:8px 16px 6px">
+      <!-- Score with context -->
+      <div id="score-card" style="background:linear-gradient(135deg,rgba(14,165,233,.1),rgba(6,214,160,.06));border:1px solid rgba(14,165,233,.2);border-radius:14px;padding:12px 14px;cursor:pointer;margin-bottom:8px" onclick="toggleScoreBars()">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div class="score-circle" id="score-circle" style="width:56px;height:56px;flex-shrink:0">
+            <div class="score-circle-inner">
+              <div class="score-num" id="score-num" style="font-size:18px">—</div>
+              <div class="score-label" style="font-size:7px">/100</div>
+            </div>
+          </div>
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+              <div id="score-level" class="score-level" style="font-size:15px">...</div>
+              <div id="score-trend" style="font-size:11px;color:var(--muted)"></div>
+            </div>
+            <div id="score-msg" style="font-size:11px;color:var(--muted);line-height:1.4"></div>
+            <div style="font-size:9px;color:rgba(255,255,255,.2);margin-top:3px">Today · tap for breakdown ↓</div>
           </div>
         </div>
-        <div id="score-level" class="score-level" style="font-size:9px;text-align:center">...</div>
+        <div id="score-bars-row" style="display:none;margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,.07)">
+          <div class="score-bars">
+            <div class="score-bar-row"><div class="score-bar-label">Mindset</div><div class="score-bar-track"><div class="score-bar-fill" id="bar-mindset" style="width:0%;background:var(--purple)"></div></div><div class="score-bar-val" id="val-mindset" style="color:var(--purple)">0</div></div>
+            <div class="score-bar-row"><div class="score-bar-label">Action</div><div class="score-bar-track"><div class="score-bar-fill" id="bar-action" style="width:0%;background:var(--blue)"></div></div><div class="score-bar-val" id="val-action" style="color:var(--blue)">0</div></div>
+            <div class="score-bar-row"><div class="score-bar-label">Momentum</div><div class="score-bar-track"><div class="score-bar-fill" id="bar-momentum" style="width:0%;background:var(--teal)"></div></div><div class="score-bar-val" id="val-momentum" style="color:var(--teal)">0</div></div>
+            <div class="score-bar-row"><div class="score-bar-label">Alignment</div><div class="score-bar-track"><div class="score-bar-fill" id="bar-alignment" style="width:0%;background:var(--yellow)"></div></div><div class="score-bar-val" id="val-alignment" style="color:var(--yellow)">0</div></div>
+          </div>
+        </div>
       </div>
-      <div id="coach-greeting-card" style="flex:1;background:linear-gradient(135deg,rgba(6,214,160,.06),rgba(14,165,233,.04));border:1px solid rgba(6,214,160,.18);border-radius:12px;padding:9px 11px;display:flex;align-items:flex-start;min-height:72px">
-        <div id="coach-greeting-text" style="font-size:11px;color:var(--light);line-height:1.5;flex:1">
-          <div class="coach-greeting-skeleton"></div>
-          <div class="coach-greeting-skeleton short"></div>
+      <!-- Coach greeting -->
+      <div id="coach-greeting-card" style="background:linear-gradient(135deg,rgba(6,214,160,.06),rgba(14,165,233,.04));border:1px solid rgba(6,214,160,.18);border-radius:12px;padding:10px 12px;display:flex;gap:8px;align-items:flex-start">
+        <img src="https://ggfvluqiwcnhbmetxxao.supabase.co/storage/v1/object/public/coach/coach.png" style="width:28px;height:28px;border-radius:7px;object-fit:cover;object-position:center top;flex-shrink:0">
+        <div>
+          <div style="font-size:9px;color:var(--teal);text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:3px">Coach · Today</div>
+          <div id="coach-greeting-text" style="font-size:11px;color:var(--light);line-height:1.5">
+            <div class="coach-greeting-skeleton"></div>
+            <div class="coach-greeting-skeleton short"></div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- SCORE BARS — hidden by default, tap score to toggle -->
-    <div id="score-bars-row" style="display:none;padding:0 16px 6px">
-      <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:10px 12px">
-        <div style="font-size:9px;color:var(--muted);margin-bottom:6px" id="score-msg"></div>
-        <div class="score-bars">
-          <div class="score-bar-row"><div class="score-bar-label">Mindset</div><div class="score-bar-track"><div class="score-bar-fill" id="bar-mindset" style="width:0%;background:var(--purple)"></div></div><div class="score-bar-val" id="val-mindset" style="color:var(--purple)">0</div></div>
-          <div class="score-bar-row"><div class="score-bar-label">Action</div><div class="score-bar-track"><div class="score-bar-fill" id="bar-action" style="width:0%;background:var(--blue)"></div></div><div class="score-bar-val" id="val-action" style="color:var(--blue)">0</div></div>
-          <div class="score-bar-row"><div class="score-bar-label">Momentum</div><div class="score-bar-track"><div class="score-bar-fill" id="bar-momentum" style="width:0%;background:var(--teal)"></div></div><div class="score-bar-val" id="val-momentum" style="color:var(--teal)">0</div></div>
-          <div class="score-bar-row"><div class="score-bar-label">Alignment</div><div class="score-bar-track"><div class="score-bar-fill" id="bar-alignment" style="width:0%;background:var(--yellow)"></div></div><div class="score-bar-val" id="val-alignment" style="color:var(--yellow)">0</div></div>
-        </div>
-      </div>
-    </div>
+
 
     <!-- PEAK WINDOW — single line -->
     <div id="peak-window-card" style="display:none;margin:0 16px 6px;background:rgba(251,191,36,.05);border:1px solid rgba(251,191,36,.15);border-radius:10px;padding:7px 12px;display:flex;align-items:center;gap:8px">
@@ -633,15 +645,13 @@ body{background:
     <div id="ppw-alignment-msg" style="display:none"></div>
     <div id="peak-window-empty" style="display:none;margin:0 16px 6px;font-size:11px;color:var(--muted)">Set peak window in <button onclick="openProfile()" style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:11px;padding:0">Profile ↗</button></div>
 
-    <!-- WEEKLY DASHBOARD — THE MAIN EVENT -->
+    <!-- WEEKLY DASHBOARD — SVG CIRCLES -->
     <div style="padding:6px 16px 4px;display:flex;align-items:center;justify-content:space-between">
       <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700">This Week</div>
       <div id="weekly-overall-badge" style="font-size:11px;font-weight:700;color:var(--teal)"></div>
     </div>
-
-    <!-- Day % summary row -->
-    <div id="today-weekly-summary" style="display:flex;gap:4px;padding:0 16px 6px;overflow-x:auto;scrollbar-width:none">
-      <div style="font-size:11px;color:var(--muted);padding:6px 0">Loading week...</div>
+    <div id="today-weekly-summary" style="display:flex;gap:0;padding:0 16px 6px;justify-content:space-between">
+      <div style="font-size:11px;color:var(--muted)">Loading...</div>
     </div>
 
     <!-- Habit matrix -->
@@ -963,6 +973,9 @@ body{background:
     </div>
 
     <div class="section-lbl">Energy Tracker</div>
+    <div style="margin:0 20px 10px;padding:10px 12px;background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.15);border-radius:10px;font-size:11px;color:var(--muted);line-height:1.5">
+      💡 Log your energy daily. The coach uses this to spot patterns — if your energy is always low on Mondays, it will tell you what to adjust.
+    </div>
     <div class="energy-card">
       <div class="energy-label">Daily Energy</div>
       <div class="energy-title">How is your energy right now?</div>
@@ -994,6 +1007,9 @@ body{background:
 
     <!-- PEAK PERFORMANCE REPORT -->
     <div class="section-lbl">Peak Performance Report</div>
+    <div style="margin:0 20px 10px;padding:10px 12px;background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.15);border-radius:10px;font-size:11px;color:var(--muted);line-height:1.5">
+      ⚡ <strong style="color:#fbbf24">Why this matters:</strong> Your brain performs best 5am–12pm (Creativity window). Work done in this window takes less effort and produces better results. This chart shows when you actually get things done — the goal is to shift more of your work toward the green bars.
+    </div>
     <div class="peak-report-card">
       <div style="font-size:10px;color:#fbbf24;text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:6px">Your Most Productive Hours</div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Habit completions by hour — last 30 days</div>
@@ -1122,7 +1138,7 @@ body{background:
   </div>
 
 <div class="bnav">
-    <div class="ni active" id="ni-home" onclick="switchPage('home')"><span class="nico">📍</span><span class="nlbl">Today</span></div>
+    <div class="ni active" id="ni-home" onclick="switchPage('home')"><span class="nico">📊</span><span class="nlbl">Dashboard</span></div>
     <div class="ni" id="ni-roadmap" onclick="switchPage('roadmap')"><span class="nico">🗺️</span><span class="nlbl">Roadmap</span></div>
     <div class="ni" id="ni-focus" onclick="switchPage('focus')"><span class="nico">⏱️</span><span class="nlbl">Focus</span></div>
     <div class="ni" id="ni-ai" onclick="switchPage('ai')"><span class="nico">⚡</span><span class="nlbl">Coach</span></div>
@@ -1692,19 +1708,31 @@ async function loadTodayWeeklyDashboard() {
   if (badge) badge.textContent = overall + '% this week';
 
   // Summary chips
+  // SVG donut circles like the Excel dashboard
   var summaryEl = document.getElementById('today-weekly-summary');
   if (summaryEl) {
     summaryEl.innerHTML = '';
+    var r = 14, circ = 2 * Math.PI * r;
     data.days.forEach(function(date, i) {
       var pct = dayPcts[i];
       var isToday = date === today;
       var isFuture = pct < 0;
-      var color = isFuture ? 'rgba(255,255,255,.1)' : pct >= 80 ? '#06d6a0' : pct >= 50 ? '#fbbf24' : pct > 0 ? '#f43f5e' : 'rgba(255,255,255,.2)';
-      var chip = document.createElement('div');
-      chip.style.cssText = 'flex-shrink:0;text-align:center;border-radius:10px;padding:6px 5px;min-width:34px;border:' + (isToday ? '1.5px solid var(--blue)' : '1px solid rgba(255,255,255,.06)') + ';background:rgba(255,255,255,.03)';
-      chip.innerHTML = '<div style="font-family:sans-serif;font-size:15px;color:' + color + '">' + (isFuture ? '—' : pct+'%') + '</div>' +
-        '<div style="font-size:8px;color:' + (isToday ? 'var(--blue)' : 'var(--muted)') + ';font-weight:700">' + DAY_NAMES[i] + '</div>';
-      summaryEl.appendChild(chip);
+      var displayPct = isFuture ? 0 : pct;
+      var color = isFuture ? 'rgba(255,255,255,.06)' : pct >= 80 ? '#06d6a0' : pct >= 50 ? '#fbbf24' : pct > 0 ? '#f43f5e' : 'rgba(255,255,255,.12)';
+      var dash = (displayPct / 100) * circ;
+      var col = document.createElement('div');
+      col.style.cssText = 'flex:1;display:flex;flex-direction:column;align-items:center;gap:3px';
+      col.innerHTML =
+        '<svg width="38" height="38" viewBox="0 0 38 38" style="' + (isToday ? 'filter:drop-shadow(0 0 5px ' + color + '88)' : '') + '">' +
+          '<circle cx="19" cy="19" r="' + r + '" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="3.5"/>' +
+          '<circle cx="19" cy="19" r="' + r + '" fill="none" stroke="' + color + '" stroke-width="3.5" ' +
+            'stroke-dasharray="' + dash.toFixed(1) + ' ' + circ.toFixed(1) + '" ' +
+            'stroke-dashoffset="' + (circ * 0.25).toFixed(1) + '" stroke-linecap="round"/>' +
+          '<text x="19" y="22" text-anchor="middle" font-size="8" font-weight="700" fill="' + (isFuture ? 'rgba(255,255,255,.2)' : color) + '">' +
+            (isFuture ? '' : pct + '%') + '</text>' +
+        '</svg>' +
+        '<div style="font-size:8px;font-weight:700;color:' + (isToday ? 'var(--blue)' : 'var(--muted)') + '">' + DAY_NAMES[i] + '</div>';
+      summaryEl.appendChild(col);
     });
   }
 
@@ -1766,6 +1794,17 @@ async function loadEffectivenessScore() {
     document.getElementById('score-msg').textContent = data.message;
     var levelColors = { Peak: '#06d6a0', Effective: '#0ea5e9', Great: '#fbbf24', Good: '#6b7280' };
     document.getElementById('score-level').style.color = levelColors[data.level] || '#fff';
+    // Add trend indicator
+    var trend = document.getElementById('score-trend');
+    if (trend) {
+      var prevScore = parseInt(localStorage.getItem('luhv_prev_score') || '0');
+      var diff = data.total - prevScore;
+      if (prevScore > 0 && diff !== 0) {
+        trend.textContent = diff > 0 ? '↑ +' + diff + ' vs yesterday' : '↓ ' + diff + ' vs yesterday';
+        trend.style.color = diff > 0 ? 'var(--teal)' : '#f43f5e';
+      }
+      localStorage.setItem('luhv_prev_score', data.total);
+    }
     // Bars stay hidden until user taps score
     var b = data.breakdown;
     var pct = function(v) { return Math.round((v/25)*100); };

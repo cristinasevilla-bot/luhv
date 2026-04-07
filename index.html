@@ -691,6 +691,51 @@ body{background:
       </div>
     </div>
 
+    <!-- GOALS PREVIEW -->
+    <div style="padding:2px 16px 4px;display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700">Goals</div>
+      <button onclick="switchPage('roadmap');setTimeout(function(){switchRoadmapTab('goals')},50)" style="font-size:10px;color:var(--blue);background:none;border:none;cursor:pointer;padding:0">View all →</button>
+    </div>
+    <div id="dashboard-goals-preview" style="margin:0 16px 8px">
+      <div style="font-size:11px;color:var(--muted)">Loading goals...</div>
+    </div>
+
+    <!-- ENERGY TODAY -->
+    <div style="padding:2px 16px 4px;display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700">Energy Today</div>
+      <div id="dashboard-energy-label" style="font-size:10px;color:var(--muted)"></div>
+    </div>
+    <div style="margin:0 16px 8px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:10px 14px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <button onclick="dashboardLogEnergy(1)" class="dash-energy-btn" data-level="1" style="font-size:22px;background:none;border:none;cursor:pointer;padding:4px;border-radius:8px;opacity:.5;transition:all .15s">😴</button>
+        <button onclick="dashboardLogEnergy(2)" class="dash-energy-btn" data-level="2" style="font-size:22px;background:none;border:none;cursor:pointer;padding:4px;border-radius:8px;opacity:.5;transition:all .15s">😐</button>
+        <button onclick="dashboardLogEnergy(3)" class="dash-energy-btn" data-level="3" style="font-size:22px;background:none;border:none;cursor:pointer;padding:4px;border-radius:8px;opacity:.5;transition:all .15s">🙂</button>
+        <button onclick="dashboardLogEnergy(4)" class="dash-energy-btn" data-level="4" style="font-size:22px;background:none;border:none;cursor:pointer;padding:4px;border-radius:8px;opacity:.5;transition:all .15s">😊</button>
+        <button onclick="dashboardLogEnergy(5)" class="dash-energy-btn" data-level="5" style="font-size:22px;background:none;border:none;cursor:pointer;padding:4px;border-radius:8px;opacity:.5;transition:all .15s">🔥</button>
+      </div>
+      <div id="dashboard-energy-msg" style="font-size:10px;color:var(--muted);text-align:center;margin-top:4px;min-height:14px"></div>
+    </div>
+
+    <!-- EXPORT -->
+    <div style="padding:2px 16px 4px">
+      <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:8px">Download Report</div>
+      <div style="display:flex;gap:6px;margin-bottom:8px">
+        <button onclick="setReportPeriod('this_month')" id="period-this_month" style="flex:1;padding:6px;border-radius:8px;border:1px solid rgba(14,165,233,.3);background:rgba(14,165,233,.1);color:var(--blue);font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">This month</button>
+        <button onclick="setReportPeriod('last_month')" id="period-last_month" style="flex:1;padding:6px;border-radius:8px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);color:var(--muted);font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">Last month</button>
+        <button onclick="setReportPeriod('last_7')" id="period-last_7" style="flex:1;padding:6px;border-radius:8px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);color:var(--muted);font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">7 days</button>
+        <button onclick="setReportPeriod('last_30')" id="period-last_30" style="flex:1;padding:6px;border-radius:8px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);color:var(--muted);font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">30 days</button>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:4px">
+        <div style="flex:1"><div style="font-size:9px;color:var(--muted);margin-bottom:3px">From</div><input type="date" id="report-from" style="width:100%;padding:6px 8px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#fff;font-size:11px;outline:none"></div>
+        <div style="flex:1"><div style="font-size:9px;color:var(--muted);margin-bottom:3px">To</div><input type="date" id="report-to" style="width:100%;padding:6px 8px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#fff;font-size:11px;outline:none"></div>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:16px">
+        <button onclick="exportPDF()" style="flex:1;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--blue),var(--teal));color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">⬇️ PDF Report</button>
+        <button onclick="exportCSV()" style="flex:1;padding:10px;border:1px solid rgba(6,214,160,.3);border-radius:10px;background:rgba(6,214,160,.06);color:var(--teal);font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">⬇️ CSV Data</button>
+      </div>
+      <div id="export-msg" style="font-size:11px;color:var(--muted);text-align:center;margin-top:-8px;min-height:14px"></div>
+    </div>
+
     <!-- QUOTE -->
     <div class="qcard" onclick="nextQuote()" style="margin:0 16px 20px;padding:10px 12px">
       <div class="qlabel">Quote of the Day</div>
@@ -1320,6 +1365,8 @@ async function initApp() {
   loadPeakHourCard();
   loadTodayDomainsPreview();
   loadTodayWeeklyDashboard();
+  dashboardLoadGoalsPreview();
+  dashboardLoadEnergyToday();
   document.getElementById('help-btn').style.display = 'flex';
   document.getElementById('decision-fab').style.display = 'none'; // only shown on roadmap
   restoreTimerIfRunning();
@@ -3084,6 +3131,67 @@ function buildPDFHTML(data) {
     (habits.length ? '<table><tr><th>Habit</th><th>Completed</th><th>Rate</th></tr>' + habitsHTML + '</table>' : '<p style="color:#64748b">No habits tracked in this period.</p>') +
     '<p style="margin-top:40px;color:#94a3b8;font-size:12px;text-align:center">Generated by Luhv+ · Becoming More Effective in Less Time</p>' +
     '</body></html>';
+}
+
+async function dashboardLoadGoalsPreview() {
+  var el = document.getElementById('dashboard-goals-preview');
+  if (!el) return;
+  var goals = await api('/api/goals');
+  if (!goals || !goals.length) {
+    el.innerHTML = '<div style="font-size:11px;color:var(--muted)">No goals yet — add them in Roadmap.</div>';
+    return;
+  }
+  el.innerHTML = '';
+  goals.slice(0, 3).forEach(function(g) {
+    var pct = Math.round((g.progress / g.target) * 100);
+    var nm = g.title.replace(/^\[.*?\]\s*/, '');
+    var color = pct >= 80 ? '#06d6a0' : pct >= 50 ? '#fbbf24' : '#f43f5e';
+    var div = document.createElement('div');
+    div.style.cssText = 'margin-bottom:6px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:8px 10px';
+    div.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">' +
+      '<div style="font-size:11px;color:#fff;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:70%">' + nm + '</div>' +
+      '<div style="font-size:11px;font-weight:700;color:' + color + ';flex-shrink:0">' + pct + '%</div>' +
+      '</div>' +
+      '<div style="background:rgba(255,255,255,.07);border-radius:99px;height:4px;overflow:hidden">' +
+        '<div style="height:100%;border-radius:99px;width:' + pct + '%;background:' + color + ';transition:width .4s"></div>' +
+      '</div>';
+    el.appendChild(div);
+  });
+}
+
+async function dashboardLoadEnergyToday() {
+  var data = await api('/api/energy/today');
+  var EMOJIS = ['','😴','😐','🙂','😊','🔥'];
+  var LABELS = ['','Drained','Low','Neutral','Good','Peak'];
+  var COLORS = ['','#6b7280','#0ea5e9','#fbbf24','#06d6a0','#f43f5e'];
+  if (data && data.level) {
+    var lbl = document.getElementById('dashboard-energy-label');
+    var msg = document.getElementById('dashboard-energy-msg');
+    if (lbl) { lbl.textContent = EMOJIS[data.level] + ' ' + LABELS[data.level]; lbl.style.color = COLORS[data.level]; }
+    if (msg) msg.textContent = 'Logged today';
+    document.querySelectorAll('.dash-energy-btn').forEach(function(btn) {
+      var lvl = parseInt(btn.dataset.level);
+      btn.style.opacity = lvl === data.level ? '1' : '0.3';
+      btn.style.background = lvl === data.level ? COLORS[lvl] + '22' : 'none';
+    });
+  }
+}
+
+async function dashboardLogEnergy(level) {
+  var EMOJIS = ['','😴','😐','🙂','😊','🔥'];
+  var LABELS = ['','Drained','Low','Neutral','Good','Peak'];
+  var COLORS = ['','#6b7280','#0ea5e9','#fbbf24','#06d6a0','#f43f5e'];
+  document.querySelectorAll('.dash-energy-btn').forEach(function(btn) {
+    var lvl = parseInt(btn.dataset.level);
+    btn.style.opacity = lvl === level ? '1' : '0.3';
+    btn.style.background = lvl === level ? COLORS[lvl] + '22' : 'none';
+  });
+  var lbl = document.getElementById('dashboard-energy-label');
+  var msg = document.getElementById('dashboard-energy-msg');
+  if (lbl) { lbl.textContent = EMOJIS[level] + ' ' + LABELS[level]; lbl.style.color = COLORS[level]; }
+  if (msg) msg.textContent = 'Saving...';
+  var result = await api('/api/energy', { method: 'POST', body: JSON.stringify({ level: level }) });
+  if (msg) msg.textContent = result ? 'Logged ✓' : 'Try again';
 }
 
 async function loadTodayIntention() {

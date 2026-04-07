@@ -1428,45 +1428,118 @@ app.delete('/api/domains/metrics/:id', auth, async (req, res) => {
 });
 
 
-// ── WEEKLY HABIT TRACKER ──────────────────────────────────────────────────────
-app.get('/api/habits/weekly', auth, async (req, res) => {
+// ── EXPORT ENDPOINTS ──────────────────────────────────────────────────────────
+
+// Get report data for a period (for both PDF and CSV)
+app.get('/api/report', auth, async (req, res) => {
   try {
-    const { rows: habits } = await db.query(
-      'SELECT id, name, icon, target_type, daily_target FROM habits WHERE user_id=$1 ORDER BY created_at',
-      [req.user.id]
-    );
-    // Get last 7 days completions
-    const { rows: completions } = await db.query(
-      `SELECT habit_id, date, value FROM habit_completions
-       WHERE user_id=$1 AND date >= CURRENT_DATE - INTERVAL '6 days'
-       ORDER BY date`,
-      [req.user.id]
-    );
-    // Build a map: habitId -> { date -> value }
-    const map = {};
-    completions.forEach(c => {
-      if (!map[c.habit_id]) map[c.habit_id] = {};
-      map[c.habit_id][c.date.toISOString().split('T')[0]] = parseInt(c.value);
+    const { from, to } = req.query;
+    const fromDate = from || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+    const toDate   = to   || new Date().toISOString().split('T')[0];
+
+    const [user, goals, habits, completions, energy, decisions, checkins] = await Promise.all([
+      db.query('SELECT name, streak FROM users WHERE id=$1', [req.user.id]),
+      db.query("SELECT title, progress, target, deadline, category FROM goals WHERE user_id=$1 AND status='active' ORDER BY created_at", [req.user.id]),
+      db.query('SELECT id, name, icon, target_type, daily_target FROM habits WHERE user_id=$1 ORDER BY created_at', [req.user.id]),
+      db.query('SELECT habit_id, date, value FROM habit_completions WHERE user_id=$1 AND date>=$2 AND date<=$3 ORDER BY date', [req.user.id, fromDate, toDate]),
+      db.query('SELECT level, logged_at FROM energy_logs WHERE user_id=$1 AND logged_at::date>=$2 AND logged_at::date<=$3 ORDER BY logged_at', [req.user.id, fromDate, toDate]),
+      db.query('SELECT decision, alignment, created_at FROM decision_log WHERE user_id=$1 AND created_at::date>=$2 AND created_at::date<=$3 ORDER BY created_at DESC', [req.user.id, fromDate, toDate]),
+      db.query('SELECT mood, created_at FROM journal_entries WHERE user_id=$1 AND created_at::date>=$2 AND created_at::date<=$3 ORDER BY created_at', [req.user.id, fromDate, toDate]),
+    ]);
+
+    // Calculate habit completion rates
+    const habitStats = habits.rows.map(h => {
+      const hCompletions = completions.rows.filter(c => c.habit_id === h.id);
+      const uniqueDays = [...new Set(hCompletions.map(c => c.date.toISOString().split('T')[0]))];
+      const totalDays = Math.ceil((new Date(toDate) - new Date(fromDate)) / (1000*60*60*24)) + 1;
+      return {
+        ...h,
+        completedDays: uniqueDays.length,
+        totalDays,
+        rate: Math.round((uniqueDays.length / totalDays) * 100)
+      };
     });
-    // Build 7-day array
-    const days = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      days.push(d.toISOString().split('T')[0]);
-    }
-    const result = habits.map(h => ({
-      ...h,
-      days: days.map(date => {
-        const val = map[h.id]?.[date] || 0;
-        const done = h.target_type === 'check' ? val >= 1 : val >= (h.daily_target || 1);
-        return { date, val, done };
-      })
-    }));
-    res.json({ habits: result, days });
+
+    const avgEnergy = energy.rows.length > 0
+      ? Math.round(energy.rows.reduce((a,e) => a+e.level, 0) / energy.rows.length * 10) / 10
+      : null;
+
+    const aligned = decisions.rows.filter(d => d.alignment === 'aligned').length;
+
+    res.json({
+      user: user.rows[0],
+      period: { from: fromDate, to: toDate },
+      goals: goals.rows.map(g => ({
+        ...g,
+        title: g.title.replace(/^\[.*?\]\s*/, ''),
+        pct: Math.round((g.progress / g.target) * 100)
+      })),
+      habits: habitStats,
+      energy: { logs: energy.rows, avg: avgEnergy },
+      decisions: { total: decisions.rows.length, aligned, items: decisions.rows },
+      checkins: { total: checkins.rows.length, moods: checkins.rows },
+    });
   } catch(e) {
-    console.error('Weekly habits error:', e);
-    res.status(500).json({ error: 'Could not load weekly habits' });
+    console.error('Report error:', e);
+    res.status(500).json({ error: 'Could not generate report' });
+  }
+});
+
+// CSV Export
+app.get('/api/export/csv', auth, async (req, res) => {
+  try {
+    const { from, to } = req.query;
+    const fromDate = from || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+    const toDate   = to   || new Date().toISOString().split('T')[0];
+
+    const [goals, habits, completions, energy] = await Promise.all([
+      db.query("SELECT title, progress, target, deadline FROM goals WHERE user_id=$1", [req.user.id]),
+      db.query('SELECT id, name FROM habits WHERE user_id=$1', [req.user.id]),
+      db.query('SELECT habit_id, date, value FROM habit_completions WHERE user_id=$1 AND date>=$2 AND date<=$3 ORDER BY date', [req.user.id, fromDate, toDate]),
+      db.query('SELECT level, logged_at FROM energy_logs WHERE user_id=$1 AND logged_at::date>=$2 AND logged_at::date<=$3 ORDER BY logged_at', [req.user.id, fromDate, toDate]),
+    ]);
+
+    let csv = '';
+
+    // Goals sheet
+    csv += 'GOALS\n';
+    csv += 'Title,Progress (%),Deadline\n';
+    goals.rows.forEach(g => {
+      csv += `"${g.title.replace(/^\[.*?\]\s*/, '')}",${Math.round((g.progress/g.target)*100)},"${g.deadline || 'No deadline'}"\n`;
+    });
+
+    csv += '\nHABIT COMPLETIONS\n';
+    csv += 'Date,' + habits.rows.map(h => '"' + h.name + '"').join(',') + '\n';
+
+    // Build date rows
+    const days = [];
+    let d = new Date(fromDate);
+    const end = new Date(toDate);
+    while (d <= end) {
+      days.push(d.toISOString().split('T')[0]);
+      d.setDate(d.getDate() + 1);
+    }
+    days.forEach(date => {
+      const row = [date];
+      habits.rows.forEach(h => {
+        const c = completions.rows.find(c => c.habit_id === h.id && c.date.toISOString().split('T')[0] === date);
+        row.push(c ? (c.value >= 1 ? 'Yes' : 'No') : 'No');
+      });
+      csv += row.join(',') + '\n';
+    });
+
+    csv += '\nENERGY LOGS\n';
+    csv += 'Date,Level (1-5)\n';
+    energy.rows.forEach(e => {
+      csv += `"${e.logged_at.toISOString().split('T')[0]}",${e.level}\n`;
+    });
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="luhv-report-${fromDate}-to-${toDate}.csv"`);
+    res.send(csv);
+  } catch(e) {
+    console.error('CSV error:', e);
+    res.status(500).json({ error: 'Could not generate CSV' });
   }
 });
 

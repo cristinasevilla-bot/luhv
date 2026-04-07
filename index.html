@@ -900,31 +900,6 @@ body{background:
       </div>
       <button onclick="switchPage('home')" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(14,165,233,.4);background:rgba(14,165,233,.12);color:var(--blue);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
     </div>
-    <!-- PERIOD SELECTOR + EXPORT -->
-    <div style="padding:10px 20px;background:rgba(255,255,255,.02);border-bottom:1px solid rgba(255,255,255,.05)">
-      <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:8px">Report Period</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
-        <button onclick="setReportPeriod('this_month')" id="period-this_month" style="padding:5px 12px;border-radius:20px;border:1px solid rgba(14,165,233,.3);background:rgba(14,165,233,.1);color:var(--blue);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">This month</button>
-        <button onclick="setReportPeriod('last_month')" id="period-last_month" style="padding:5px 12px;border-radius:20px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">Last month</button>
-        <button onclick="setReportPeriod('last_7')" id="period-last_7" style="padding:5px 12px;border-radius:20px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">Last 7 days</button>
-        <button onclick="setReportPeriod('last_30')" id="period-last_30" style="padding:5px 12px;border-radius:20px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">Last 30 days</button>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
-        <div style="flex:1">
-          <div style="font-size:9px;color:var(--muted);margin-bottom:3px">From</div>
-          <input type="date" id="report-from" style="width:100%;padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#fff;font-size:12px;outline:none;font-family:'DM Sans',sans-serif">
-        </div>
-        <div style="flex:1">
-          <div style="font-size:9px;color:var(--muted);margin-bottom:3px">To</div>
-          <input type="date" id="report-to" style="width:100%;padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#fff;font-size:12px;outline:none;font-family:'DM Sans',sans-serif">
-        </div>
-      </div>
-      <div style="display:flex;gap:8px">
-        <button onclick="exportPDF()" style="flex:1;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--blue),var(--teal));color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">⬇️ PDF Report</button>
-        <button onclick="exportCSV()" style="flex:1;padding:10px;border:1px solid rgba(6,214,160,.3);border-radius:10px;background:rgba(6,214,160,.06);color:var(--teal);font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">⬇️ CSV Data</button>
-      </div>
-      <div id="export-msg" style="margin-top:6px;font-size:11px;color:var(--muted);text-align:center;min-height:14px"></div>
-    </div>
     <div class="prow" style="padding:0 20px 16px">
       <div class="jstat"><div class="jstat-num" id="prog-checkins">0</div><div class="jstat-lbl">Check-ins<br>logged</div></div>
       <div class="jstat"><div class="jstat-num" id="prog-aligned">0</div><div class="jstat-lbl">Decisions<br>aligned</div></div>
@@ -1038,6 +1013,34 @@ body{background:
     <div style="padding:0 20px;display:flex;flex-direction:column;gap:8px;margin-bottom:20px" id="journal-list">
       <div style="padding:16px;text-align:center;color:var(--muted);font-size:13px">Loading...</div>
     </div>
+
+    <div class="section-lbl">Export Report</div>
+    <!-- PERIOD SELECTOR + EXPORT -->
+    <div style="padding:10px 20px;background:rgba(255,255,255,.02);border-bottom:1px solid rgba(255,255,255,.05)">
+      <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:8px">Report Period</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+        <button onclick="setReportPeriod('this_month')" id="period-this_month" style="padding:5px 12px;border-radius:20px;border:1px solid rgba(14,165,233,.3);background:rgba(14,165,233,.1);color:var(--blue);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">This month</button>
+        <button onclick="setReportPeriod('last_month')" id="period-last_month" style="padding:5px 12px;border-radius:20px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">Last month</button>
+        <button onclick="setReportPeriod('last_7')" id="period-last_7" style="padding:5px 12px;border-radius:20px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">Last 7 days</button>
+        <button onclick="setReportPeriod('last_30')" id="period-last_30" style="padding:5px 12px;border-radius:20px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">Last 30 days</button>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+        <div style="flex:1">
+          <div style="font-size:9px;color:var(--muted);margin-bottom:3px">From</div>
+          <input type="date" id="report-from" style="width:100%;padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#fff;font-size:12px;outline:none;font-family:'DM Sans',sans-serif">
+        </div>
+        <div style="flex:1">
+          <div style="font-size:9px;color:var(--muted);margin-bottom:3px">To</div>
+          <input type="date" id="report-to" style="width:100%;padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#fff;font-size:12px;outline:none;font-family:'DM Sans',sans-serif">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button onclick="exportPDF()" style="flex:1;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--blue),var(--teal));color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">⬇️ PDF Report</button>
+        <button onclick="exportCSV()" style="flex:1;padding:10px;border:1px solid rgba(6,214,160,.3);border-radius:10px;background:rgba(6,214,160,.06);color:var(--teal);font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">⬇️ CSV Data</button>
+      </div>
+      <div id="export-msg" style="margin-top:6px;font-size:11px;color:var(--muted);text-align:center;min-height:14px"></div>
+    </div>
+
     <div style="padding:0 20px 30px">
       <button onclick="switchPage('ai')" style="width:100%;padding:16px;border:none;border-radius:14px;background:linear-gradient(90deg,var(--purple),var(--blue));color:#fff;font-size:15px;font-weight:800;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px">
         ⚡ Log Check-In with Coach

@@ -1427,6 +1427,49 @@ app.delete('/api/domains/metrics/:id', auth, async (req, res) => {
   res.json({ success: true });
 });
 
+
+// ── WEEKLY HABIT TRACKER ──────────────────────────────────────────────────────
+app.get('/api/habits/weekly', auth, async (req, res) => {
+  try {
+    const { rows: habits } = await db.query(
+      'SELECT id, name, icon, target_type, daily_target FROM habits WHERE user_id=$1 ORDER BY created_at',
+      [req.user.id]
+    );
+    // Get last 7 days completions
+    const { rows: completions } = await db.query(
+      `SELECT habit_id, date, value FROM habit_completions
+       WHERE user_id=$1 AND date >= CURRENT_DATE - INTERVAL '6 days'
+       ORDER BY date`,
+      [req.user.id]
+    );
+    // Build a map: habitId -> { date -> value }
+    const map = {};
+    completions.forEach(c => {
+      if (!map[c.habit_id]) map[c.habit_id] = {};
+      map[c.habit_id][c.date.toISOString().split('T')[0]] = parseInt(c.value);
+    });
+    // Build 7-day array
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      days.push(d.toISOString().split('T')[0]);
+    }
+    const result = habits.map(h => ({
+      ...h,
+      days: days.map(date => {
+        const val = map[h.id]?.[date] || 0;
+        const done = h.target_type === 'check' ? val >= 1 : val >= (h.daily_target || 1);
+        return { date, val, done };
+      })
+    }));
+    res.json({ habits: result, days });
+  } catch(e) {
+    console.error('Weekly habits error:', e);
+    res.status(500).json({ error: 'Could not load weekly habits' });
+  }
+});
+
 app.get('/health', (_, res) => res.json({ status: 'ok', service: 'Luhv+ API' }));
 
 app.listen(PORT, '0.0.0.0', () => console.log(`🏆 Luhv+ API running on port ${PORT}`));

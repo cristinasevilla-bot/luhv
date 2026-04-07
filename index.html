@@ -40,7 +40,7 @@ body{background:var(--black);font-family:'DM Sans',sans-serif;color:#fff;min-hei
 
 /* APP */
 #app-screen{display:none;width:100%;max-width:390px;flex-shrink:0}
-.app-shell{max-width:390px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;position:relative}
+.app-shell{width:100%;max-width:390px;min-height:100vh;display:flex;flex-direction:column;position:relative}
 .top-bar{padding:16px 20px 10px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;background:rgba(10,10,15,0.95);backdrop-filter:blur(12px);border-bottom:0.5px solid rgba(14,165,233,0.1)}
 .logo{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;display:flex;align-items:center;gap:5px}
 .logo span{color:var(--teal)}
@@ -569,50 +569,48 @@ body{background:
     <div class="avatar" id="user-avatar" title="Profile" onclick="openProfile()">?</div>
   </div>
 
-  <!-- HOME — DASHBOARD -->
+  <!-- HOME — WEEKLY DASHBOARD -->
   <div class="page active" id="page-home" style="overflow-y:auto;padding-bottom:100px">
 
-    <!-- HERO HEADER with coach photo -->
-    <div style="position:relative;height:140px;overflow:hidden;flex-shrink:0">
+    <!-- HERO HEADER -->
+    <div style="position:relative;height:120px;overflow:hidden;flex-shrink:0">
       <img src="https://ggfvluqiwcnhbmetxxao.supabase.co/storage/v1/object/public/coach/coach.png" alt="Coach" style="width:100%;height:100%;object-fit:cover;object-position:center 15%">
-      <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.2) 0%,rgba(10,10,15,.95) 100%)"></div>
-      <div style="position:absolute;bottom:12px;left:20px;right:20px;display:flex;align-items:flex-end;justify-content:space-between">
+      <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.1) 0%,rgba(10,10,15,.97) 100%)"></div>
+      <div style="position:absolute;bottom:10px;left:16px;right:16px;display:flex;align-items:flex-end;justify-content:space-between">
         <div>
-          <div style="font-size:10px;color:rgba(255,255,255,.55)" id="time-greet">Good morning,</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;line-height:1" id="user-name-display">CHAMPION 👊</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.5)" id="time-greet">Good morning,</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;line-height:1" id="user-name-display">CHAMPION 👊</div>
         </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
-          <div class="streak-pill" style="margin:0">🔥 <span id="streak-count">0</span>-Day Streak</div>
-          <div id="peak-pill" style="display:none;align-items:center;gap:4px;background:rgba(251,191,36,0.15);border:0.5px solid rgba(251,191,36,0.4);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:600;color:#fbbf24">⚡ Peak</div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">
+          <div class="streak-pill" style="margin:0;font-size:10px;padding:3px 8px">🔥 <span id="streak-count">0</span>-Day Streak</div>
+          <div id="peak-pill" style="display:none;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;color:#fbbf24;background:rgba(251,191,36,.1);border:0.5px solid rgba(251,191,36,.3)">⚡ Peak</div>
         </div>
       </div>
     </div>
 
-    <!-- SCORE + COACH GREETING ROW — always visible, no empty space -->
-    <div style="display:flex;gap:8px;padding:10px 20px 8px;align-items:stretch">
-      <!-- Score — shows skeleton until loaded -->
-      <div id="score-card" style="min-width:80px;flex-shrink:0;background:linear-gradient(135deg,rgba(14,165,233,.12),rgba(6,214,160,.08));border:1px solid rgba(14,165,233,.2);border-radius:14px;padding:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px">
-        <div class="score-circle" id="score-circle" style="width:52px;height:52px">
+    <!-- SCORE + COACH ROW -->
+    <div style="display:flex;gap:8px;padding:8px 16px;align-items:stretch">
+      <div id="score-card" style="min-width:76px;flex-shrink:0;background:linear-gradient(135deg,rgba(14,165,233,.12),rgba(6,214,160,.08));border:1px solid rgba(14,165,233,.2);border-radius:12px;padding:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer" onclick="toggleScoreBars()">
+        <div class="score-circle" id="score-circle" style="width:48px;height:48px">
           <div class="score-circle-inner">
-            <div class="score-num" id="score-num" style="font-size:16px">—</div>
+            <div class="score-num" id="score-num" style="font-size:15px">—</div>
             <div class="score-label" style="font-size:7px">Score</div>
           </div>
         </div>
-        <div id="score-level" class="score-level" style="font-size:9px;text-align:center;letter-spacing:.5px">...</div>
+        <div id="score-level" class="score-level" style="font-size:9px;text-align:center">...</div>
       </div>
-      <!-- Coach greeting — always visible with skeleton -->
-      <div id="coach-greeting-card" style="flex:1;background:linear-gradient(135deg,rgba(6,214,160,.06),rgba(14,165,233,.04));border:1px solid rgba(6,214,160,.18);border-radius:14px;padding:10px 12px;display:flex;gap:8px;align-items:flex-start">
-        <div id="coach-greeting-text" style="font-size:12px;color:var(--light);line-height:1.5;flex:1">
+      <div id="coach-greeting-card" style="flex:1;background:linear-gradient(135deg,rgba(6,214,160,.06),rgba(14,165,233,.04));border:1px solid rgba(6,214,160,.18);border-radius:12px;padding:9px 11px;display:flex;align-items:flex-start;min-height:72px">
+        <div id="coach-greeting-text" style="font-size:11px;color:var(--light);line-height:1.5;flex:1">
           <div class="coach-greeting-skeleton"></div>
           <div class="coach-greeting-skeleton short"></div>
         </div>
       </div>
     </div>
 
-    <!-- SCORE BARS — only appear after score loads, tap score to toggle -->
-    <div id="score-bars-row" style="display:none;padding:0 20px 8px">
-      <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:10px 12px">
-        <div style="font-size:10px;color:var(--muted);margin-bottom:6px" id="score-msg"></div>
+    <!-- SCORE BARS — hidden by default, tap score to toggle -->
+    <div id="score-bars-row" style="display:none;padding:0 16px 6px">
+      <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:10px 12px">
+        <div style="font-size:9px;color:var(--muted);margin-bottom:6px" id="score-msg"></div>
         <div class="score-bars">
           <div class="score-bar-row"><div class="score-bar-label">Mindset</div><div class="score-bar-track"><div class="score-bar-fill" id="bar-mindset" style="width:0%;background:var(--purple)"></div></div><div class="score-bar-val" id="val-mindset" style="color:var(--purple)">0</div></div>
           <div class="score-bar-row"><div class="score-bar-label">Action</div><div class="score-bar-track"><div class="score-bar-fill" id="bar-action" style="width:0%;background:var(--blue)"></div></div><div class="score-bar-val" id="val-action" style="color:var(--blue)">0</div></div>
@@ -622,68 +620,78 @@ body{background:
       </div>
     </div>
 
-    <!-- PEAK WINDOW — single compact line -->
-    <div id="peak-window-card" style="display:none;margin:0 20px 8px;background:rgba(251,191,36,.05);border:1px solid rgba(251,191,36,.15);border-radius:10px;padding:8px 12px;display:flex;align-items:center;gap:8px">
+    <!-- PEAK WINDOW — single line -->
+    <div id="peak-window-card" style="display:none;margin:0 16px 6px;background:rgba(251,191,36,.05);border:1px solid rgba(251,191,36,.15);border-radius:10px;padding:7px 12px;display:flex;align-items:center;gap:8px">
       <span id="true-window-icon">🎨</span>
-      <span id="true-window-name" style="font-size:12px;font-weight:700;color:#06d6a0">Creativity</span>
+      <span id="true-window-name" style="font-size:11px;font-weight:700;color:#06d6a0">Creativity</span>
       <span id="true-window-desc" style="font-size:10px;color:var(--muted)">5am-12pm</span>
       <div style="flex:1"></div>
-      <span id="peak-window-text" style="font-size:11px;font-weight:600;color:#fbbf24"></span>
-      <button class="peak-edit-btn" onclick="openProfile()">Edit</button>
+      <span id="peak-window-text" style="font-size:10px;font-weight:600;color:#fbbf24"></span>
+      <button class="peak-edit-btn" onclick="openProfile()" style="font-size:10px">Edit</button>
     </div>
     <div id="peak-window-sub" style="display:none"></div>
     <div id="ppw-alignment-msg" style="display:none"></div>
-    <div id="peak-window-empty" style="display:none;margin:0 20px 8px;font-size:11px;color:var(--muted)">Set your peak window in <button onclick="openProfile()" style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:11px;padding:0">Profile ↗</button></div>
+    <div id="peak-window-empty" style="display:none;margin:0 16px 6px;font-size:11px;color:var(--muted)">Set peak window in <button onclick="openProfile()" style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:11px;padding:0">Profile ↗</button></div>
 
-    <!-- STATS + LIFE DOMAINS in one compact row -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;padding:0 20px 8px">
-      <div style="background:rgba(255,255,255,.04);border:0.5px solid rgba(255,255,255,.07);border-radius:10px;padding:8px;text-align:center">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--teal)" id="stat-habits">0</div>
-        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Habits</div>
-      </div>
-      <div style="background:rgba(255,255,255,.04);border:0.5px solid rgba(255,255,255,.07);border-radius:10px;padding:8px;text-align:center">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--blue)" id="stat-goals">0<span style="font-size:11px">%</span></div>
-        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Goals</div>
-      </div>
-      <div style="background:rgba(255,255,255,.04);border:0.5px solid rgba(255,255,255,.07);border-radius:10px;padding:8px;text-align:center">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--purple)" id="stat-journal">0</div>
-        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Check-ins</div>
-      </div>
+    <!-- WEEKLY DASHBOARD — THE MAIN EVENT -->
+    <div style="padding:6px 16px 4px;display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700">This Week</div>
+      <div id="weekly-overall-badge" style="font-size:11px;font-weight:700;color:var(--teal)"></div>
     </div>
 
-    <!-- LIFE DOMAINS PREVIEW — compact horizontal scroll -->
-    <div style="padding:0 20px 4px;display:flex;align-items:center;justify-content:space-between">
+    <!-- Day % summary row -->
+    <div id="today-weekly-summary" style="display:flex;gap:4px;padding:0 16px 6px;overflow-x:auto;scrollbar-width:none">
+      <div style="font-size:11px;color:var(--muted);padding:6px 0">Loading week...</div>
+    </div>
+
+    <!-- Habit matrix -->
+    <div id="today-habit-matrix" style="margin:0 16px 8px;background:linear-gradient(180deg,rgba(17,24,39,.95),rgba(12,18,28,.98));border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:10px 12px;overflow-x:auto">
+      <div style="font-size:11px;color:var(--muted)">Loading habits...</div>
+    </div>
+
+    <!-- QUICK ACTIONS -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;padding:0 16px 6px">
+      <button onclick="switchPage('focus')" style="padding:10px 6px;border:1px solid rgba(99,102,241,.25);border-radius:11px;background:rgba(99,102,241,.08);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">⏱️ Focus</button>
+      <button onclick="switchPage('ai')" style="padding:10px 6px;border:1px solid rgba(6,214,160,.2);border-radius:11px;background:rgba(6,214,160,.06);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">⚡ Coach</button>
+      <button onclick="switchPage('roadmap')" style="padding:10px 6px;border:1px solid rgba(251,191,36,.2);border-radius:11px;background:rgba(251,191,36,.06);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">🗺️ Plan</button>
+    </div>
+
+    <!-- LIFE DOMAINS PREVIEW -->
+    <div style="padding:4px 16px 3px;display:flex;align-items:center;justify-content:space-between">
       <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700">Life Dashboard</div>
-      <button onclick="switchPage('roadmap')" style="font-size:11px;color:var(--teal);background:none;border:none;cursor:pointer;padding:0">View →</button>
+      <button onclick="switchPage('roadmap')" style="font-size:10px;color:var(--teal);background:none;border:none;cursor:pointer;padding:0">View →</button>
     </div>
-    <div id="today-domains-preview" style="padding:0 20px 8px">
-      <div style="font-size:11px;color:var(--muted)">Add domains in Roadmap to see them here.</div>
-    </div>
-
-    <!-- TODAY'S HABITS -->
-    <div style="padding:0 20px 4px;display:flex;align-items:center;justify-content:space-between">
-      <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700">Today's Habits</div>
-      <span style="font-size:10px;color:var(--muted)" id="habits-progress-label"></span>
-    </div>
-    <div class="hlist" id="habits-list" style="margin:0 20px 8px;padding:0">
-      <div style="padding:10px;text-align:center;color:var(--muted);font-size:12px">Loading...</div>
+    <div id="today-domains-preview" style="padding:0 16px 8px">
+      <div style="font-size:11px;color:var(--muted)">Add domains in Roadmap →</div>
     </div>
 
-    <!-- ACTION BUTTONS -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 20px 8px">
-      <button onclick="switchPage('focus')" style="padding:12px;border:1px solid rgba(99,102,241,.25);border-radius:12px;background:rgba(99,102,241,.08);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">⏱️ Focus</button>
-      <button onclick="switchPage('ai')" style="padding:12px;border:1px solid rgba(6,214,160,.2);border-radius:12px;background:rgba(6,214,160,.06);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">⚡ Coach</button>
+    <!-- STATS ROW -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;padding:0 16px 8px">
+      <div style="background:rgba(255,255,255,.04);border:0.5px solid rgba(255,255,255,.06);border-radius:10px;padding:8px;text-align:center">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--teal)" id="stat-habits">0</div>
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase">Habits</div>
+      </div>
+      <div style="background:rgba(255,255,255,.04);border:0.5px solid rgba(255,255,255,.06);border-radius:10px;padding:8px;text-align:center">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--blue)" id="stat-goals">0<span style="font-size:11px">%</span></div>
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase">Goals</div>
+      </div>
+      <div style="background:rgba(255,255,255,.04);border:0.5px solid rgba(255,255,255,.06);border-radius:10px;padding:8px;text-align:center">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--purple)" id="stat-journal">0</div>
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase">Check-ins</div>
+      </div>
     </div>
 
-    <!-- QUOTE — compact -->
-    <div class="qcard" onclick="nextQuote()" style="margin:0 20px 20px;padding:12px 14px">
+    <!-- QUOTE -->
+    <div class="qcard" onclick="nextQuote()" style="margin:0 16px 20px;padding:10px 12px">
       <div class="qlabel">Quote of the Day</div>
-      <div class="qtext" id="qtext" style="font-size:13px">You are the MVP in your life — act like it.</div>
+      <div class="qtext" id="qtext" style="font-size:12px">You are the MVP in your life — act like it.</div>
       <div class="qauthor" id="qauthor">— Luhv+ Coach</div>
     </div>
 
-    <!-- Hidden elements still needed by JS -->
+    <!-- Hidden elements needed by JS -->
     <div style="display:none">
+      <div id="habits-list"></div>
+      <div id="habits-progress-label"></div>
       <div id="streak-chart"></div>
       <div id="streak-chart-labels"></div>
     </div>
@@ -1274,6 +1282,7 @@ async function initApp() {
   checkOnboarding();
   loadPeakHourCard();
   loadTodayDomainsPreview();
+  loadTodayWeeklyDashboard();
   document.getElementById('help-btn').style.display = 'flex';
   document.getElementById('decision-fab').style.display = 'none'; // only shown on roadmap
   restoreTimerIfRunning();
@@ -1636,9 +1645,98 @@ function switchRoadmapTab(tab) {
   if (tab === 'domains') loadDomainsPage();
 }
 
+function toggleScoreBars() {
+  var b = document.getElementById('score-bars-row');
+  if (b) b.style.display = b.style.display === 'none' ? 'block' : 'none';
+}
+
+async function loadTodayWeeklyDashboard() {
+  var data = await api('/api/habits/weekly');
+  if (!data || !data.habits) return;
+
+  var DAY_NAMES = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  var today = new Date().toISOString().split('T')[0];
+
+  // Day % per column
+  var dayPcts = data.days.map(function(date, di) {
+    if (date > today) return -1;
+    var done = data.habits.filter(function(h){ return h.days[di].done; }).length;
+    return data.habits.length > 0 ? Math.round((done/data.habits.length)*100) : 0;
+  });
+
+  var pastPcts = dayPcts.filter(function(p){ return p >= 0; });
+  var overall = pastPcts.length > 0 ? Math.round(pastPcts.reduce(function(a,b){return a+b;},0)/pastPcts.length) : 0;
+
+  var badge = document.getElementById('weekly-overall-badge');
+  if (badge) badge.textContent = overall + '% this week';
+
+  // Summary chips
+  var summaryEl = document.getElementById('today-weekly-summary');
+  if (summaryEl) {
+    summaryEl.innerHTML = '';
+    data.days.forEach(function(date, i) {
+      var pct = dayPcts[i];
+      var isToday = date === today;
+      var isFuture = pct < 0;
+      var color = isFuture ? 'rgba(255,255,255,.1)' : pct >= 80 ? '#06d6a0' : pct >= 50 ? '#fbbf24' : pct > 0 ? '#f43f5e' : 'rgba(255,255,255,.2)';
+      var chip = document.createElement('div');
+      chip.style.cssText = 'flex-shrink:0;text-align:center;border-radius:10px;padding:6px 5px;min-width:34px;border:' + (isToday ? '1.5px solid var(--blue)' : '1px solid rgba(255,255,255,.06)') + ';background:rgba(255,255,255,.03)';
+      chip.innerHTML = '<div style="font-family:sans-serif;font-size:15px;color:' + color + '">' + (isFuture ? '—' : pct+'%') + '</div>' +
+        '<div style="font-size:8px;color:' + (isToday ? 'var(--blue)' : 'var(--muted)') + ';font-weight:700">' + DAY_NAMES[i] + '</div>';
+      summaryEl.appendChild(chip);
+    });
+  }
+
+  // Habit matrix
+  var matrixEl = document.getElementById('today-habit-matrix');
+  if (!matrixEl) return;
+  if (!data.habits.length) {
+    matrixEl.innerHTML = '<div style="font-size:11px;color:var(--muted)">No habits yet — add them in Roadmap.</div>';
+    return;
+  }
+
+  var grid = document.createElement('div');
+  grid.style.cssText = 'display:grid;grid-template-columns:minmax(70px,1fr) repeat(7,26px);gap:2px;align-items:center;min-width:0';
+
+  // Header
+  var hdr = document.createElement('div');
+  hdr.style.cssText = 'font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:700;padding-bottom:4px';
+  hdr.textContent = 'Habit';
+  grid.appendChild(hdr);
+  data.days.forEach(function(date, i) {
+    var isToday = date === today;
+    var d = document.createElement('div');
+    d.style.cssText = 'font-size:8px;text-align:center;font-weight:700;text-transform:uppercase;color:' + (isToday ? 'var(--blue)' : 'var(--muted)') + ';padding-bottom:4px';
+    d.textContent = DAY_NAMES[i];
+    grid.appendChild(d);
+  });
+
+  // Rows
+  data.habits.forEach(function(h) {
+    var nameEl = document.createElement('div');
+    nameEl.style.cssText = 'font-size:10px;color:var(--light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:3px;padding:2px 4px 2px 0';
+    nameEl.innerHTML = '<span style="font-size:11px">' + (h.icon||'⚡') + '</span><span>' + h.name + '</span>';
+    grid.appendChild(nameEl);
+    h.days.forEach(function(day) {
+      var isFuture = day.date > today;
+      var cell = document.createElement('div');
+      cell.style.cssText = 'width:22px;height:22px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:10px;margin:1px auto;' +
+        (isFuture ? 'background:rgba(255,255,255,.02);color:rgba(255,255,255,.08)' :
+         day.done ? 'background:rgba(6,214,160,.2);color:var(--teal)' :
+         'background:rgba(255,255,255,.05);color:rgba(255,255,255,.2)');
+      cell.textContent = isFuture ? '·' : day.done ? '✓' : '✗';
+      grid.appendChild(cell);
+    });
+  });
+
+  matrixEl.innerHTML = '';
+  matrixEl.appendChild(grid);
+}
+
 async function loadEffectivenessScore() {
   var card = document.getElementById('score-card');
   if (!card) return;
+  // Score bars hidden by default, user taps to expand
   try {
     var data = await api('/api/effectiveness-score');
     if (!data || data.error) { card.style.display = 'none'; return; }
@@ -1647,15 +1745,7 @@ async function loadEffectivenessScore() {
     document.getElementById('score-msg').textContent = data.message;
     var levelColors = { Peak: '#06d6a0', Effective: '#0ea5e9', Great: '#fbbf24', Good: '#6b7280' };
     document.getElementById('score-level').style.color = levelColors[data.level] || '#fff';
-    var barsRow = document.getElementById('score-bars-row');
-    if (barsRow) barsRow.style.display = 'block';
-    // Make score card tappable to toggle bars
-    var scoreCard = document.getElementById('score-card');
-    if (scoreCard) scoreCard.style.cursor = 'pointer';
-    if (scoreCard) scoreCard.onclick = function() {
-      var b = document.getElementById('score-bars-row');
-      if (b) b.style.display = b.style.display === 'none' ? 'block' : 'none';
-    };
+    // Bars stay hidden until user taps score
     var b = data.breakdown;
     var pct = function(v) { return Math.round((v/25)*100); };
     document.getElementById('bar-mindset').style.width  = pct(b.mindset)   + '%';
@@ -1671,7 +1761,7 @@ async function loadEffectivenessScore() {
     var color  = levelColors[data.level] || '#0ea5e9';
     var deg    = Math.round((data.total / 100) * 360);
     circle.style.background = 'conic-gradient(' + color + ' ' + deg + 'deg, rgba(255,255,255,.08) ' + deg + 'deg)';
-  } catch(e) { /* score failed silently */ }
+  } catch(e) { console.log('Score unavailable'); }
 }
 
 // ── ONBOARDING ────────────────────────────────────────────────────────────────

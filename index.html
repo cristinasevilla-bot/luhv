@@ -771,6 +771,9 @@ position:fixed;inset:0;z-index:2000;display:flex;align-items:flex-end;justify-co
       <div style="font-size:22px;flex-shrink:0;margin-left:8px">🎯</div>
     </div>
 
+    <!-- PROFILE RESULT CARD — shown after quiz -->
+    <div id="profile-result-card" style="display:none;margin:0 16px 8px;background:linear-gradient(135deg,rgba(6,214,160,.08),rgba(14,165,233,.06));border:1px solid rgba(6,214,160,.2);border-radius:14px;padding:12px 14px"></div>
+
     <!-- PEAK WINDOW — single line -->
     <div id="peak-window-card" style="display:none;margin:0 16px 6px;background:rgba(251,191,36,.05);border:1px solid rgba(251,191,36,.15);border-radius:10px;padding:7px 12px;display:flex;align-items:center;gap:8px">
       <span id="true-window-icon">🎨</span>
@@ -2108,14 +2111,17 @@ async function checkOnboarding() {
     var titleEl = document.getElementById('quiz-banner-title');
     var subEl = document.getElementById('quiz-banner-sub');
     if (data && !data.done) {
-      // Quiz pendiente — texto urgente
       if (titleEl) titleEl.textContent = 'Complete your profile quiz →';
       if (subEl) subEl.textContent = '6 questions · helps Coach understand you';
       setTimeout(startOnboarding, 1200);
     } else {
-      // Quiz hecho — opción de repetir
       if (titleEl) titleEl.textContent = 'Retake your profile quiz →';
       if (subEl) subEl.textContent = 'Update your goals, style & peak hour';
+      // Show saved profile on dashboard
+      var saved = null;
+      try { saved = JSON.parse(localStorage.getItem('luhv_onboarding')); } catch(e){}
+      if (!saved && data && data.data) saved = data.data;
+      if (saved) showProfileResultCard(saved);
     }
   } catch(e) {}
 }
@@ -2198,15 +2204,23 @@ async function obNext() {
   } else {
     // Complete onboarding
     var btn = document.getElementById('ob-next');
-    btn.textContent = 'Setting up your app...';
+    btn.textContent = 'Setting up your profile...';
     btn.disabled = true;
     obAnswers.name = USER?.name || '';
     try { localStorage.setItem('luhv_onboarding', JSON.stringify(obAnswers)); } catch(e) {}
     try {
       var result = await api('/api/onboarding/complete', { method: 'POST', body: JSON.stringify({ data: obAnswers }) });
       document.getElementById('onboarding-modal').style.display = 'none';
-      var banner = document.getElementById('quiz-banner');
-      if (banner) banner.style.display = 'none';
+
+      // Show profile result card on dashboard
+      showProfileResultCard(obAnswers);
+
+      // Update quiz banner to "retake"
+      var titleEl = document.getElementById('quiz-banner-title');
+      var subEl = document.getElementById('quiz-banner-sub');
+      if (titleEl) titleEl.textContent = 'Retake your profile quiz →';
+      if (subEl) subEl.textContent = 'Update your goals, style & peak hour';
+
       // Show personalized welcome in coach
       if (result && result.welcomeMessage) {
         switchPage('ai');
@@ -2215,9 +2229,30 @@ async function obNext() {
       // Reload goals and score
       await loadGoals();
       await loadEffectivenessScore();
+      loadPeakHourCard();
     } catch(e) {
       document.getElementById('onboarding-modal').style.display = 'none';
     }
+  }
+}
+
+function showProfileResultCard(answers) {
+  // Show a profile card on the dashboard after quiz
+  var el = document.getElementById('profile-result-card');
+  if (!el) return;
+  var stuckEmoji = {'Mindset & beliefs':'🧠','Confidence':'💪','Time & focus':'⏱️','Goals & direction':'🎯','Relationships':'🤝'};
+  var growthEmoji = {'Learning & knowledge':'📚','Taking action fast':'⚡','Accountability & check-ins':'✅','Systems & structure':'🗂️'};
+  var peakMap = {'Early morning (5–8am)':'🌅 5–8am','Morning (8–11am)':'☀️ 8–11am','Midday (11am–2pm)':'🌤️ 11am–2pm','Afternoon (2–5pm)':'🌆 2–5pm','Evening (5–9pm)':'🌙 5–9pm'};
+  el.innerHTML =
+    '<div style="font-size:9px;color:var(--teal);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:8px">Your Profile ✓</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">' +
+      (answers.stuck_area ? '<div style="background:rgba(255,255,255,.04);border-radius:8px;padding:7px 9px"><div style="font-size:9px;color:var(--muted);margin-bottom:2px">Working on</div><div style="font-size:11px;font-weight:700">' + (stuckEmoji[answers.stuck_area]||'🎯') + ' ' + answers.stuck_area + '</div></div>' : '') +
+      (answers.growth_style ? '<div style="background:rgba(255,255,255,.04);border-radius:8px;padding:7px 9px"><div style="font-size:9px;color:var(--muted);margin-bottom:2px">Grows by</div><div style="font-size:11px;font-weight:700">' + (growthEmoji[answers.growth_style]||'⚡') + ' ' + answers.growth_style + '</div></div>' : '') +
+      (answers.peak_hour ? '<div style="background:rgba(255,255,255,.04);border-radius:8px;padding:7px 9px"><div style="font-size:9px;color:var(--muted);margin-bottom:2px">Peak hour</div><div style="font-size:11px;font-weight:700">' + (peakMap[answers.peak_hour]||answers.peak_hour) + '</div></div>' : '') +
+      (answers.goal_90days ? '<div style="background:rgba(6,214,160,.08);border:1px solid rgba(6,214,160,.2);border-radius:8px;padding:7px 9px"><div style="font-size:9px;color:var(--teal);margin-bottom:2px">90-day goal ✅</div><div style="font-size:10px;font-weight:600;color:var(--teal)">' + answers.goal_90days.substring(0,40) + (answers.goal_90days.length > 40 ? '...' : '') + '</div></div>' : '') +
+    '</div>';
+  el.style.display = 'block';
+}
   }
 }
 

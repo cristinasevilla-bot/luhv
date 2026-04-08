@@ -39,8 +39,8 @@ body{background:var(--black);font-family:'DM Sans',sans-serif;color:#fff;min-hei
 @keyframes spin{to{transform:rotate(360deg)}}
 
 /* APP */
-#app-screen{display:none;width:100%;max-width:860px;flex-shrink:0}
-.app-shell{width:100%;max-width:860px;min-height:100vh;display:flex;flex-direction:column;position:relative}
+#app-screen{display:none;width:100%;max-width:390px;flex-shrink:0}
+.app-shell{width:100%;max-width:390px;min-height:100vh;display:flex;flex-direction:column;position:relative}
 
 .top-bar{padding:16px 20px 10px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;background:rgba(10,10,15,0.95);backdrop-filter:blur(12px);border-bottom:0.5px solid rgba(14,165,233,0.1)}
 .logo{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;display:flex;align-items:center;gap:5px}
@@ -357,10 +357,10 @@ body{background:
 
   /* ── SHELL ── */
   #auth-screen{max-width:440px!important;margin:0 auto}
-  #app-screen{max-width:860px}
-  .app-shell{max-width:860px}
-  .top-bar{padding-left:32px;padding-right:32px}
-  .bnav{padding-left:32px;padding-right:32px}
+  #app-screen{max-width:720px}
+  .app-shell{max-width:720px}
+  .top-bar{padding-left:28px;padding-right:28px}
+  .bnav{padding-left:28px;padding-right:28px}
 
   /* ── DASHBOARD — 2 columnas ── */
   #page-home .dash-desktop-grid{
@@ -371,56 +371,30 @@ body{background:
   #page-home .dash-col-left,
   #page-home .dash-col-right{min-width:0}
 
-  /* ── ROADMAP — ocupa todo el ancho ── */
-  #page-roadmap > div{padding-left:32px;padding-right:32px}
-  #page-roadmap > div[style*="padding:12px 20px"]{padding-left:32px!important;padding-right:32px!important}
-  #rsection-goals{padding:12px 32px!important}
-  #rsection-habits > div{padding-left:32px;padding-right:32px}
-  #rsection-habits > div:last-child{padding-left:32px;padding-right:32px}
-  .domain-card{margin-left:32px;margin-right:32px}
-  #domains-list .domain-card{margin-left:0;margin-right:0}
-  #rsection-domains > div:first-child{padding-left:32px!important;padding-right:32px!important}
-  #rsection-domains #domains-list{padding-left:32px;padding-right:32px}
+  /* ── ROADMAP ── */
+  #rsection-goals{padding:12px 24px!important}
+  .domain-card{margin-left:20px;margin-right:20px}
 
-  /* Roadmap 2 cols: Life + side panel */
-  #page-roadmap .roadmap-inner{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:0;
-    align-items:start;
-  }
+  /* ── COACH ── */
+  .chat-wrap{max-height:calc(100vh - 340px);padding:14px 24px}
+  .suggs{padding:0 24px 8px}
+  .cinrow{padding:10px 24px 16px}
 
-  /* ── COACH — chat ocupa todo ── */
-  #page-ai > div:first-child{height:180px;flex-shrink:0}
-  .chat-wrap{max-height:calc(100vh - 360px);padding:16px 32px}
-  .suggs{padding:0 32px 8px}
-  .cinrow{padding:10px 32px 20px}
-
-  /* ── FOCUS — padding amplio ── */
-  .focus-timer{margin-left:24px!important;margin-right:24px!important}
-  #page-focus > div[style*="margin:0 20px"]{margin-left:24px!important;margin-right:24px!important}
-  #page-focus > div[style*="padding:12px 20px"]{padding-left:32px!important;padding-right:32px!important}
-  #page-focus > div[style*="padding:16px 20px"]{padding-left:32px!important;padding-right:32px!important}
+  /* ── FOCUS ── */
+  .focus-timer{margin-left:20px!important;margin-right:20px!important}
 
   /* ── PROGRESS — 2 columnas ── */
-  #page-journal{overflow-y:auto;padding-bottom:100px}
   #page-journal .jpage{
     display:grid;
     grid-template-columns:1fr 1fr;
-    column-gap:24px;
-    padding:0 32px 60px;
+    column-gap:20px;
+    padding:0 24px 100px;
     align-items:start;
   }
-  /* Header spans ambas columnas */
   #page-journal .jpage > div:first-child{grid-column:1/-1}
-  /* Stats row */
   #page-journal .prow{padding:0 0 16px}
-  /* Quitar márgenes laterales de las cards */
-  .jmom,.energy-card,.weekly-card,.peak-report-card,
-  .weekly-tracker,.weekly-card{margin-left:0;margin-right:0}
+  .jmom,.energy-card,.weekly-card,.peak-report-card,.weekly-tracker{margin-left:0;margin-right:0}
   #page-journal .section-lbl{padding-left:0}
-  #page-journal div[style*="margin:0 20px"]{margin-left:0!important;margin-right:0!important}
-  #page-journal div[style*="padding:0 20px"]{padding-left:0!important;padding-right:0!important}
 
   /* ── MODALES centrados ── */
   .profile-modal{align-items:center;padding:20px}
@@ -436,8 +410,8 @@ body{background:
 }
 
 @media(min-width:860px){
-  #app-screen{max-width:980px}
-  .app-shell{max-width:980px}
+  #app-screen{max-width:900px}
+  .app-shell{max-width:900px}
 }
 /* ═══════════════════════════════════════════════════════ */
 .ob-box{background:linear-gradient(180deg,#0d1520,#080f18);border-radius:28px 28px 0 0;padding:32px 24px 40px;width:100%;max-width:480px;min-height:60vh;display:flex;flex-direction:column}

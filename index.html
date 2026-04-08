@@ -760,12 +760,15 @@ position:fixed;inset:0;z-index:2000;display:flex;align-items:flex-end;justify-co
 
 
 
-    <!-- QUIZ BANNER — shown if onboarding not done -->
-    <div id="quiz-banner" style="display:none;margin:0 16px 8px;background:linear-gradient(135deg,rgba(99,102,241,.18),rgba(14,165,233,.12));border:1px solid rgba(99,102,241,.35);border-radius:14px;padding:12px 14px;cursor:pointer;position:relative;overflow:hidden" onclick="startOnboarding()">
-      <div style="position:absolute;top:-20px;right:-20px;font-size:80px;opacity:.07;pointer-events:none">🧠</div>
-      <div style="font-size:9px;color:var(--purple);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:4px">Personalise your experience</div>
-      <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:3px">Complete your profile quiz →</div>
-      <div style="font-size:11px;color:rgba(255,255,255,.55);line-height:1.4">6 questions · helps Coach understand you better</div>
+    <!-- QUIZ BANNER — siempre visible -->
+    <div id="quiz-banner" style="margin:0 16px 8px;background:linear-gradient(135deg,rgba(99,102,241,.18),rgba(14,165,233,.12));border:1px solid rgba(99,102,241,.35);border-radius:14px;padding:12px 14px;cursor:pointer;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between" onclick="startOnboarding()">
+      <div style="position:absolute;top:-20px;right:-20px;font-size:80px;opacity:.06;pointer-events:none">🧠</div>
+      <div>
+        <div style="font-size:9px;color:var(--purple);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:3px">Profile Quiz</div>
+        <div style="font-size:13px;font-weight:700;color:#fff" id="quiz-banner-title">Personalise your experience →</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:2px" id="quiz-banner-sub">6 questions · helps Coach understand you</div>
+      </div>
+      <div style="font-size:22px;flex-shrink:0;margin-left:8px">🎯</div>
     </div>
 
     <!-- PEAK WINDOW — single line -->
@@ -1873,54 +1876,89 @@ function toggleScoreBars() {
 }
 
 async function loadTodayWeeklyDashboard() {
-  var data = await api('/api/habits/weekly');
-  if (!data || !data.habits) return;
-
   var DAY_NAMES = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
   var today = new Date().toISOString().split('T')[0];
 
-  // Day % per column
-  var dayPcts = data.days.map(function(date, di) {
-    if (date > today) return -1;
-    var done = data.habits.filter(function(h){ return h.days[di].done; }).length;
-    return data.habits.length > 0 ? Math.round((done/data.habits.length)*100) : 0;
-  });
+  // Calcula las 7 fechas de esta semana (Lun→Dom)
+  function getWeekDates() {
+    var dates = [];
+    var d = new Date();
+    var dow = d.getDay(); // 0=Dom
+    var diffToMon = (dow === 0) ? -6 : 1 - dow;
+    for (var i = 0; i < 7; i++) {
+      var dd = new Date(d);
+      dd.setDate(d.getDate() + diffToMon + i);
+      dates.push(dd.toISOString().split('T')[0]);
+    }
+    return dates;
+  }
 
-  var pastPcts = dayPcts.filter(function(p){ return p >= 0; });
-  var overall = pastPcts.length > 0 ? Math.round(pastPcts.reduce(function(a,b){return a+b;},0)/pastPcts.length) : 0;
-
-  var badge = document.getElementById('weekly-overall-badge');
-  if (badge) badge.textContent = overall + '% this week';
-
-  // Summary chips
-  // SVG donut circles like the Excel dashboard
-  var summaryEl = document.getElementById('today-weekly-summary');
-  if (summaryEl) {
+  // Dibuja los 7 círculos — con pcts reales o vacíos
+  function renderCircles(weekDates, dayPcts) {
+    var summaryEl = document.getElementById('today-weekly-summary');
+    if (!summaryEl) return;
     summaryEl.innerHTML = '';
-    summaryEl.style.cssText = 'display:flex;gap:4px;padding:8px 16px 10px;justify-content:space-between;background:linear-gradient(180deg,rgba(17,24,39,.6),rgba(12,18,28,.4));border-radius:14px;margin:0 16px 8px;border:1px solid rgba(255,255,255,.06);min-height:80px;align-items:center';
+    summaryEl.style.cssText = 'display:flex;padding:6px 16px 10px;justify-content:space-between;align-items:center;background:linear-gradient(180deg,rgba(17,24,39,.7),rgba(12,18,28,.5));border-radius:16px;margin:0 16px 10px;border:1px solid rgba(255,255,255,.07);min-height:84px';
     var r = 18, circ = 2 * Math.PI * r;
-    data.days.forEach(function(date, i) {
-      var pct = dayPcts[i];
+    weekDates.forEach(function(date, i) {
+      var pct = dayPcts ? dayPcts[i] : null;
       var isToday = date === today;
-      var isFuture = pct < 0;
-      var displayPct = isFuture ? 0 : pct;
-      var color = isFuture ? 'rgba(255,255,255,.06)' : pct >= 80 ? '#06d6a0' : pct >= 50 ? '#fbbf24' : pct > 0 ? '#f43f5e' : 'rgba(255,255,255,.15)';
+      var isFuture = date > today;
+      var noData = pct === null || pct === undefined;
+      var displayPct = (noData || isFuture) ? 0 : pct;
+      var color = isFuture ? 'rgba(255,255,255,.12)'
+        : noData ? 'rgba(255,255,255,.18)'
+        : pct >= 80 ? '#06d6a0'
+        : pct >= 50 ? '#fbbf24'
+        : pct > 0  ? '#f43f5e'
+        : 'rgba(255,255,255,.18)';
+      var ringColor = isToday && displayPct === 0 ? 'rgba(14,165,233,.5)' : color;
       var dash = (displayPct / 100) * circ;
       var col = document.createElement('div');
       col.style.cssText = 'flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0';
       col.innerHTML =
-        '<svg width="44" height="44" viewBox="0 0 44 44" style="' + (isToday ? 'filter:drop-shadow(0 0 6px ' + color + 'cc)' : 'opacity:' + (isFuture ? '.4' : '1')) + '">' +
+        '<svg width="44" height="44" viewBox="0 0 44 44" style="' +
+          (isToday ? 'filter:drop-shadow(0 0 8px ' + ringColor + 'aa)' : isFuture ? 'opacity:.4' : 'opacity:1') + '">' +
           '<circle cx="22" cy="22" r="' + r + '" fill="none" stroke="rgba(255,255,255,.09)" stroke-width="4"/>' +
-          '<circle cx="22" cy="22" r="' + r + '" fill="none" stroke="' + color + '" stroke-width="4" ' +
-            'stroke-dasharray="' + dash.toFixed(1) + ' ' + circ.toFixed(1) + '" ' +
-            'stroke-dashoffset="' + (circ * 0.25).toFixed(1) + '" stroke-linecap="round"/>' +
-          '<text x="22" y="26" text-anchor="middle" font-size="9" font-weight="800" fill="' + (isFuture ? 'rgba(255,255,255,.2)' : color) + '" font-family="DM Sans,sans-serif">' +
-            (isFuture ? '·' : pct + '%') + '</text>' +
+          (displayPct > 0
+            ? '<circle cx="22" cy="22" r="' + r + '" fill="none" stroke="' + ringColor + '" stroke-width="4.5" stroke-dasharray="' + dash.toFixed(1) + ' ' + circ.toFixed(1) + '" stroke-dashoffset="' + (circ*0.25).toFixed(1) + '" stroke-linecap="round"/>'
+            : '') +
+          (isToday && displayPct === 0
+            ? '<circle cx="22" cy="22" r="' + r + '" fill="none" stroke="rgba(14,165,233,.4)" stroke-width="2" stroke-dasharray="3 5"/>'
+            : '') +
+          '<text x="22" y="26" text-anchor="middle" font-size="9" font-weight="800" font-family="DM Sans,sans-serif" fill="' +
+            (isFuture ? 'rgba(255,255,255,.15)' : isToday && displayPct===0 ? 'rgba(14,165,233,.8)' : noData ? 'rgba(255,255,255,.25)' : ringColor) + '">' +
+            (isFuture ? '·' : noData ? '?' : displayPct > 0 ? pct+'%' : '—') +
+          '</text>' +
         '</svg>' +
-        '<div style="font-size:9px;font-weight:700;color:' + (isToday ? 'var(--blue)' : 'rgba(255,255,255,.5)') + ';text-transform:uppercase;letter-spacing:.5px">' + DAY_NAMES[i] + '</div>';
+        '<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:' +
+          (isToday ? 'var(--blue)' : 'rgba(255,255,255,.45)') + '">' + DAY_NAMES[i] + '</div>';
       summaryEl.appendChild(col);
     });
   }
+
+  // 1. Dibuja INMEDIATAMENTE los círculos vacíos — no espera la API
+  var weekDates = getWeekDates();
+  renderCircles(weekDates, null);
+
+  // 2. Pide datos y rellena
+  var data = await api('/api/habits/weekly');
+  if (!data || !data.habits) return;
+
+  var dayPcts = data.days.map(function(date, di) {
+    if (date > today) return -1;
+    if (!data.habits.length) return 0;
+    var done = data.habits.filter(function(h){ return h.days[di] && h.days[di].done; }).length;
+    return Math.round((done / data.habits.length) * 100);
+  });
+
+  var pastPcts = dayPcts.filter(function(p){ return p >= 0; });
+  var overall = pastPcts.length > 0 ? Math.round(pastPcts.reduce(function(a,b){return a+b;},0)/pastPcts.length) : 0;
+  var badge = document.getElementById('weekly-overall-badge');
+  if (badge) badge.textContent = overall + '% this week';
+
+  // 3. Re-dibuja con datos reales
+  renderCircles(data.days, dayPcts);
 
   // Habit matrix
   var matrixEl = document.getElementById('today-habit-matrix');
@@ -2067,11 +2105,17 @@ var obSteps = [
 async function checkOnboarding() {
   try {
     var data = await api('/api/onboarding/status');
+    var titleEl = document.getElementById('quiz-banner-title');
+    var subEl = document.getElementById('quiz-banner-sub');
     if (data && !data.done) {
-      // Show quiz banner on dashboard
-      var banner = document.getElementById('quiz-banner');
-      if (banner) banner.style.display = 'block';
-      setTimeout(startOnboarding, 800);
+      // Quiz pendiente — texto urgente
+      if (titleEl) titleEl.textContent = 'Complete your profile quiz →';
+      if (subEl) subEl.textContent = '6 questions · helps Coach understand you';
+      setTimeout(startOnboarding, 1200);
+    } else {
+      // Quiz hecho — opción de repetir
+      if (titleEl) titleEl.textContent = 'Retake your profile quiz →';
+      if (subEl) subEl.textContent = 'Update your goals, style & peak hour';
     }
   } catch(e) {}
 }

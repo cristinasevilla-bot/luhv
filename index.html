@@ -707,6 +707,15 @@ position:fixed;inset:0;z-index:2000;display:flex;align-items:flex-end;justify-co
       </div>
     </div>
 
+    <!-- WEEKLY DASHBOARD — SVG CIRCLES — justo debajo del hero -->
+    <div style="padding:8px 16px 4px;display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700">This Week</div>
+      <div id="weekly-overall-badge" style="font-size:11px;font-weight:700;color:var(--teal)"></div>
+    </div>
+    <div id="today-weekly-summary" style="display:flex;padding:6px 16px 10px;justify-content:space-between;background:linear-gradient(180deg,rgba(17,24,39,.7),rgba(12,18,28,.5));border-radius:16px;margin:0 16px 10px;border:1px solid rgba(255,255,255,.07);min-height:84px;align-items:center">
+      <div style="font-size:11px;color:var(--muted);padding:8px 0">Loading...</div>
+    </div>
+
     <!-- SCORE + COACH ROW -->
     <div style="padding:8px 16px 6px">
       <!-- Score with context -->
@@ -772,18 +781,14 @@ position:fixed;inset:0;z-index:2000;display:flex;align-items:flex-end;justify-co
     <div id="ppw-alignment-msg" style="display:none"></div>
     <div id="peak-window-empty" style="display:none;margin:0 16px 6px;font-size:11px;color:var(--muted)">Set peak window in <button onclick="openProfile()" style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:11px;padding:0">Profile ↗</button></div>
 
-    <!-- WEEKLY DASHBOARD — SVG CIRCLES -->
+    <!-- WEEKLY DASHBOARD GRID — Habit matrix + quick actions LEFT, domains+goals RIGHT -->
     <div class="dash-desktop-grid">
     <div class="dash-col-left">
-    <div style="padding:6px 16px 4px;display:flex;align-items:center;justify-content:space-between">
-      <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700">This Week</div>
-      <div id="weekly-overall-badge" style="font-size:11px;font-weight:700;color:var(--teal)"></div>
-    </div>
-    <div id="today-weekly-summary" style="display:flex;gap:0;padding:4px 16px 8px;justify-content:space-between;background:linear-gradient(180deg,rgba(17,24,39,.6),rgba(12,18,28,.4));border-radius:14px;margin:0 16px 8px;border:1px solid rgba(255,255,255,.06)">
-      <div style="font-size:11px;color:var(--muted);padding:8px 0">Loading...</div>
-    </div>
 
     <!-- Habit matrix -->
+    <div style="padding:4px 16px 3px;display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700">Habit Matrix</div>
+    </div>
     <div id="today-habit-matrix" style="margin:0 16px 8px;background:linear-gradient(180deg,rgba(17,24,39,.95),rgba(12,18,28,.98));border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:10px 12px;overflow-x:auto;min-height:60px">
       <div style="font-size:11px;color:var(--muted)">Loading habits...</div>
     </div>

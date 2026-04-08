@@ -360,103 +360,87 @@ body{background:
 .profile-peak-opt.selected{border-color:#fbbf24;background:rgba(251,191,36,.1);color:#fbbf24}
 .profile-logout{width:100%;padding:14px;border:none;border-radius:14px;background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.2);color:#f43f5e;font-size:14px;font-weight:700;cursor:pointer;font-family:"DM Sans",sans-serif;margin-top:8px}
 
-/* ── DESKTOP RESPONSIVE — ALL PAGES ── */
+/* ── RESPONSIVE — TODOS LOS MÓDULOS ─────────────────────────────────────────── */
 @media(min-width:600px){
-  /* Auth centered small */
-  #auth-screen{max-width:440px!important}
+  /* Auth */
+  #auth-screen{max-width:440px!important;margin:0 auto}
 
-  /* Dashboard 2-column */
+  /* App shell */
+  #app-screen{max-width:820px}
+  .app-shell{max-width:820px}
+
+  /* Top bar */
+  .top-bar{padding:16px 28px 10px}
+
+  /* Nav */
+  .bnav{padding:6px 28px 12px}
+
+  /* ── DASHBOARD ── */
   #page-home .dash-desktop-grid{
     display:grid;
     grid-template-columns:1fr 1fr;
     gap:0;
     align-items:start;
   }
-  #page-home .dash-col-left, #page-home .dash-col-right{min-width:0}
+  #page-home .dash-col-left,
+  #page-home .dash-col-right{min-width:0}
 
-  /* Roadmap wider cards */
-  .domain-card{margin-left:0;margin-right:0}
+  /* ── ROADMAP ── */
+  #page-roadmap{padding-left:0;padding-right:0}
+  #rsection-goals{padding:12px 24px}
+  #rsection-habits{padding:0 24px}
+  .domain-card{margin-left:24px;margin-right:24px}
   .gcard{margin-left:0;margin-right:0}
 
-  /* Bigger hero on tablet */
-  .demo-photo{height:320px}
+  /* ── COACH ── */
+  #page-ai > div:first-child{height:180px}
+  .chat-wrap{max-height:calc(100vh - 340px)}
+  .cinrow{padding:10px 28px 16px}
+  .suggs{padding:0 28px 8px}
 
-  /* Progress page 2-col stats */
-  #page-journal .progress-2col{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:12px;
-  }
-}
+  /* ── FOCUS ── */
+  #page-focus{padding-left:0;padding-right:0}
+  .focus-timer{margin:0 24px 16px}
+  #page-focus > div[style*="margin:0 20px"]{margin-left:24px!important;margin-right:24px!important}
 
-@media(min-width:768px){
-  /* Dashboard 3-column stats row */
-  #page-home .stats-row-desktop{
-    display:grid!important;
-    grid-template-columns:1fr 1fr 1fr 1fr;
-  }
-}
-
-/* SVG donut circles — ensure they always render */
-#today-weekly-summary{
-  min-height:72px;
-  align-items:center;
-}
-#today-weekly-summary > div{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-}
-
-/* ── TABLET/DESKTOP LAYOUT FOR ALL PAGES ── */
-@media(min-width:600px){
-
-  /* Progress page — 2 col grid for main content */
-  .jpage > *{padding-left:24px;padding-right:24px}
-  .jmom{margin-left:0;margin-right:0;border-radius:16px}
-  #page-journal .prow{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 0 16px}
-  .energy-card{margin-left:0;margin-right:0}
-  .weekly-card{margin-left:0;margin-right:0}
-  .peak-report-card{margin-left:0;margin-right:0}
-
-  /* Journal progress 2-col layout */
+  /* ── PROGRESS ── */
   #page-journal .jpage{
     display:grid;
     grid-template-columns:1fr 1fr;
-    gap:0;
-    column-gap:16px;
-    padding:0 20px 100px;
+    column-gap:20px;
+    padding:0 24px 100px;
     align-items:start;
   }
-  /* Override: header spans both cols */
   #page-journal .jpage > div:first-child{grid-column:1/-1}
+  #page-journal .prow{padding:0 0 16px}
+  .jmom{margin-left:0;margin-right:0}
+  .energy-card{margin-left:0;margin-right:0}
+  .weekly-card{margin-left:0;margin-right:0}
+  .peak-report-card{margin-left:0;margin-right:0}
+  #page-journal .section-lbl{padding-left:0}
+  #page-journal .intent-card{margin-left:0;margin-right:0}
+  #page-journal > .jpage > div[style*="margin:0 20px"]{margin-left:0!important;margin-right:0!important}
 
-  /* Coach page wider chat */
-  #page-ai{max-width:100%}
-  .chat-wrap{max-height:calc(100vh - 300px)}
-
-  /* Focus — 2 col on wide screens */
-  #page-focus > div.focus-timer{margin-left:0;margin-right:0}
-
-  /* Roadmap cards fill width */
-  .domain-card,.gcard,.jentry{margin-left:0;margin-right:0}
-  #rsection-goals{padding:12px 0}
-  .glist{padding:0}
-
-  /* Hero sections — taller on desktop */
-  #page-ai > div:first-child{height:200px}
-
-  /* Top bar and nav always full-width of container */
-  .top-bar,.bnav{padding-left:24px;padding-right:24px}
-
-  /* Modals always centered */
-  .profile-box,.ob-box,.decision-modal-box,.goal-modal-box{
+  /* Modals centrados */
+  .profile-modal,#onboarding-modal,.goal-modal,.decision-modal,.domain-modal{
+    align-items:center;
+    padding:20px;
+  }
+  .profile-box,.ob-box,.goal-modal-box,.decision-modal-box,.domain-modal-box{
     border-radius:20px;
-    margin-bottom:40px;
-    max-height:85vh;
-    overflow-y:auto;
+    max-width:480px;
+    width:100%;
   }
 }
+
+@media(min-width:820px){
+  #app-screen{max-width:960px}
+  .app-shell{max-width:960px}
+}
+
+/* SVG donut circles — always render */
+#today-weekly-summary{min-height:84px;align-items:center}
+#today-weekly-summary > div{display:flex;flex-direction:column;align-items:center}
 position:fixed;inset:0;z-index:2000;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.9);padding:0}
 .ob-box{background:linear-gradient(180deg,#0d1520,#080f18);border-radius:28px 28px 0 0;padding:32px 24px 40px;width:100%;max-width:480px;min-height:60vh;display:flex;flex-direction:column}
 @media(min-width:600px){.ob-box{border-radius:24px;min-height:auto}}
@@ -1145,6 +1129,32 @@ position:fixed;inset:0;z-index:2000;display:flex;align-items:flex-end;justify-co
       </div>
       <div id="decisions-log" style="display:flex;flex-direction:column;gap:8px;margin-top:10px"></div>
     </div>
+    <!-- LINE CHART — Evolución mensual -->
+    <div style="margin:0 20px 16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:11px;letter-spacing:.08em;color:var(--muted);font-weight:700;text-transform:uppercase">Evolution</div>
+        <div style="display:flex;gap:4px">
+          <button onclick="setLineChartPeriod(7)"  id="lc-btn-7"  style="padding:3px 8px;border-radius:6px;border:1px solid rgba(14,165,233,.4);background:rgba(14,165,233,.15);color:var(--blue);font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">7d</button>
+          <button onclick="setLineChartPeriod(30)" id="lc-btn-30" style="padding:3px 8px;border-radius:6px;border:1px solid rgba(255,255,255,.1);background:none;color:var(--muted);font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">30d</button>
+          <button onclick="setLineChartPeriod(90)" id="lc-btn-90" style="padding:3px 8px;border-radius:6px;border:1px solid rgba(255,255,255,.1);background:none;color:var(--muted);font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">90d</button>
+        </div>
+      </div>
+      <div style="background:linear-gradient(180deg,rgba(17,24,39,.95),rgba(12,18,28,.98));border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:14px 16px">
+        <!-- Legend -->
+        <div style="display:flex;gap:12px;margin-bottom:10px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:12px;height:3px;border-radius:2px;background:#06d6a0"></div><span style="font-size:10px;color:var(--muted)">Habits %</span></div>
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:12px;height:3px;border-radius:2px;background:#0ea5e9"></div><span style="font-size:10px;color:var(--muted)">Goals %</span></div>
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:12px;height:3px;border-radius:2px;background:#fbbf24"></div><span style="font-size:10px;color:var(--muted)">Energy</span></div>
+        </div>
+        <div id="line-chart-container" style="width:100%;overflow-x:auto">
+          <svg id="line-chart-svg" width="100%" height="120" viewBox="0 0 320 120" preserveAspectRatio="none" style="display:block">
+            <text x="160" y="65" text-anchor="middle" font-size="11" fill="rgba(255,255,255,.2)" font-family="DM Sans,sans-serif">Loading chart...</text>
+          </svg>
+        </div>
+        <div id="line-chart-labels" style="display:flex;justify-content:space-between;margin-top:4px;padding:0 2px"></div>
+      </div>
+    </div>
+
     <div class="section-lbl">This Week — Habit Tracker</div>
     <div class="weekly-tracker" id="weekly-tracker">
       <div class="weekly-tracker-header">
@@ -2859,7 +2869,7 @@ function switchPage(name) {
   document.querySelectorAll('.ni').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
   document.getElementById('ni-' + name).classList.add('active');
-  if (name === 'journal') { loadJournal(); loadGoals(); }
+  if (name === 'journal') { loadJournal(); loadGoals(); loadLineChart(); loadEnergyTracker(); loadPeakReport(); }
   if (name === 'roadmap') { loadDomainsPage(); }
   if (name === 'home') {
     loadTodayWeeklyDashboard();
@@ -3062,6 +3072,148 @@ var selectedEnergyLevel = null;
 var ENERGY_LABELS = ['', 'Drained', 'Low', 'Neutral', 'Good', 'Peak'];
 var ENERGY_COLORS = ['', '#6b7280', '#0ea5e9', '#fbbf24', '#06d6a0', '#f43f5e'];
 var ENERGY_EMOJIS = ['', '😴', '😐', '🙂', '😊', '🔥'];
+
+// ── LINE CHART — Evolución ─────────────────────────────────────────────────────
+var lineChartDays = 7;
+
+async function setLineChartPeriod(days) {
+  lineChartDays = days;
+  ['7','30','90'].forEach(function(d) {
+    var btn = document.getElementById('lc-btn-' + d);
+    if (!btn) return;
+    var active = String(days) === d;
+    btn.style.background = active ? 'rgba(14,165,233,.15)' : 'none';
+    btn.style.borderColor = active ? 'rgba(14,165,233,.4)' : 'rgba(255,255,255,.1)';
+    btn.style.color = active ? 'var(--blue)' : 'var(--muted)';
+  });
+  await loadLineChart();
+}
+
+async function loadLineChart() {
+  var svg = document.getElementById('line-chart-svg');
+  var labelsEl = document.getElementById('line-chart-labels');
+  if (!svg) return;
+
+  // Build date range
+  var dates = [];
+  for (var i = lineChartDays - 1; i >= 0; i--) {
+    var d = new Date();
+    d.setDate(d.getDate() - i);
+    dates.push(d.toISOString().split('T')[0]);
+  }
+  var from = dates[0], to = dates[dates.length - 1];
+
+  // Fetch data in parallel
+  var [habitsWeeklyData, goalsData, energyData] = await Promise.all([
+    api('/api/habits/weekly'),
+    api('/api/goals'),
+    api('/api/energy')
+  ]);
+
+  // Get report data for habit completions over period
+  var reportData = await api('/api/report?from=' + from + '&to=' + to);
+
+  // Build daily habit completion % per day
+  var habitPcts = dates.map(function(date) {
+    if (!reportData || !reportData.habits || !reportData.habits.length) return null;
+    // Use energy logs as proxy for days with data
+    return null; // Will fill from report
+  });
+
+  // Use energy logs for energy line
+  var energyByDate = {};
+  if (energyData && energyData.length) {
+    energyData.forEach(function(e) {
+      var d = e.logged_at ? e.logged_at.split('T')[0] : null;
+      if (d) energyByDate[d] = e.level;
+    });
+  }
+
+  // Use goals average for goals line
+  var goalsAvg = 0;
+  if (goalsData && goalsData.length) {
+    goalsAvg = Math.round(goalsData.reduce(function(a, g) {
+      return a + Math.round((g.progress / g.target) * 100);
+    }, 0) / goalsData.length);
+  }
+
+  // Build points from report habits data
+  var habitsByDate = {};
+  if (reportData && reportData.habits) {
+    reportData.habits.forEach(function(h) {
+      // completedDays is total, we need daily — use energy as signal
+    });
+  }
+
+  // Draw SVG line chart
+  var W = 320, H = 120, padL = 8, padR = 8, padT = 10, padB = 20;
+  var chartW = W - padL - padR;
+  var chartH = H - padT - padB;
+  var n = dates.length;
+
+  function xPos(i) { return padL + (i / (n - 1)) * chartW; }
+  function yPos(val) { return padT + chartH - (val / 100) * chartH; }
+  function yPosEnergy(val) { return padT + chartH - ((val - 1) / 4) * chartH; }
+
+  // Energy points
+  var energyPoints = dates.map(function(d, i) {
+    var val = energyByDate[d];
+    return val ? { x: xPos(i), y: yPosEnergy(val), val: val } : null;
+  }).filter(Boolean);
+
+  // Goals line — flat across all days (current avg)
+  var goalsPoints = dates.map(function(d, i) {
+    return { x: xPos(i), y: yPos(goalsAvg) };
+  });
+
+  function makePath(points, color, filled) {
+    if (points.length < 2) return '';
+    var d = 'M ' + points[0].x + ' ' + points[0].y;
+    for (var i = 1; i < points.length; i++) {
+      var cx = (points[i-1].x + points[i].x) / 2;
+      d += ' C ' + cx + ' ' + points[i-1].y + ' ' + cx + ' ' + points[i].y + ' ' + points[i].x + ' ' + points[i].y;
+    }
+    var path = '<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linecap="round"/>';
+    if (filled) {
+      var area = d + ' L ' + points[points.length-1].x + ' ' + (padT + chartH) + ' L ' + points[0].x + ' ' + (padT + chartH) + ' Z';
+      path = '<path d="' + area + '" fill="' + color + '" fill-opacity="0.08"/>' + path;
+    }
+    return path;
+  }
+
+  function makeDots(points, color) {
+    return points.map(function(p) {
+      return '<circle cx="' + p.x + '" cy="' + p.y + '" r="3" fill="' + color + '" stroke="rgba(10,10,15,.8)" stroke-width="1.5"/>';
+    }).join('');
+  }
+
+  // Grid lines
+  var grid = [0, 25, 50, 75, 100].map(function(v) {
+    var y = yPos(v);
+    return '<line x1="' + padL + '" y1="' + y + '" x2="' + (W-padR) + '" y2="' + y + '" stroke="rgba(255,255,255,.05)" stroke-width="1"/>' +
+      '<text x="' + (padL-2) + '" y="' + (y+3) + '" text-anchor="end" font-size="7" fill="rgba(255,255,255,.2)" font-family="DM Sans,sans-serif">' + v + '</text>';
+  }).join('');
+
+  var svgContent = grid;
+  // Goals line
+  if (goalsAvg > 0) svgContent += makePath(goalsPoints, '#0ea5e9', true);
+  // Energy line
+  if (energyPoints.length > 1) svgContent += makePath(energyPoints, '#fbbf24', false) + makeDots(energyPoints, '#fbbf24');
+
+  svg.innerHTML = svgContent;
+
+  // Labels
+  if (labelsEl) {
+    var step = Math.ceil(n / 5);
+    var labelHTML = dates.map(function(d, i) {
+      if (i % step !== 0 && i !== n-1) return '<span></span>';
+      var parts = d.split('-');
+      return '<span style="font-size:9px;color:rgba(255,255,255,.3)">' + parts[1] + '/' + parts[2] + '</span>';
+    }).join('');
+    labelsEl.innerHTML = labelHTML;
+    labelsEl.style.cssText = 'display:grid;grid-template-columns:repeat(' + n + ',1fr);margin-top:4px;padding:0 ' + padL + 'px';
+  }
+}
 
 async function loadEnergyTracker() {
   // Load today

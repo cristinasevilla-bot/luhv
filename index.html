@@ -39,28 +39,9 @@ body{background:var(--black);font-family:'DM Sans',sans-serif;color:#fff;min-hei
 @keyframes spin{to{transform:rotate(360deg)}}
 
 /* APP */
-#app-screen{display:none;width:100%;max-width:800px;flex-shrink:0}
-.app-shell{width:100%;max-width:800px;min-height:100vh;display:flex;flex-direction:column;position:relative}
+#app-screen{display:none;width:100%;max-width:860px;flex-shrink:0}
+.app-shell{width:100%;max-width:860px;min-height:100vh;display:flex;flex-direction:column;position:relative}
 
-/* RESPONSIVE DESKTOP GRID OVERRIDES */
-@media(min-width:600px){
-  #app-screen{max-width:800px}
-  .app-shell{max-width:800px}
-  #page-home{padding-bottom:100px}
-  /* Dashboard 2-col layout */
-  .dash-2col{display:grid!important;grid-template-columns:1fr 1fr;gap:0}
-  .dash-2col-left,.dash-2col-right{min-width:0}
-  /* All pages get proper padding */
-  .page{max-width:800px;margin:0 auto;width:100%}
-  /* Nav stays full width */
-  .bnav{max-width:800px;margin:0 auto;width:100%}
-  /* Top bar full */
-  .top-bar{max-width:800px;margin:0 auto;width:100%}
-}
-@media(min-width:800px){
-  #app-screen{max-width:900px}
-  .app-shell{max-width:900px}
-}
 .top-bar{padding:16px 20px 10px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;background:rgba(10,10,15,0.95);backdrop-filter:blur(12px);border-bottom:0.5px solid rgba(14,165,233,0.1)}
 .logo{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;display:flex;align-items:center;gap:5px}
 .logo span{color:var(--teal)}
@@ -361,87 +342,105 @@ body{background:
 .profile-logout{width:100%;padding:14px;border:none;border-radius:14px;background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.2);color:#f43f5e;font-size:14px;font-weight:700;cursor:pointer;font-family:"DM Sans",sans-serif;margin-top:8px}
 
 /* ── RESPONSIVE — TODOS LOS MÓDULOS ─────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════
+   RESPONSIVE — TODOS LOS MÓDULOS
+   ═══════════════════════════════════════════════════════ */
+
+/* SVG donut circles */
+#today-weekly-summary{min-height:84px;align-items:center}
+#today-weekly-summary > div{display:flex;flex-direction:column;align-items:center}
+
+/* Onboarding modal */
+#onboarding-modal{position:fixed;inset:0;z-index:2000;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.9);padding:0}
+
 @media(min-width:600px){
-  /* Auth */
+
+  /* ── SHELL ── */
   #auth-screen{max-width:440px!important;margin:0 auto}
+  #app-screen{max-width:860px}
+  .app-shell{max-width:860px}
+  .top-bar{padding-left:32px;padding-right:32px}
+  .bnav{padding-left:32px;padding-right:32px}
 
-  /* App shell */
-  #app-screen{max-width:820px}
-  .app-shell{max-width:820px}
-
-  /* Top bar */
-  .top-bar{padding:16px 28px 10px}
-
-  /* Nav */
-  .bnav{padding:6px 28px 12px}
-
-  /* ── DASHBOARD ── */
+  /* ── DASHBOARD — 2 columnas ── */
   #page-home .dash-desktop-grid{
     display:grid;
     grid-template-columns:1fr 1fr;
-    gap:0;
     align-items:start;
   }
   #page-home .dash-col-left,
   #page-home .dash-col-right{min-width:0}
 
-  /* ── ROADMAP ── */
-  #page-roadmap{padding-left:0;padding-right:0}
-  #rsection-goals{padding:12px 24px}
-  #rsection-habits{padding:0 24px}
-  .domain-card{margin-left:24px;margin-right:24px}
-  .gcard{margin-left:0;margin-right:0}
+  /* ── ROADMAP — ocupa todo el ancho ── */
+  #page-roadmap > div{padding-left:32px;padding-right:32px}
+  #page-roadmap > div[style*="padding:12px 20px"]{padding-left:32px!important;padding-right:32px!important}
+  #rsection-goals{padding:12px 32px!important}
+  #rsection-habits > div{padding-left:32px;padding-right:32px}
+  #rsection-habits > div:last-child{padding-left:32px;padding-right:32px}
+  .domain-card{margin-left:32px;margin-right:32px}
+  #domains-list .domain-card{margin-left:0;margin-right:0}
+  #rsection-domains > div:first-child{padding-left:32px!important;padding-right:32px!important}
+  #rsection-domains #domains-list{padding-left:32px;padding-right:32px}
 
-  /* ── COACH ── */
-  #page-ai > div:first-child{height:180px}
-  .chat-wrap{max-height:calc(100vh - 340px)}
-  .cinrow{padding:10px 28px 16px}
-  .suggs{padding:0 28px 8px}
+  /* Roadmap 2 cols: Life + side panel */
+  #page-roadmap .roadmap-inner{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:0;
+    align-items:start;
+  }
 
-  /* ── FOCUS ── */
-  #page-focus{padding-left:0;padding-right:0}
-  .focus-timer{margin:0 24px 16px}
-  #page-focus > div[style*="margin:0 20px"]{margin-left:24px!important;margin-right:24px!important}
+  /* ── COACH — chat ocupa todo ── */
+  #page-ai{display:flex;flex-direction:column;height:100vh}
+  #page-ai > div:first-child{height:160px;flex-shrink:0}
+  .chat-wrap{flex:1;max-height:none;min-height:300px;padding:16px 32px}
+  .suggs{padding:0 32px 8px}
+  .cinrow{padding:10px 32px 20px}
 
-  /* ── PROGRESS ── */
+  /* ── FOCUS — padding amplio ── */
+  #page-focus > div{padding-left:32px;padding-right:32px}
+  #page-focus > div[style*="margin:0 20px"]{margin-left:32px!important;margin-right:32px!important}
+  .focus-timer{margin-left:32px!important;margin-right:32px!important}
+  #page-focus > div[style*="display:flex;gap:8px;margin:0 20px"]{margin-left:32px!important;margin-right:32px!important}
+
+  /* ── PROGRESS — 2 columnas ── */
+  #page-journal{overflow-y:auto;padding-bottom:100px}
   #page-journal .jpage{
     display:grid;
     grid-template-columns:1fr 1fr;
-    column-gap:20px;
-    padding:0 24px 100px;
+    column-gap:24px;
+    padding:0 32px 60px;
     align-items:start;
   }
+  /* Header spans ambas columnas */
   #page-journal .jpage > div:first-child{grid-column:1/-1}
+  /* Stats row */
   #page-journal .prow{padding:0 0 16px}
-  .jmom{margin-left:0;margin-right:0}
-  .energy-card{margin-left:0;margin-right:0}
-  .weekly-card{margin-left:0;margin-right:0}
-  .peak-report-card{margin-left:0;margin-right:0}
+  /* Quitar márgenes laterales de las cards */
+  .jmom,.energy-card,.weekly-card,.peak-report-card,
+  .weekly-tracker,.weekly-card{margin-left:0;margin-right:0}
   #page-journal .section-lbl{padding-left:0}
-  #page-journal .intent-card{margin-left:0;margin-right:0}
-  #page-journal > .jpage > div[style*="margin:0 20px"]{margin-left:0!important;margin-right:0!important}
+  #page-journal div[style*="margin:0 20px"]{margin-left:0!important;margin-right:0!important}
+  #page-journal div[style*="padding:0 20px"]{padding-left:0!important;padding-right:0!important}
 
-  /* Modals centrados */
-  .profile-modal,#onboarding-modal,.goal-modal,.decision-modal,.domain-modal{
-    align-items:center;
-    padding:20px;
-  }
-  .profile-box,.ob-box,.goal-modal-box,.decision-modal-box,.domain-modal-box{
-    border-radius:20px;
-    max-width:480px;
-    width:100%;
-  }
+  /* ── MODALES centrados ── */
+  .profile-modal{align-items:center;padding:20px}
+  .profile-box{border-radius:20px;max-width:480px;width:100%}
+  #onboarding-modal{align-items:center;padding:20px}
+  .ob-box{border-radius:20px;min-height:auto;max-width:480px;width:100%}
+  .goal-modal{align-items:center;padding:20px}
+  .goal-modal-box{border-radius:20px;max-width:480px;width:100%}
+  .decision-modal{align-items:center;padding:20px}
+  .decision-modal-box{border-radius:20px;max-width:480px;width:100%}
+  .domain-modal{align-items:center;padding:20px}
+  .domain-modal-box{border-radius:20px;max-width:480px;width:100%}
 }
 
-@media(min-width:820px){
-  #app-screen{max-width:960px}
-  .app-shell{max-width:960px}
+@media(min-width:860px){
+  #app-screen{max-width:980px}
+  .app-shell{max-width:980px}
 }
-
-/* SVG donut circles — always render */
-#today-weekly-summary{min-height:84px;align-items:center}
-#today-weekly-summary > div{display:flex;flex-direction:column;align-items:center}
-position:fixed;inset:0;z-index:2000;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.9);padding:0}
+/* ═══════════════════════════════════════════════════════ */
 .ob-box{background:linear-gradient(180deg,#0d1520,#080f18);border-radius:28px 28px 0 0;padding:32px 24px 40px;width:100%;max-width:480px;min-height:60vh;display:flex;flex-direction:column}
 @media(min-width:600px){.ob-box{border-radius:24px;min-height:auto}}
 .ob-progress{display:flex;gap:6px;margin-bottom:28px}

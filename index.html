@@ -845,6 +845,29 @@ position:fixed;inset:0;z-index:2000;display:flex;align-items:flex-end;justify-co
     </div>
 
     <!-- EXPORT -->
+    <!-- LINE CHART — Evolución -->
+    <div style="padding:2px 16px 10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700">Evolution</div>
+        <div style="display:flex;gap:4px">
+          <button onclick="setLineChartPeriod(7)"  id="lc-btn-7"  style="padding:3px 9px;border-radius:6px;border:1px solid rgba(14,165,233,.4);background:rgba(14,165,233,.15);color:var(--blue);font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">7d</button>
+          <button onclick="setLineChartPeriod(30)" id="lc-btn-30" style="padding:3px 9px;border-radius:6px;border:1px solid rgba(255,255,255,.1);background:none;color:var(--muted);font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">30d</button>
+          <button onclick="setLineChartPeriod(90)" id="lc-btn-90" style="padding:3px 9px;border-radius:6px;border:1px solid rgba(255,255,255,.1);background:none;color:var(--muted);font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">90d</button>
+        </div>
+      </div>
+      <div style="background:linear-gradient(180deg,rgba(17,24,39,.95),rgba(12,18,28,.98));border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:12px 14px">
+        <div style="display:flex;gap:14px;margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:14px;height:3px;border-radius:2px;background:#06d6a0"></div><span style="font-size:10px;color:var(--muted)">Habits %</span></div>
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:14px;height:3px;border-radius:2px;background:#0ea5e9"></div><span style="font-size:10px;color:var(--muted)">Goals %</span></div>
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:14px;height:3px;border-radius:2px;background:#fbbf24"></div><span style="font-size:10px;color:var(--muted)">Energy ×20</span></div>
+        </div>
+        <svg id="line-chart-svg" viewBox="0 0 340 100" preserveAspectRatio="none" style="width:100%;height:100px;display:block">
+          <text x="170" y="55" text-anchor="middle" font-size="11" fill="rgba(255,255,255,.2)" font-family="DM Sans,sans-serif">Loading...</text>
+        </svg>
+        <div id="line-chart-labels" style="display:flex;justify-content:space-between;margin-top:2px"></div>
+      </div>
+    </div>
+
     <div style="padding:2px 16px 4px">
       <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:8px">Download Report</div>
       <div style="display:flex;gap:6px;margin-bottom:8px">
@@ -1521,6 +1544,7 @@ async function initApp() {
   loadTodayWeeklyDashboard();
   dashboardLoadGoalsPreview();
   dashboardLoadEnergyToday();
+  loadLineChart();
   document.getElementById('help-btn').style.display = 'flex';
   document.getElementById('decision-fab').style.display = 'none'; // only shown on roadmap
   restoreTimerIfRunning();
@@ -2123,11 +2147,11 @@ async function checkOnboarding() {
     if (data && !data.done) {
       if (titleEl) titleEl.textContent = 'Complete your profile quiz →';
       if (subEl) subEl.textContent = '6 questions · helps Coach understand you';
-      setTimeout(startOnboarding, 1200);
+      // NO auto-launch — user taps when ready
     } else {
       if (titleEl) titleEl.textContent = 'Retake your profile quiz →';
       if (subEl) subEl.textContent = 'Update your goals, style & peak hour';
-      // Show saved profile on dashboard
+      // Show saved profile card
       var saved = null;
       try { saved = JSON.parse(localStorage.getItem('luhv_onboarding')); } catch(e){}
       if (!saved && data && data.data) saved = data.data;
@@ -2876,6 +2900,7 @@ function switchPage(name) {
     dashboardLoadGoalsPreview();
     loadTodayDomainsPreview();
     loadEffectivenessScore();
+    loadLineChart();
   }
   // Decision FAB — only on roadmap
   var fab = document.getElementById('decision-fab');
@@ -3077,6 +3102,168 @@ var ENERGY_EMOJIS = ['', '😴', '😐', '🙂', '😊', '🔥'];
 var lineChartDays = 7;
 
 async function setLineChartPeriod(days) {
+  lineChartDays = days;
+  ['7','30','90'].forEach(function(d) {
+    var btn = document.getElementById('lc-btn-' + d);
+    if (!btn) return;
+    var active = String(days) === d;
+    btn.style.background = active ? 'rgba(14,165,233,.15)' : 'none';
+    btn.style.borderColor = active ? 'rgba(14,165,233,.4)' : 'rgba(255,255,255,.1)';
+    btn.style.color = active ? 'var(--blue)' : 'var(--muted)';
+  });
+  await loadLineChart();
+}
+
+async function loadLineChart() {
+  var svg = document.getElementById('line-chart-svg');
+  var labelsEl = document.getElementById('line-chart-labels');
+  if (!svg) return;
+
+  // Build date array
+  var dates = [];
+  for (var i = lineChartDays - 1; i >= 0; i--) {
+    var d = new Date();
+    d.setDate(d.getDate() - i);
+    dates.push(d.toISOString().split('T')[0]);
+  }
+  var from = dates[0], to = dates[dates.length - 1];
+
+  // Fetch in parallel
+  var results = await Promise.all([
+    api('/api/energy'),
+    api('/api/goals'),
+    api('/api/habits/weekly')
+  ]);
+  var energyLogs = results[0] || [];
+  var goals      = results[1] || [];
+  var weeklyData = results[2];
+
+  // Energy by date
+  var energyByDate = {};
+  energyLogs.forEach(function(e) {
+    if (e.logged_at) {
+      var day = e.logged_at.split('T')[0];
+      energyByDate[day] = e.level;
+    }
+  });
+
+  // Goals avg (flat — current snapshot)
+  var goalsAvg = 0;
+  if (goals.length) {
+    goalsAvg = Math.round(goals.reduce(function(a, g) {
+      return a + Math.min(100, Math.round((g.progress / g.target) * 100));
+    }, 0) / goals.length);
+  }
+
+  // Habit % per day from weekly data (only current week, rest is flat)
+  var habitByDate = {};
+  if (weeklyData && weeklyData.habits && weeklyData.days) {
+    weeklyData.days.forEach(function(date, di) {
+      if (!weeklyData.habits.length) return;
+      var done = weeklyData.habits.filter(function(h) { return h.days[di] && h.days[di].done; }).length;
+      habitByDate[date] = Math.round((done / weeklyData.habits.length) * 100);
+    });
+  }
+
+  // SVG dimensions
+  var W = 340, H = 100, pL = 24, pR = 8, pT = 8, pB = 16;
+  var cW = W - pL - pR, cH = H - pT - pB;
+  var n = dates.length;
+
+  function xPos(i) { return pL + (n < 2 ? cW/2 : (i / (n-1)) * cW); }
+  function yPct(v)  { return pT + cH - Math.min(1, Math.max(0, v/100)) * cH; }
+  function yEnergy(v){ return pT + cH - Math.min(1, Math.max(0, (v-1)/4)) * cH; }
+
+  // Build polyline points
+  function pts(arr) {
+    return arr.map(function(p, i) { return xPos(i) + ',' + p.y; }).join(' ');
+  }
+
+  var habitPts  = dates.map(function(d, i) { return { y: yPct(habitByDate[d] !== undefined ? habitByDate[d] : goalsAvg) }; });
+  var goalsPts  = dates.map(function(d, i) { return { y: yPct(goalsAvg) }; });
+  var energyPts = dates.map(function(d, i) {
+    var v = energyByDate[d];
+    return v ? { y: yEnergy(v), hasVal: true } : { y: null, hasVal: false };
+  });
+
+  // Grid lines at 25/50/75/100%
+  var gridLines = [0,25,50,75,100].map(function(v) {
+    var y = yPct(v);
+    return '<line x1="' + pL + '" y1="' + y + '" x2="' + (W-pR) + '" y2="' + y +
+      '" stroke="rgba(255,255,255,.06)" stroke-width="1"/>' +
+      '<text x="' + (pL-3) + '" y="' + (y+3) + '" text-anchor="end" font-size="7" fill="rgba(255,255,255,.25)" font-family="DM Sans,sans-serif">' + v + '</text>';
+  }).join('');
+
+  // Area fill under habit line
+  var habitArea = 'M ' + xPos(0) + ',' + yPct(habitPts[0].y < pT+cH ? 0 : 100) +
+    ' L ' + habitPts.map(function(p,i){ return xPos(i)+','+p.y; }).join(' L ') +
+    ' L ' + xPos(n-1) + ',' + (pT+cH) + ' Z';
+
+  // Smooth path helper
+  function smoothPath(pts) {
+    if (pts.length < 2) return '';
+    var d = 'M ' + xPos(0) + ' ' + pts[0].y;
+    for (var i = 1; i < pts.length; i++) {
+      var cx = (xPos(i-1) + xPos(i)) / 2;
+      d += ' C ' + cx + ' ' + pts[i-1].y + ' ' + cx + ' ' + pts[i].y + ' ' + xPos(i) + ' ' + pts[i].y;
+    }
+    return d;
+  }
+
+  // Energy dots (only where we have data)
+  var energyDots = energyPts.filter(function(p){ return p.hasVal; }).map(function(p, _, arr) {
+    var i = energyPts.indexOf(p);
+    return '<circle cx="' + xPos(i) + '" cy="' + p.y + '" r="2.5" fill="#fbbf24" stroke="rgba(10,10,15,.8)" stroke-width="1"/>';
+  }).join('');
+
+  // Energy line (only between consecutive data points)
+  var energyPath = '';
+  var energyConnected = [];
+  energyPts.forEach(function(p, i) {
+    if (p.hasVal) energyConnected.push({ y: p.y, i: i });
+  });
+  if (energyConnected.length >= 2) {
+    energyPath = '<path d="' + smoothPath(energyConnected.map(function(p){ return { y: p.y }; })).replace(/xPos\(\d+\)/g, function(m){ return m; }) + '" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="4 2" opacity=".8"/>';
+    // Rebuild properly
+    var ep = 'M ' + xPos(energyConnected[0].i) + ' ' + energyConnected[0].y;
+    for (var ei = 1; ei < energyConnected.length; ei++) {
+      var cx = (xPos(energyConnected[ei-1].i) + xPos(energyConnected[ei].i)) / 2;
+      ep += ' C ' + cx + ' ' + energyConnected[ei-1].y + ' ' + cx + ' ' + energyConnected[ei].y + ' ' + xPos(energyConnected[ei].i) + ' ' + energyConnected[ei].y;
+    }
+    energyPath = '<path d="' + ep + '" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="4 2" opacity=".8"/>';
+  }
+
+  svg.innerHTML =
+    gridLines +
+    // Habit area fill
+    '<path d="' + habitArea + '" fill="rgba(6,214,160,.07)"/>' +
+    // Habit line
+    '<path d="' + smoothPath(habitPts) + '" fill="none" stroke="#06d6a0" stroke-width="2" stroke-linecap="round"/>' +
+    // Goals line (dashed flat)
+    '<line x1="' + xPos(0) + '" y1="' + yPct(goalsAvg) + '" x2="' + xPos(n-1) + '" y2="' + yPct(goalsAvg) + '" stroke="#0ea5e9" stroke-width="1.5" stroke-dasharray="5 3" opacity=".7"/>' +
+    // Energy
+    energyPath + energyDots +
+    // Today marker
+    '<line x1="' + xPos(n-1) + '" y1="' + pT + '" x2="' + xPos(n-1) + '" y2="' + (pT+cH) + '" stroke="rgba(14,165,233,.3)" stroke-width="1"/>';
+
+  // Date labels
+  if (labelsEl) {
+    var step = lineChartDays <= 7 ? 1 : lineChartDays <= 30 ? 7 : 15;
+    var html = '<div style="display:flex;justify-content:space-between;width:100%">';
+    dates.forEach(function(d, i) {
+      if (i % step === 0 || i === n-1) {
+        var parts = d.split('-');
+        html += '<span style="font-size:9px;color:rgba(255,255,255,.3)">' + parts[2] + '/' + parts[1] + '</span>';
+      } else {
+        html += '<span></span>';
+      }
+    });
+    html += '</div>';
+    labelsEl.innerHTML = html;
+  }
+}
+
+async function loadEnergyTracker() {
   lineChartDays = days;
   ['7','30','90'].forEach(function(d) {
     var btn = document.getElementById('lc-btn-' + d);

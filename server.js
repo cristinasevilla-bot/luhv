@@ -1543,6 +1543,128 @@ app.get('/api/export/csv', auth, async (req, res) => {
   }
 });
 
+// ── HABITS WEEKLY (círculos SVG del dashboard) ────────────────────────────────
+app.get('/api/habits/weekly', auth, async (req, res) => {
+  try {
+    const today = new Date();
+    const dow = today.getDay(); // 0=Sun
+    const diffToMon = dow === 0 ? -6 : 1 - dow;
+    const monday = new Date(today);
+    monday.setDate(today.getDate() + diffToMon);
+
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      days.push(d.toISOString().split('T')[0]);
+    }
+
+    const fromDate = days[0];
+    const toDate   = days[6];
+
+    const { rows: habits } = await db.query(
+      'SELECT id, name, icon, target_type, daily_target FROM habits WHERE user_id=$1 ORDER BY created_at',
+      [req.user.id]
+    );
+
+    const { rows: completions } = await db.query(
+      'SELECT habit_id, date, value FROM habit_completions WHERE user_id=$1 AND date>=$2 AND date<=$3',
+      [req.user.id, fromDate, toDate]
+    );
+
+    const result = habits.map(h => ({
+      id: h.id,
+      name: h.name,
+      icon: h.icon,
+      days: days.map(date => {
+        const c = completions.find(c =>
+          c.habit_id === h.id &&
+          c.date.toISOString().split('T')[0] === date
+        );
+        const done = h.target_type === 'check'
+          ? !!c
+          : (c ? c.value >= h.daily_target : false);
+        return { date, done, value: c ? c.value : 0 };
+      })
+    }));
+
+    res.json({ days, habits: result });
+  } catch(e) {
+    console.error('Weekly habits error:', e);
+    res.status(500).json({ error: 'Could not load weekly habits' });
+  }
+});
+
+// ── ONBOARDING COMPLETE ───────────────────────────────────────────────────────
+app.post('/api/onboarding/complete', auth, async (req, res) => {
+  try {
+    const { data } = req.body;
+    if (!data) return res.status(400).json({ error: 'data required' });
+
+    await db.query(
+      'UPDATE users SET onboarding_data=$1, onboarding_done=true WHERE id=$2',
+      [JSON.stringify(data), req.user.id]
+    );
+
+    // Build personalised welcome message using the quiz answers
+    const name = data.name || 'Champion';
+    const stuckArea  = data.stuck_area  || 'your goals';
+    const obstacle   = data.obstacle    || 'staying focused';
+    const vision     = data.good_to_great || '';
+    const growthStyle = data.growth_style || '';
+    const peakHour   = data.peak_hour   || '';
+    const goal90     = data.goal_90days || '';
+
+    // Auto-create the 90-day goal if provided
+    let createdGoal = null;
+    if (goal90 && goal90.trim().length > 3) {
+      const deadline = new Date();
+      deadline.setDate(deadline.getDate() + 90);
+      const { rows: [g] } = await db.query(
+        "INSERT INTO goals (user_id, title, progress, target, deadline, category, status) VALUES ($1,$2,0,100,$3,'Business','active') RETURNING *",
+        [req.user.id, goal90.trim(), deadline.toISOString().split('T')[0]]
+      );
+      createdGoal = g;
+    }
+
+    // Generate welcome message
+    let welcomeMessage = `Welcome, ${name}! 🏆 I've set up your profile.\n\n`;
+    welcomeMessage += `You told me you're working on **${stuckArea}** and your main obstacle is **${obstacle}**. That's exactly where we'll focus.\n\n`;
+    if (vision) welcomeMessage += `Your vision: "${vision}" — that's powerful. Let's make it real.\n\n`;
+    if (growthStyle) welcomeMessage += `You grow best through **${growthStyle}** — I'll coach you that way.\n\n`;
+    if (peakHour) welcomeMessage += `Your peak hour is **${peakHour}** — I'll remind you to protect that time.\n\n`;
+    if (goal90) welcomeMessage += `✅ I've created your 90-day goal: "${goal90}"\n\n`;
+    welcomeMessage += `Ready? Let's go from good to great. 🔥`;
+
+    res.json({ success: true, welcomeMessage, createdGoal });
+  } catch(e) {
+    console.error('Onboarding complete error:', e);
+    // Try without onboarding_done column (might not exist yet)
+    try {
+      const { data } = req.body;
+      await db.query('UPDATE users SET onboarding_data=$1 WHERE id=$2', [JSON.stringify(data), req.user.id]);
+      res.json({ success: true, welcomeMessage: `Profile saved! Welcome to Luhv+. Let's go from good to great. 🏆` });
+    } catch(e2) {
+      res.status(500).json({ error: 'Could not complete onboarding' });
+    }
+  }
+});
+
+// ── ONBOARDING STATUS ─────────────────────────────────────────────────────────
+app.get('/api/onboarding/status', auth, async (req, res) => {
+  try {
+    const { rows: [user] } = await db.query(
+      'SELECT onboarding_data, onboarding_done FROM users WHERE id=$1',
+      [req.user.id]
+    );
+    const done = !!(user?.onboarding_done || (user?.onboarding_data && Object.keys(user.onboarding_data).length > 2));
+    res.json({ done, data: user?.onboarding_data || null });
+  } catch(e) {
+    // Column might not exist yet — treat as not done
+    res.json({ done: false, data: null });
+  }
+});
+
 app.get('/health', (_, res) => res.json({ status: 'ok', service: 'Luhv+ API' }));
 
 app.listen(PORT, '0.0.0.0', () => console.log(`🏆 Luhv+ API running on port ${PORT}`));

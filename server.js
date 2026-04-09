@@ -7,6 +7,11 @@ const Anthropic = require('@anthropic-ai/sdk');
 const app  = express();
 const PORT = process.env.PORT || 3001;
 
+// health check
+app.get('/health', (req, res) => {
+  res.status(200).json({ ok: true });
+});
+
 // ── CORS ─────────────────────────────────────────────────────────────────────
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin',  '*');

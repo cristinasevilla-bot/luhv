@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!D<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -3833,8 +3833,6 @@ async function loadInspireFeed(domain) {
   var feed = document.getElementById('inspire-feed');
   if (!feed) return;
   var keywords = inspireDomains[domain] || inspireDomains.all;
-  var UNSPLASH_KEY = 'T4BgRaGzaOJh9wUHhThROIaSUEPIWqcdFoV11vxfGDA';
-
   feed.innerHTML = '';
   for (var s = 0; s < 6; s++) {
     var skel = document.createElement('div');
@@ -3844,7 +3842,7 @@ async function loadInspireFeed(domain) {
   }
 
   var promises = keywords.slice(0, 6).map(function(kw) {
-    return fetch('https://api.unsplash.com/photos/random?query=' + encodeURIComponent(kw) + '&orientation=portrait&client_id=' + UNSPLASH_KEY)
+    return fetch('/.netlify/functions/unsplash?query=' + encodeURIComponent(kw))
       .then(function(r) { return r.ok ? r.json() : null; })
       .then(function(d) { return d ? { kw: kw, thumb: d.urls.small, url: d.urls.regular, credit: d.user.name, link: d.links.html } : null; })
       .catch(function() { return null; });

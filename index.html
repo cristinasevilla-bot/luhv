@@ -18,7 +18,7 @@
 body{background:var(--black);font-family:'DM Sans',sans-serif;color:#fff;min-height:100vh;display:flex;justify-content:center;align-items:flex-start}
 
 /* AUTH */
-#auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;max-width:390px;width:100%}
+#auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;width:100%;box-sizing:border-box}
 .auth-box{width:100%;max-width:380px}
 .auth-logo{font-family:'Bebas Neue',sans-serif;font-size:52px;letter-spacing:3px;text-align:center}
 .auth-logo span{color:var(--teal)}
@@ -39,8 +39,8 @@ body{background:var(--black);font-family:'DM Sans',sans-serif;color:#fff;min-hei
 @keyframes spin{to{transform:rotate(360deg)}}
 
 /* APP */
-#app-screen{display:none;width:100%;max-width:390px;flex-shrink:0}
-.app-shell{width:100%;max-width:390px;min-height:100vh;display:flex;flex-direction:column;position:relative}
+#app-screen{display:none;width:100%;max-width:100%;flex-shrink:0;box-sizing:border-box}
+.app-shell{width:100%;max-width:100%;min-height:100vh;display:flex;flex-direction:column;position:relative;box-sizing:border-box}
 
 .top-bar{padding:16px 20px 10px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;background:rgba(10,10,15,0.95);backdrop-filter:blur(12px);border-bottom:0.5px solid rgba(14,165,233,0.1)}
 .logo{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;display:flex;align-items:center;gap:5px}
@@ -193,7 +193,7 @@ body{background:
 .help-btn{bottom:96px}
 
 .decision-modal{position:fixed;inset:0;z-index:1500;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.7);backdrop-filter:blur(4px)}
-.decision-modal-box{background:linear-gradient(180deg,#0d1520,#080f18);border-radius:28px 28px 0 0;padding:28px 24px 40px;width:100%;max-width:390px}
+.decision-modal-box{background:linear-gradient(180deg,#0d1520,#080f18);border-radius:28px 28px 0 0;padding:28px 24px 40px;width:100%;max-width:100%;box-sizing:border-box}
 .decision-modal-handle{width:36px;height:4px;border-radius:99px;background:rgba(255,255,255,.15);margin:0 auto 20px}
 
 
@@ -278,7 +278,7 @@ body{background:
 .add-domain-btn{display:flex;align-items:center;justify-content:center;gap:8px;margin:0 20px 16px;padding:14px;border:1.5px dashed rgba(255,255,255,.15);border-radius:16px;background:none;color:rgba(255,255,255,.4);font-size:13px;font-weight:600;cursor:pointer;font-family:"DM Sans",sans-serif;width:calc(100% - 40px);transition:border-color .2s}
 .add-domain-btn:hover{border-color:rgba(255,255,255,.3);color:#fff}
 .domain-modal{position:fixed;inset:0;z-index:1500;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.7)}
-.domain-modal-box{background:linear-gradient(180deg,#0d1520,#080f18);border-radius:28px 28px 0 0;padding:24px 24px 40px;width:100%;max-width:390px;max-height:85vh;overflow-y:auto}
+.domain-modal-box{background:linear-gradient(180deg,#0d1520,#080f18);border-radius:28px 28px 0 0;padding:24px 24px 40px;width:100%;max-width:100%;max-height:85vh;overflow-y:auto;box-sizing:border-box}
 .weekly-card{margin:0 20px 16px;background:linear-gradient(135deg,rgba(6,214,160,.08),rgba(14,165,233,.05));border:1px solid rgba(6,214,160,.2);border-radius:18px;padding:18px}
 .weekly-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:14px 0}
 .weekly-stat{background:rgba(255,255,255,.04);border-radius:12px;padding:10px;text-align:center}
@@ -325,7 +325,7 @@ body{background:
 .peak-window-sub{font-size:12px;color:var(--muted);margin-top:2px}
 .peak-edit-btn{font-size:11px;color:var(--muted);background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:8px;border:1px solid rgba(255,255,255,.08)}
 .profile-modal{position:fixed;inset:0;z-index:1500;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.7);padding:0}
-.profile-box{background:linear-gradient(180deg,#0d1520,#080f18);border-radius:28px 28px 0 0;padding:28px 24px 40px;width:100%;max-width:390px}
+.profile-box{background:linear-gradient(180deg,#0d1520,#080f18);border-radius:28px 28px 0 0;padding:28px 24px 40px;width:100%;max-width:100%;box-sizing:border-box}
 .profile-handle{width:36px;height:4px;border-radius:99px;background:rgba(255,255,255,.15);margin:0 auto 24px}
 .profile-avatar-big{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;margin:0 auto 10px;border:3px solid rgba(14,165,233,.4)}
 .profile-name{font-family:"Bebas Neue",sans-serif;font-size:26px;letter-spacing:1px;text-align:center;margin-bottom:4px}
@@ -353,115 +353,48 @@ body{background:
 /* Onboarding modal */
 #onboarding-modal{position:fixed;inset:0;z-index:2000;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.9);padding:0}
 
-@media(min-width:600px){
 
-  /* ── SHELL ── */
-  #auth-screen{max-width:440px!important;margin:0 auto}
-  #app-screen{max-width:720px}
-  .app-shell{max-width:720px}
-  .top-bar{padding-left:28px;padding-right:28px}
-  .bnav{padding-left:28px;padding-right:28px}
 
-  /* ── DASHBOARD — 2 columnas ── */
-  #page-home .dash-desktop-grid{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    align-items:start;
-  }
-  #page-home .dash-col-left,
-  #page-home .dash-col-right{min-width:0}
+/* 860px block merged into new responsive block */
 
-  /* ── ROADMAP ── */
-  #rsection-goals{padding:12px 24px!important}
-  .domain-card{margin-left:20px;margin-right:20px}
-
-  /* ── COACH ── */
-  .chat-wrap{max-height:calc(100vh - 340px);padding:14px 24px}
-  .suggs{padding:0 24px 8px}
-  .cinrow{padding:10px 24px 16px}
-
-  /* ── FOCUS ── */
-  .focus-timer{margin-left:20px!important;margin-right:20px!important}
-
-  /* ── PROGRESS — 2 columnas ── */
-  #page-journal .jpage{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    column-gap:20px;
-    padding:0 24px 100px;
-    align-items:start;
-  }
-  #page-journal .jpage > div:first-child{grid-column:1/-1}
-  #page-journal .prow{padding:0 0 16px}
-  .jmom,.energy-card,.weekly-card,.peak-report-card,.weekly-tracker{margin-left:0;margin-right:0}
-  #page-journal .section-lbl{padding-left:0}
-
-  /* ── MODALES centrados ── */
-  .profile-modal{align-items:center;padding:20px}
-  .profile-box{border-radius:20px;max-width:480px;width:100%}
-  #onboarding-modal{align-items:center;padding:20px}
-  .ob-box{border-radius:20px;min-height:auto;max-width:480px;width:100%}
-  .goal-modal{align-items:center;padding:20px}
-  .goal-modal-box{border-radius:20px;max-width:480px;width:100%}
-  .decision-modal{align-items:center;padding:20px}
-  .decision-modal-box{border-radius:20px;max-width:480px;width:100%}
-  .domain-modal{align-items:center;padding:20px}
-  .domain-modal-box{border-radius:20px;max-width:480px;width:100%}
-}
-
-@media(min-width:860px){
-  #app-screen{max-width:900px}
-  .app-shell{max-width:900px}
-}
-
+/* Inspire skeleton pulse */
+@keyframes inspirePulse{0%,100%{opacity:.4}50%{opacity:.8}}
+.inspire-skel{animation:inspirePulse 1.4s ease-in-out infinite}
 /* ============================================
-   RESPONSIVE OVERHAUL — Luhv+
-   Mobile-first, scales to desktop gracefully
+   RESPONSIVE — Luhv+  (base is now 100% wide)
+   These media queries ADD constraints as screen grows
    ============================================ */
 
-/* BASE: remove hard 390px constraint */
-#app-screen{max-width:100%!important;width:100%!important}
-.app-shell{max-width:100%!important;width:100%!important}
-body{display:flex;justify-content:center}
-#app-screen{margin:0 auto}
-
-/* Bottom nav: always fixed */
+/* Bottom nav always fixed, centered */
 .bnav{
   position:fixed!important;
-  bottom:0;left:50%;
-  transform:translateX(-50%);
-  width:100%;max-width:100%;
+  bottom:0; left:0; right:0;
+  width:100%; max-width:100%;
   z-index:1000;
   padding-bottom:env(safe-area-inset-bottom,8px)!important;
   box-sizing:border-box;
 }
 .page{padding-bottom:calc(80px + env(safe-area-inset-bottom,0px))!important}
 
-/* Habit matrix scroll on small screens */
+/* Habit matrix scrollable on small screens */
 .weekly-tracker{overflow-x:auto;-webkit-overflow-scrolling:touch}
 .weekly-day-cols{grid-template-columns:repeat(7,1fr)!important}
 
 /* Chat input safe area */
 .cinrow{position:sticky;bottom:0;padding-bottom:env(safe-area-inset-bottom,12px)}
 
-/* Modals full width on mobile */
-.decision-modal-box,.domain-modal-box,.profile-modal-box,.ob-box,.goal-modal-box{
-  max-width:100%!important;box-sizing:border-box
-}
-
 /* ── SMALL MOBILE (<380px) ── */
 @media(max-width:380px){
-  .hero{padding:12px 12px 0!important}
   .top-bar{padding-left:12px!important;padding-right:12px!important}
   .ni .nlbl{font-size:9px}
 }
 
-/* ── TABLET (600px+) ── */
+/* ── TABLET (600px+): center with max-width, 2-col layouts ── */
 @media(min-width:600px){
-  #app-screen{max-width:720px!important}
-  .app-shell{max-width:720px!important}
-  #auth-screen{max-width:460px!important;margin:0 auto}
-  .bnav{max-width:720px!important}
+  #app-screen{max-width:720px;margin:0 auto}
+  .app-shell{max-width:720px}
+  #auth-screen{max-width:480px;margin:0 auto}
+  .bnav{max-width:720px;left:50%;right:auto;transform:translateX(-50%)}
 
   /* Dashboard 2-col */
   #page-home .dash-desktop-grid{
@@ -469,35 +402,32 @@ body{display:flex;justify-content:center}
     grid-template-columns:1fr 1fr;
     column-gap:20px;
     align-items:start;
-    padding:0 4px
   }
   #page-home .dash-col-left,
-  #page-home .dash-col-right{min-width:0;overflow-x:visible}
+  #page-home .dash-col-right{min-width:0}
 
-  /* Inspire/Progress 2-col */
+  /* Inspire 2-col */
   #page-journal .jpage{
     display:grid!important;
     grid-template-columns:1fr 1fr;
     column-gap:20px;
-    align-items:start
+    align-items:start;
   }
   #page-journal .jpage>div:first-child{grid-column:1/-1}
   #page-journal .prow{padding:0 0 16px}
   .jmom,.energy-card,.weekly-card,.peak-report-card,.weekly-tracker{margin-left:0!important;margin-right:0!important}
   #page-journal .section-lbl{padding-left:0}
 
-  /* Modals look better with rounded corners */
-  .profile-box{border-radius:20px;max-width:500px;width:100%}
-  .ob-box{border-radius:20px;min-height:auto;max-width:500px;width:100%}
-  .goal-modal-box{border-radius:20px;max-width:500px;width:100%}
+  /* Modals centered + rounded */
+  .profile-box,.ob-box,.goal-modal-box{border-radius:20px;max-width:500px;width:90%;margin:0 auto}
+  .domain-modal-box{border-radius:20px;max-width:500px}
   .decision-modal{align-items:center;padding:20px}
-  .decision-modal-box{border-radius:20px;max-width:500px;width:100%}
-  .domain-modal-box{border-radius:20px;max-width:500px;width:100%}
+  .decision-modal-box{border-radius:20px;max-width:500px}
 
-  /* Focus: center the timer */
+  /* Focus timer centered */
   .focus-timer{max-width:480px;margin:0 auto!important}
 
-  /* Coach chat wider */
+  /* Coach */
   .chat-wrap{padding:16px 24px}
   .suggs{padding:0 24px 8px}
   .cinrow{padding:10px 24px 16px}
@@ -505,39 +435,30 @@ body{display:flex;justify-content:center}
 
 /* ── LAPTOP (1024px+) ── */
 @media(min-width:1024px){
-  #app-screen{max-width:1080px!important}
-  .app-shell{max-width:1080px!important}
-  .bnav{max-width:1080px!important}
+  #app-screen{max-width:1080px;margin:0 auto}
+  .app-shell{max-width:1080px}
+  .bnav{max-width:1080px}
 
-  /* Dashboard: wider gaps */
-  #page-home .dash-desktop-grid{column-gap:28px;padding:0 8px}
+  #page-home .dash-desktop-grid{column-gap:32px}
 
-  /* Roadmap: more breathing */
   .domain-card{margin-left:0!important;margin-right:0!important}
-  .glist,.hlist{padding:0 4px}
+  .top-bar{padding-left:32px!important;padding-right:32px!important}
 
-  /* Top bar padding */
-  .top-bar{padding-left:28px!important;padding-right:28px!important}
+  .focus-timer{max-width:540px}
 
-  /* Focus: center more */
-  .focus-timer{max-width:520px}
-  #page-focus>div[style*="margin:0 20px"]{margin-left:0!important;margin-right:0!important}
+  .chat-wrap{padding:16px 40px;max-height:calc(100vh - 260px)}
+  .suggs{padding:0 40px 8px}
+  .cinrow{padding:10px 40px 16px}
 
-  /* Coach */
-  .chat-wrap{padding:16px 32px;max-height:calc(100vh - 260px)}
-  .suggs{padding:0 32px 8px}
-  .cinrow{padding:10px 32px 16px}
-
-  /* Inspire/Progress: 3-col variant */
-  #page-journal .jpage{grid-template-columns:1fr 1fr;column-gap:28px;padding:0 8px 100px}
+  #page-journal .jpage{column-gap:28px}
 }
 
 /* ── DESKTOP (1440px+) ── */
 @media(min-width:1440px){
-  #app-screen{max-width:1200px!important}
-  .app-shell{max-width:1200px!important}
-  .bnav{max-width:1200px!important}
-  #page-home .dash-desktop-grid{column-gap:36px}
+  #app-screen{max-width:1200px;margin:0 auto}
+  .app-shell{max-width:1200px}
+  .bnav{max-width:1200px}
+  #page-home .dash-desktop-grid{column-gap:40px}
 }
 /* ═══════════════════════════════════════════════════════ */
 .ob-box{background:linear-gradient(180deg,#0d1520,#080f18);border-radius:28px 28px 0 0;padding:32px 24px 40px;width:100%;max-width:480px;min-height:60vh;display:flex;flex-direction:column}
@@ -574,7 +495,7 @@ body{display:flex;justify-content:center}
 .score-bar-fill{height:100%;border-radius:99px;transition:width .6s}
 .score-bar-val{font-size:11px;font-weight:700;width:28px;text-align:right;flex-shrink:0}
 .goal-modal{position:fixed;inset:0;z-index:999;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.7);padding:20px}
-.goal-modal-box{background:#111827;border:1px solid rgba(14,165,233,.2);border-radius:24px 24px 20px 20px;padding:24px;width:100%;max-width:390px}
+.goal-modal-box{background:#111827;border:1px solid rgba(14,165,233,.2);border-radius:24px 24px 20px 20px;padding:24px;width:100%;max-width:100%;box-sizing:border-box}
 .goal-modal-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;margin-bottom:6px}
 .goal-modal-sub{font-size:13px;color:var(--muted);margin-bottom:18px;line-height:1.5}
 .goal-modal-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;max-height:220px;overflow-y:auto}
@@ -598,7 +519,7 @@ body{display:flex;justify-content:center}
 </div>
 <!-- APP GUIDE MODAL -->
 <div id="guide-modal" style="display:none;position:fixed;inset:0;z-index:1500;background:rgba(0,0,0,.85);display:none;align-items:flex-end;justify-content:center" onclick="closeGuideIfOutside(event)">
-  <div style="background:linear-gradient(180deg,#0d1520,#080f18);border-radius:28px 28px 0 0;padding:28px 24px 40px;width:100%;max-width:390px;max-height:85vh;overflow-y:auto">
+  <div style="background:linear-gradient(180deg,#0d1520,#080f18);border-radius:28px 28px 0 0;padding:28px 24px 40px;width:100%;max-width:100%;max-height:85vh;overflow-y:auto;box-sizing:border-box">
     <div style="width:36px;height:4px;border-radius:99px;background:rgba(255,255,255,.15);margin:0 auto 24px"></div>
     <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px;margin-bottom:4px">HOW TO GET THE MOST</div>
     <div style="font-size:13px;color:var(--muted);margin-bottom:24px">From the book to your daily life — here is how Luhv+ works.</div>
@@ -4075,28 +3996,73 @@ function filterInspirationDomain(domain) {
   loadInspireFeed(domain);
 }
 
-function loadInspireFeed(domain) {
+async function loadInspireFeed(domain) {
   var feed = document.getElementById('inspire-feed');
   if (!feed) return;
   var keywords = inspireDomains[domain] || inspireDomains.all;
-  // Unsplash Source API (free, no key needed for basic use)
+  var UNSPLASH_KEY = 'T4BgRaGzaOJh9wUHhThROIaSUEPIWqcdFoV11vxfGDA';
+
   feed.innerHTML = '';
-  keywords.slice(0,6).forEach(function(kw, i) {
+  for (var s = 0; s < 6; s++) {
+    var skel = document.createElement('div');
+    skel.style.cssText = 'border-radius:14px;aspect-ratio:3/4;background:rgba(255,255,255,.06);';
+    skel.className = 'inspire-skel';
+    feed.appendChild(skel);
+  }
+
+  var promises = keywords.slice(0, 6).map(function(kw) {
+    return fetch('https://api.unsplash.com/photos/random?query=' + encodeURIComponent(kw) + '&orientation=portrait&client_id=' + UNSPLASH_KEY)
+      .then(function(r) { return r.ok ? r.json() : null; })
+      .then(function(d) { return d ? { kw: kw, thumb: d.urls.small, url: d.urls.regular, credit: d.user.name, link: d.links.html } : null; })
+      .catch(function() { return null; });
+  });
+
+  var results = await Promise.all(promises);
+  feed.innerHTML = '';
+
+  results.forEach(function(item) {
+    if (!item) return;
+    var saved = visionBoard.some(function(v) { return v.url === item.url; });
+    var enc = encodeURIComponent(JSON.stringify({kw:item.kw, url:item.url, credit:item.credit}));
     var card = document.createElement('div');
-    card.style.cssText = 'border-radius:14px;overflow:hidden;position:relative;aspect-ratio:3/4;background:rgba(255,255,255,.05);cursor:pointer;';
-    var seed = Date.now() + i;
-    card.innerHTML = '<img src="https://source.unsplash.com/300x400/?' + encodeURIComponent(kw) + '&sig=' + seed + '" style="width:100%;height:100%;object-fit:cover;display:block" loading="lazy" onerror="this.parentElement.style.display=\'none\'">'
-      + '<div style="position:absolute;bottom:0;left:0;right:0;padding:10px;background:linear-gradient(transparent,rgba(0,0,0,.6));font-size:10px;color:rgba(255,255,255,.8);font-weight:600;text-transform:uppercase;letter-spacing:1px">' + kw + '</div>'
-      + '<button onclick="saveToVisionBoard(this,\'' + kw + '\')" style="position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;border:none;background:rgba(0,0,0,.5);color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center">♡</button>';
+    card.style.cssText = 'border-radius:14px;overflow:hidden;position:relative;aspect-ratio:3/4;background:rgba(255,255,255,.05);';
+    card.innerHTML =
+      '<img src="' + item.thumb + '" style="width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s" loading="lazy" onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform=''">'
+      + '<div style="position:absolute;bottom:0;left:0;right:0;padding:10px 10px 8px;background:linear-gradient(transparent,rgba(0,0,0,.72))">'
+      + '<div style="font-size:10px;color:rgba(255,255,255,.9);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px">' + item.kw + '</div>'
+      + '<a href="' + item.link + '?utm_source=luhv_app&utm_medium=referral" target="_blank" style="font-size:9px;color:rgba(255,255,255,.45);text-decoration:none">by ' + item.credit + ' · Unsplash</a>'
+      + '</div>'
+      + '<button onclick="saveToVisionBoard(this,'' + enc + '')" style="position:absolute;top:8px;right:8px;width:32px;height:32px;border-radius:50%;border:none;background:rgba(0,0,0,.55);color:' + (saved?'#f43f5e':'#fff') + ';font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">'
+      + (saved ? '♥' : '♡') + '</button>';
     feed.appendChild(card);
   });
+
+  if (feed.children.length === 0) {
+    feed.innerHTML = '<div style="grid-column:1/-1;padding:24px;text-align:center;color:var(--muted);font-size:13px;border-radius:16px;background:rgba(255,255,255,.03)">No images found for this category.</div>';
+  }
 }
 
-function saveToVisionBoard(btn, keyword) {
-  btn.textContent = '♥';
-  btn.style.color = '#f43f5e';
-  btn.style.background = 'rgba(244,63,94,.2)';
-  showToast('Saved to your vision board ✨');
+var visionBoard = JSON.parse(localStorage.getItem('luhv_vision_board') || '[]');
+
+function saveToVisionBoard(btn, encoded) {
+  var item;
+  try { item = JSON.parse(decodeURIComponent(encoded)); } catch(e) { item = {kw: encoded, url: '', credit: ''}; }
+  var already = visionBoard.findIndex(function(v) { return v.url === item.url; });
+  if (already > -1) {
+    visionBoard.splice(already, 1);
+    btn.textContent = '♡';
+    btn.style.color = '#fff';
+    btn.style.background = 'rgba(0,0,0,.55)';
+    showToast('Removed from vision board');
+  } else {
+    item.savedAt = Date.now();
+    visionBoard.push(item);
+    btn.textContent = '♥';
+    btn.style.color = '#f43f5e';
+    btn.style.background = 'rgba(244,63,94,.35)';
+    showToast('Saved to your vision board ✨');
+  }
+  localStorage.setItem('luhv_vision_board', JSON.stringify(visionBoard));
 }
 
 // Load feed when switching to journal/inspire page

@@ -1,4 +1,4 @@
-<!D<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1181,7 +1181,7 @@ body{background:
     <div class="ni" id="ni-roadmap" onclick="switchPage('roadmap')"><span class="nico">🗺️</span><span class="nlbl">Roadmap</span></div>
     <div class="ni" id="ni-focus" onclick="switchPage('focus')"><span class="nico">⏱️</span><span class="nlbl">Focus</span></div>
     <div class="ni" id="ni-ai" onclick="switchPage('ai')"><span class="nico">⚡</span><span class="nlbl">Coach</span></div>
-    <div class="ni" id="ni-journal" onclick="switchPage('journal')"><span class="nico">✨</span><span class="nlbl">Inspire</span></div>
+    <div class="ni" id="ni-journal" onclick="switchPage('journal');setTimeout(function(){loadInspireFeed(currentInspireDomain)},150);"><span class="nico">✨</span><span class="nlbl">Inspire</span></div>
     </div>
 </div>
 </div>
@@ -1193,6 +1193,9 @@ let USER  = JSON.parse(localStorage.getItem('luhv_user') || 'null');
 let chatHistory = [];
 let allQuotes = [];
 let quoteIdx = 0;
+
+// Wake up Render server immediately on page load (free tier sleeps after 15min)
+fetch('https://luhv.onrender.com/health').catch(() => {});
 
 async function api(path, opts = {}) {
   const res = await fetch(API + path, {
@@ -3899,15 +3902,10 @@ function saveToVisionBoard(btn, encoded) {
 // Load feed when switching to journal/inspire page
 var _origSwitchPage = typeof switchPage === 'function' ? switchPage : null;
 document.addEventListener('DOMContentLoaded', function() {
-  // Patch switchPage to load inspire feed on tab open
-  var orig = window.switchPage;
-  if (orig) {
-    window.switchPage = function(page) {
-      orig(page);
-      if (page === 'journal') {
-        setTimeout(function() { loadInspireFeed(currentInspireDomain); }, 100);
-      }
-    };
+  // Load inspire feed if journal tab is active on load
+  if (document.getElementById('page-journal') && 
+      document.getElementById('page-journal').classList.contains('active')) {
+    setTimeout(function() { loadInspireFeed(currentInspireDomain); }, 300);
   }
 });
 

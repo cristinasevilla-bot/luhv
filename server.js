@@ -674,16 +674,38 @@ app.post('/api/coach/session/reset', auth, coachAuth, async (req, res) => {
 app.post('/api/coach/chat', auth, coachAuth, async (req, res) => {
   const { message, history = [] } = req.body;
 
+  const today = new Date().toISOString().split('T')[0];
   const { rows: [user] }   = await db.query('SELECT name, streak FROM users WHERE id=$1', [req.user.id]);
   const { rows: goals }    = await db.query("SELECT title, progress, target FROM goals WHERE user_id=$1 AND status='active'", [req.user.id]);
+  const { rows: habits }   = await db.query(
+    `SELECT h.name, h.target_type, h.daily_target,
+      CASE WHEN h.target_type='check' THEN (hc.id IS NOT NULL)
+           ELSE (COALESCE(hc.value,0) >= h.daily_target) END as done_today,
+      COALESCE(hc.value, 0) as today_value
+     FROM habits h
+     LEFT JOIN habit_completions hc ON hc.habit_id=h.id AND hc.user_id=$1 AND hc.date=$2
+     WHERE h.user_id=$1 ORDER BY h.created_at`,
+    [req.user.id, today]
+  );
   const { rows: [latest] } = await db.query('SELECT content FROM journal_entries WHERE user_id=$1 ORDER BY created_at DESC LIMIT 1', [req.user.id]);
   const session            = await getActiveSession(req.user.id);
+
+  const habitsSummary = habits.length > 0
+    ? habits.map(h => {
+        const status = h.done_today ? 'done' : (h.target_type === 'count' ? `${h.today_value}/${h.daily_target}` : 'pending');
+        return `${h.name} [${status}]`;
+      }).join(', ')
+    : 'no tasks set yet';
+
+  const doneTasks = habits.filter(h => h.done_today).length;
+  const totalTasks = habits.length;
 
   const userContext = `
 USER CONTEXT:
 - Name: ${user.name}
 - Current streak: ${user.streak} days
 - Active goals: ${goals.map(g => `${g.title} (${Math.round((g.progress / g.target) * 100)}%)`).join(', ') || 'none yet'}
+- Today's tasks (${doneTasks}/${totalTasks} done): ${habitsSummary}
 - Latest journal: "${latest?.content?.slice(0, 120) || 'No entries yet'}"
 `;
 

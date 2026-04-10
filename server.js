@@ -3,10 +3,9 @@ const bcrypt    = require('bcryptjs');
 const jwt       = require('jsonwebtoken');
 const { Pool }  = require('pg');
 const Anthropic = require('@anthropic-ai/sdk');
-const Stripe    = require('stripe');
-
-const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
+// const Stripe = require('stripe'); // STRIPE_DISABLED
+const stripe = null;
+const STRIPE_WEBHOOK_SECRET = null;
 
 // ── TIER CONFIG ───────────────────────────────────────────────────────────────
 const TIERS = {
@@ -379,6 +378,12 @@ ${mode === 'decision' ? 'MODE: Decision alignment check. The user is asking if a
 // ── TIER MIDDLEWARE ───────────────────────────────────────────────────────────
 // Checks coach access and deducts tokens per request
 const coachAuth = async (req, res, next) => {
+  // STRIPE_DISABLED — all users get full coach access until payments are live
+  req.userTier = 'pro';
+  req.tokenBalance = 999999;
+  next();
+  return;
+
   const { rows: [user] } = await db.query(
     'SELECT tier, token_balance, stripe_customer_id FROM users WHERE id=$1', [req.user.id]
   );
@@ -1728,6 +1733,8 @@ app.get('/api/billing/status', auth, async (req, res) => {
 
 // Create checkout session for subscription upgrade
 app.post('/api/billing/subscribe', auth, async (req, res) => {
+  // STRIPE_DISABLED — return coming soon
+  return res.json({ checkout_url: null, message: 'Payments coming soon' });
   try {
     const { tier } = req.body;
     if (!TIERS[tier]) return res.status(400).json({ error: 'Invalid tier' });
@@ -1761,6 +1768,8 @@ app.post('/api/billing/subscribe', auth, async (req, res) => {
 
 // Create checkout session for token pack purchase
 app.post('/api/billing/buy-tokens', auth, async (req, res) => {
+  // STRIPE_DISABLED
+  return res.json({ checkout_url: null, message: 'Payments coming soon' });
   try {
     const { pack_id } = req.body;
     const pack = TOKEN_PACKS.find(p => p.id === pack_id);
@@ -1794,6 +1803,8 @@ app.post('/api/billing/buy-tokens', auth, async (req, res) => {
 
 // Stripe webhook — handles subscription activated + token purchases
 app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  // STRIPE_DISABLED
+  return res.json({ received: true });
   let event;
   try {
     event = stripe.webhooks.constructEvent(req.body, req.headers['stripe-signature'], STRIPE_WEBHOOK_SECRET);
@@ -1861,6 +1872,8 @@ app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), asyn
 
 // Cancel subscription
 app.post('/api/billing/cancel', auth, async (req, res) => {
+  // STRIPE_DISABLED
+  return res.json({ success: false, message: 'Payments coming soon' });
   try {
     const { rows: [user] } = await db.query('SELECT stripe_subscription_id FROM users WHERE id=$1', [req.user.id]);
     if (!user.stripe_subscription_id) return res.status(400).json({ error: 'No active subscription' });

@@ -3,6 +3,34 @@ const bcrypt    = require('bcryptjs');
 const jwt       = require('jsonwebtoken');
 const { Pool }  = require('pg');
 const Anthropic = require('@anthropic-ai/sdk');
+const Stripe    = require('stripe');
+
+const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
+
+// ── TIER CONFIG ───────────────────────────────────────────────────────────────
+const TIERS = {
+  basic: {
+    name: 'Basic',
+    price_id: process.env.STRIPE_PRICE_BASIC,   // $9.97/mo
+    monthly_tokens: 0,                           // no coach
+    coach_access: false
+  },
+  pro: {
+    name: 'Pro',
+    price_id: process.env.STRIPE_PRICE_PRO,     // $19.97/mo
+    monthly_tokens: 400000,                      // ~$4 worth @ claude-sonnet pricing
+    coach_access: true
+  }
+};
+
+// Token pack options (credits_usd = what user gets, price_usd = what they pay)
+const TOKEN_PACKS = [
+  { id: 'pack_5',  price_usd: 5,  credits_usd: 4,  tokens: 500000,  stripe_price: process.env.STRIPE_PRICE_PACK5  },
+  { id: 'pack_10', price_usd: 10, credits_usd: 8,  tokens: 1000000, stripe_price: process.env.STRIPE_PRICE_PACK10 },
+  { id: 'pack_20', price_usd: 20, credits_usd: 17, tokens: 2000000, stripe_price: process.env.STRIPE_PRICE_PACK20 },
+  { id: 'pack_50', price_usd: 50, credits_usd: 44, tokens: 5000000, stripe_price: process.env.STRIPE_PRICE_PACK50 },
+];
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
@@ -348,6 +376,44 @@ ${mode === 'intention' ? 'MODE: Daily intention validation. The user is declarin
 ${mode === 'decision' ? 'MODE: Decision alignment check. The user is asking if a specific choice is aligned with their vision. Use the ALIGNMENT CHECK RULES above. Be direct, be specific, cite only real data from their profile or the KB.' : ''}
 `;
 
+// ── TIER MIDDLEWARE ───────────────────────────────────────────────────────────
+// Checks coach access and deducts tokens per request
+const coachAuth = async (req, res, next) => {
+  const { rows: [user] } = await db.query(
+    'SELECT tier, token_balance, stripe_customer_id FROM users WHERE id=$1', [req.user.id]
+  );
+  if (!user) return res.status(401).json({ error: 'User not found' });
+
+  const tier = user.tier || 'basic';
+  if (!TIERS[tier]?.coach_access) {
+    return res.status(403).json({
+      error: 'upgrade_required',
+      message: 'Coach access requires Pro plan.',
+      upgrade_url: '/upgrade'
+    });
+  }
+  if ((user.token_balance || 0) <= 0) {
+    return res.status(403).json({
+      error: 'tokens_exhausted',
+      message: 'You have used all your Coach tokens this month.',
+      token_packs: TOKEN_PACKS.map(p => ({ id: p.id, price_usd: p.price_usd, credits_usd: p.credits_usd }))
+    });
+  }
+  req.userTier = tier;
+  req.tokenBalance = user.token_balance;
+  next();
+};
+
+// Deduct tokens after a coach call (call with actual usage from Anthropic response)
+async function deductTokens(userId, inputTokens, outputTokens) {
+  // Sonnet pricing: $3/M input, $15/M output — we track raw tokens
+  const total = inputTokens + outputTokens;
+  await db.query(
+    'UPDATE users SET token_balance = GREATEST(0, token_balance - $1) WHERE id=$2',
+    [total, userId]
+  );
+}
+
 // ── HELPER: Get or create active session ──────────────────────────────────────
 async function getActiveSession(userId) {
   const { rows } = await db.query(
@@ -392,7 +458,7 @@ async function updateSession(sessionId, updates) {
 // Body: { message?: string }  empty on first call to get the welcome question
 // Returns: { question, phase, step, progress, isComplete, sessionId }
 
-app.post('/api/coach/session', auth, async (req, res) => {
+app.post('/api/coach/session', auth, coachAuth, async (req, res) => {
   try {
     const { message } = req.body;
     const { rows: [user] } = await db.query(
@@ -587,7 +653,7 @@ app.get('/api/coach/session', auth, async (req, res) => {
 });
 
 // ── RESET SESSION (start fresh) ───────────────────────────────────────────────
-app.post('/api/coach/session/reset', auth, async (req, res) => {
+app.post('/api/coach/session/reset', auth, coachAuth, async (req, res) => {
   try {
     await db.query(
       'UPDATE coach_sessions SET completed = true WHERE user_id = $1 AND completed = false',
@@ -600,7 +666,7 @@ app.post('/api/coach/session/reset', auth, async (req, res) => {
 });
 
 // ── FREE CHAT (enriched with session context) ─────────────────────────────────
-app.post('/api/coach/chat', auth, async (req, res) => {
+app.post('/api/coach/chat', auth, coachAuth, async (req, res) => {
   const { message, history = [] } = req.body;
 
   const { rows: [user] }   = await db.query('SELECT name, streak FROM users WHERE id=$1', [req.user.id]);
@@ -641,7 +707,12 @@ COACHING SESSION CONTEXT:
       [req.user.id, 'user', message, 'assistant', reply]
     );
 
-    res.json({ reply });
+    // Deduct tokens used
+    const usage = response.usage;
+    await deductTokens(req.user.id, usage.input_tokens, usage.output_tokens);
+    const { rows: [updated] } = await db.query('SELECT token_balance FROM users WHERE id=$1', [req.user.id]);
+
+    res.json({ reply, token_balance: updated.token_balance });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Coach is temporarily unavailable' });
@@ -1628,6 +1699,175 @@ app.post('/api/onboarding/complete', auth, async (req, res) => {
   } catch(e) {
     console.error('Onboarding error:', e);
     res.status(500).json({ error: 'Could not complete onboarding' });
+  }
+});
+
+
+// ── SUBSCRIPTION & BILLING ────────────────────────────────────────────────────
+
+// Get current tier + token balance
+app.get('/api/billing/status', auth, async (req, res) => {
+  try {
+    const { rows: [user] } = await db.query(
+      'SELECT tier, token_balance, stripe_customer_id, billing_period_end FROM users WHERE id=$1',
+      [req.user.id]
+    );
+    const tier = user.tier || 'basic';
+    res.json({
+      tier,
+      tier_name: TIERS[tier]?.name || 'Basic',
+      coach_access: TIERS[tier]?.coach_access || false,
+      token_balance: user.token_balance || 0,
+      billing_period_end: user.billing_period_end,
+      token_packs: TOKEN_PACKS.map(p => ({ id: p.id, price_usd: p.price_usd, credits_usd: p.credits_usd, tokens: p.tokens }))
+    });
+  } catch(e) {
+    res.status(500).json({ error: 'Could not fetch billing status' });
+  }
+});
+
+// Create checkout session for subscription upgrade
+app.post('/api/billing/subscribe', auth, async (req, res) => {
+  try {
+    const { tier } = req.body;
+    if (!TIERS[tier]) return res.status(400).json({ error: 'Invalid tier' });
+
+    const { rows: [user] } = await db.query('SELECT email, name, stripe_customer_id FROM users WHERE id=$1', [req.user.id]);
+
+    // Create or reuse Stripe customer
+    let customerId = user.stripe_customer_id;
+    if (!customerId) {
+      const customer = await stripe.customers.create({ email: user.email, name: user.name, metadata: { user_id: req.user.id } });
+      customerId = customer.id;
+      await db.query('UPDATE users SET stripe_customer_id=$1 WHERE id=$2', [customerId, req.user.id]);
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      mode: 'subscription',
+      payment_method_types: ['card'],
+      line_items: [{ price: TIERS[tier].price_id, quantity: 1 }],
+      success_url: process.env.APP_URL + '?upgraded=1',
+      cancel_url: process.env.APP_URL + '?upgrade_cancelled=1',
+      metadata: { user_id: req.user.id, tier }
+    });
+
+    res.json({ checkout_url: session.url });
+  } catch(e) {
+    console.error('Subscribe error:', e);
+    res.status(500).json({ error: 'Could not create checkout session' });
+  }
+});
+
+// Create checkout session for token pack purchase
+app.post('/api/billing/buy-tokens', auth, async (req, res) => {
+  try {
+    const { pack_id } = req.body;
+    const pack = TOKEN_PACKS.find(p => p.id === pack_id);
+    if (!pack) return res.status(400).json({ error: 'Invalid pack' });
+
+    const { rows: [user] } = await db.query('SELECT email, name, stripe_customer_id FROM users WHERE id=$1', [req.user.id]);
+
+    let customerId = user.stripe_customer_id;
+    if (!customerId) {
+      const customer = await stripe.customers.create({ email: user.email, name: user.name, metadata: { user_id: req.user.id } });
+      customerId = customer.id;
+      await db.query('UPDATE users SET stripe_customer_id=$1 WHERE id=$2', [customerId, req.user.id]);
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      mode: 'payment',
+      payment_method_types: ['card'],
+      line_items: [{ price: pack.stripe_price, quantity: 1 }],
+      success_url: process.env.APP_URL + '?tokens_purchased=1',
+      cancel_url: process.env.APP_URL + '?purchase_cancelled=1',
+      metadata: { user_id: req.user.id, pack_id, tokens: pack.tokens }
+    });
+
+    res.json({ checkout_url: session.url });
+  } catch(e) {
+    console.error('Buy tokens error:', e);
+    res.status(500).json({ error: 'Could not create token purchase session' });
+  }
+});
+
+// Stripe webhook — handles subscription activated + token purchases
+app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(req.body, req.headers['stripe-signature'], STRIPE_WEBHOOK_SECRET);
+  } catch(e) {
+    console.error('Webhook signature error:', e.message);
+    return res.status(400).send('Webhook Error');
+  }
+
+  try {
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object;
+      const userId = session.metadata.user_id;
+
+      if (session.mode === 'subscription') {
+        // Subscription activated — upgrade tier and give monthly tokens
+        const tier = session.metadata.tier;
+        const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+        await db.query(
+          'UPDATE users SET tier=$1, token_balance=$2, billing_period_end=$3, stripe_subscription_id=$4 WHERE id=$5',
+          [tier, TIERS[tier].monthly_tokens, periodEnd.toISOString(), session.subscription, userId]
+        );
+        console.log(`User ${userId} upgraded to ${tier}`);
+
+      } else if (session.mode === 'payment') {
+        // Token pack purchased — add tokens
+        const tokens = parseInt(session.metadata.tokens);
+        await db.query(
+          'UPDATE users SET token_balance = token_balance + $1 WHERE id=$2',
+          [tokens, userId]
+        );
+        console.log(`User ${userId} bought ${tokens} tokens`);
+      }
+    }
+
+    if (event.type === 'invoice.paid') {
+      // Monthly renewal — reset token balance
+      const invoice = event.data.object;
+      const customerId = invoice.customer;
+      const { rows: [user] } = await db.query('SELECT id, tier FROM users WHERE stripe_customer_id=$1', [customerId]);
+      if (user && TIERS[user.tier]) {
+        const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+        await db.query(
+          'UPDATE users SET token_balance=$1, billing_period_end=$2 WHERE id=$3',
+          [TIERS[user.tier].monthly_tokens, periodEnd.toISOString(), user.id]
+        );
+        console.log(`Monthly renewal for user ${user.id} — tokens reset`);
+      }
+    }
+
+    if (event.type === 'customer.subscription.deleted') {
+      // Subscription cancelled — downgrade to basic
+      const sub = event.data.object;
+      await db.query(
+        'UPDATE users SET tier=$1, token_balance=0 WHERE stripe_subscription_id=$2',
+        ['basic', sub.id]
+      );
+    }
+
+  } catch(e) {
+    console.error('Webhook processing error:', e);
+  }
+
+  res.json({ received: true });
+});
+
+// Cancel subscription
+app.post('/api/billing/cancel', auth, async (req, res) => {
+  try {
+    const { rows: [user] } = await db.query('SELECT stripe_subscription_id FROM users WHERE id=$1', [req.user.id]);
+    if (!user.stripe_subscription_id) return res.status(400).json({ error: 'No active subscription' });
+    await stripe.subscriptions.update(user.stripe_subscription_id, { cancel_at_period_end: true });
+    res.json({ success: true, message: 'Subscription will cancel at end of billing period.' });
+  } catch(e) {
+    res.status(500).json({ error: 'Could not cancel subscription' });
   }
 });
 

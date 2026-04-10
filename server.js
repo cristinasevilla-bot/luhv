@@ -775,37 +775,19 @@ app.delete('/api/quotes/:id', auth, async (req, res) => {
 });
 
 
-// ── STREAK HELPER — one increment per day, resets if day missed ──────────────
 async function updateUserStreak(userId) {
   const { rows: [user] } = await db.query(
     'SELECT streak, last_streak_date FROM users WHERE id=$1', [userId]
   );
   if (!user) return;
-
   const today = new Date().toISOString().split('T')[0];
-  const lastDate = user.last_streak_date
-    ? new Date(user.last_streak_date).toISOString().split('T')[0]
-    : null;
-
-  if (lastDate === today) return; // already counted today
-
+  const lastDate = user.last_streak_date ? new Date(user.last_streak_date).toISOString().split('T')[0] : null;
+  if (lastDate === today) return;
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
   const yStr = yesterday.toISOString().split('T')[0];
-
-  let newStreak;
-  if (lastDate === yStr) {
-    // Consecutive day — increment
-    newStreak = (user.streak || 0) + 1;
-  } else {
-    // Gap or first time — reset to 1
-    newStreak = 1;
-  }
-
-  await db.query(
-    'UPDATE users SET streak=$1, last_streak_date=$2 WHERE id=$3',
-    [newStreak, today, userId]
-  );
+  const newStreak = lastDate === yStr ? (user.streak || 0) + 1 : 1;
+  await db.query('UPDATE users SET streak=$1, last_streak_date=$2 WHERE id=$3', [newStreak, today, userId]);
 }
 
 // ── HABITS ────────────────────────────────────────────────────────────────────
@@ -1720,20 +1702,10 @@ app.post('/api/onboarding/complete', auth, async (req, res) => {
     if (data.goal_90days && data.goal_90days.trim().length > 3) {
       const deadline = new Date();
       deadline.setDate(deadline.getDate() + 90);
-      // Ensure columns exist (run once in Supabase):
-      // ALTER TABLE goals ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'Business';
-      // ALTER TABLE goals ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active';
       try {
-        await db.query(
-          "INSERT INTO goals (user_id, title, progress, target, deadline, category, status) VALUES ($1,$2,0,100,$3,'Business','active')",
-          [req.user.id, data.goal_90days.trim(), deadline.toISOString().split('T')[0]]
-        );
-      } catch(goalErr) {
-        // Fallback without category/status if columns don't exist yet
-        await db.query(
-          'INSERT INTO goals (user_id, title, progress, target, deadline) VALUES ($1,$2,0,100,$3)',
-          [req.user.id, data.goal_90days.trim(), deadline.toISOString().split('T')[0]]
-        );
+        await db.query("INSERT INTO goals (user_id, title, progress, target, deadline, category, status) VALUES ($1,$2,0,100,$3,'Business','active')", [req.user.id, data.goal_90days.trim(), deadline.toISOString().split('T')[0]]);
+      } catch(ge) {
+        await db.query('INSERT INTO goals (user_id, title, progress, target, deadline) VALUES ($1,$2,0,100,$3)', [req.user.id, data.goal_90days.trim(), deadline.toISOString().split('T')[0]]);
       }
     }
     const name = data.name || 'Champion';
@@ -1752,68 +1724,6 @@ app.post('/api/onboarding/complete', auth, async (req, res) => {
   }
 });
 
-
-
-// ── SMART TASK SUGGESTIONS ────────────────────────────────────────────────────
-// POST /api/goals/suggest-tasks
-// Body: { goal: "3 new clients this month" }
-// Returns: { tasks: [{ name, icon, target, time }] }
-app.post('/api/goals/suggest-tasks', auth, async (req, res) => {
-  const { goal } = req.body;
-  if (!goal?.trim()) return res.status(400).json({ error: 'Goal required' });
-
-  const { rows: [user] } = await db.query('SELECT name FROM users WHERE id=$1', [req.user.id]);
-
-  const prompt = `A user's goal is: "${goal}"
-
-Generate 3-5 concrete daily tasks that will directly help them achieve this goal.
-For each task, think about realistic conversion rates, daily minimums, or measurable targets.
-
-Examples of good task logic:
-- "Get 3 new clients" → outreach 10 people/day (10% conversion = 1 client per 10 days)
-- "Drink more water" → 6 glasses/day, scheduled at 9am, 1pm, 6pm
-- "Lose 5kg" → 30min exercise daily + track meals
-- "Save $500/month" → log every expense daily + cut 1 subscription/week
-- "Read more" → 20 pages/day before bed
-
-Respond ONLY with a valid JSON array, no markdown, no explanation. Format:
-[
-  { "name": "task name (specific and actionable)", "icon": "emoji", "target": 6, "time": "9:00 AM" },
-  { "name": "task name", "icon": "emoji", "target": null, "time": null }
-]
-
-Rules:
-- target = number (for countable tasks like glasses of water, pages, outreach calls) or null (for yes/no tasks)
-- time = suggested time string or null
-- icon = single relevant emoji
-- name = max 50 chars, starts with a verb
-- 3-5 tasks max, most impactful ones only`;
-
-  try {
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 600,
-      system: 'You are a productivity coach. You generate JSON arrays of daily tasks. Return ONLY valid JSON, no markdown, no explanation.',
-      messages: [{ role: 'user', content: prompt }]
-    });
-
-    let tasks = [];
-    try {
-      const raw = response.content[0].text.trim();
-      const clean = raw.replace(/```json|```/g, '').trim();
-      tasks = JSON.parse(clean);
-      if (!Array.isArray(tasks)) tasks = [];
-    } catch(e) {
-      console.error('Task parse error:', e.message);
-      return res.status(500).json({ error: 'Could not parse task suggestions' });
-    }
-
-    res.json({ tasks: tasks.slice(0, 5) });
-  } catch(e) {
-    console.error('Suggest tasks error:', e);
-    res.status(500).json({ error: 'Could not generate task suggestions' });
-  }
-});
 
 // ── SUBSCRIPTION & BILLING ────────────────────────────────────────────────────
 
@@ -1992,68 +1902,81 @@ app.post('/api/billing/cancel', auth, async (req, res) => {
 });
 
 
-// ── CHAT EXPORT ───────────────────────────────────────────────────────────────
-app.get('/api/coach/export', auth, async (req, res) => {
+// ── SMART TASK SUGGESTIONS ────────────────────────────────────────────────────
+app.post('/api/goals/suggest-tasks', auth, async (req, res) => {
+  const { goal } = req.body;
+  if (!goal?.trim()) return res.status(400).json({ error: 'Goal required' });
   try {
-    const { rows } = await db.query(
-      'SELECT role, content, created_at FROM conversations WHERE user_id=$1 ORDER BY created_at ASC',
-      [req.user.id]
-    );
-    const { rows: [user] } = await db.query('SELECT name FROM users WHERE id=$1', [req.user.id]);
-
-    let text = `LUHV+ COACH CONVERSATION\n`;
-    text += `User: ${user.name}\n`;
-    text += `Exported: ${new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' })}\n`;
-    text += `${'─'.repeat(40)}\n\n`;
-
-    rows.forEach(msg => {
-      const time = new Date(msg.created_at).toLocaleString('en-US', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
-      const label = msg.role === 'user' ? `YOU (${time})` : `COACH (${time})`;
-      text += `${label}\n${msg.content}\n\n`;
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 600,
+      system: 'You are a productivity coach. Return ONLY a valid JSON array, no markdown.',
+      messages: [{ role: 'user', content: `Goal: "${goal}". Generate 3-5 daily tasks to achieve it. Each task: { "name": "verb + action (max 50 chars)", "icon": "emoji", "target": number_or_null, "time": "HH:MM AM/PM or null" }. For countable things (calls, glasses, pages) set target. Think about realistic daily minimums.` }]
     });
-
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="luhv-coach-${new Date().toISOString().split('T')[0]}.txt"`);
-    res.send(text);
+    let tasks = [];
+    try {
+      const raw = response.content[0].text.replace(/\`\`\`json|\`\`\`/g, '').trim();
+      tasks = JSON.parse(raw);
+      if (!Array.isArray(tasks)) tasks = [];
+    } catch(e) { return res.status(500).json({ error: 'Parse error' }); }
+    res.json({ tasks: tasks.slice(0, 5) });
   } catch(e) {
-    res.status(500).json({ error: 'Could not export chat' });
+    console.error('Suggest tasks error:', e);
+    res.status(500).json({ error: 'Could not generate suggestions' });
   }
 });
 
-app.get('/health', (_, res) => res.json({ status: 'ok', service: 'Luhv+ API' }));
+// ── CHAT EXPORT ───────────────────────────────────────────────────────────────
+app.get('/api/coach/export', auth, async (req, res) => {
+  try {
+    const { rows } = await db.query('SELECT role, content, created_at FROM conversations WHERE user_id=$1 ORDER BY created_at ASC', [req.user.id]);
+    const { rows: [user] } = await db.query('SELECT name FROM users WHERE id=$1', [req.user.id]);
+    let text = 'LUHV+ COACH CONVERSATION\n';
+    text += 'User: ' + user.name + '\n';
+    text += 'Exported: ' + new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' }) + '\n';
+    text += '---\n\n';
+    rows.forEach(msg => {
+      const time = new Date(msg.created_at).toLocaleString('en-US', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+      text += (msg.role === 'user' ? 'YOU' : 'COACH') + ' (' + time + ')\n' + msg.content + '\n\n';
+    });
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="luhv-coach-' + new Date().toISOString().split('T')[0] + '.txt"');
+    res.send(text);
+  } catch(e) { res.status(500).json({ error: 'Export failed' }); }
+});
 
-
-// ── STARTUP DB MIGRATIONS (safe, idempotent) ─────────────────────────────────
+// ── STARTUP MIGRATIONS ────────────────────────────────────────────────────────
 async function runMigrations() {
   const migrations = [
-    `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_streak_date DATE`,
-    `ALTER TABLE users ADD COLUMN IF NOT EXISTS tier TEXT DEFAULT 'basic'`,
-    `ALTER TABLE users ADD COLUMN IF NOT EXISTS token_balance INTEGER DEFAULT 0`,
-    `ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT`,
-    `ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT`,
-    `ALTER TABLE users ADD COLUMN IF NOT EXISTS billing_period_end TIMESTAMPTZ`,
-    `ALTER TABLE goals ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'Business'`,
-    `ALTER TABLE goals ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active'`,
-    `ALTER TABLE habits ADD COLUMN IF NOT EXISTS target_type TEXT DEFAULT 'check'`,
-    `ALTER TABLE habits ADD COLUMN IF NOT EXISTS daily_target INTEGER DEFAULT 1`,
-    `ALTER TABLE journal_entries ADD COLUMN IF NOT EXISTS energy_level INTEGER`,
-    `ALTER TABLE habit_completions ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ DEFAULT NOW()`,
+    'ALTER TABLE users ADD COLUMN IF NOT EXISTS last_streak_date DATE',
+    'ALTER TABLE users ADD COLUMN IF NOT EXISTS tier TEXT DEFAULT 'basic'',
+    'ALTER TABLE users ADD COLUMN IF NOT EXISTS token_balance INTEGER DEFAULT 0',
+    'ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT',
+    'ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT',
+    'ALTER TABLE users ADD COLUMN IF NOT EXISTS billing_period_end TIMESTAMPTZ',
+    'ALTER TABLE goals ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'Business'',
+    'ALTER TABLE goals ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active'',
+    'ALTER TABLE habits ADD COLUMN IF NOT EXISTS target_type TEXT DEFAULT 'check'',
+    'ALTER TABLE habits ADD COLUMN IF NOT EXISTS daily_target INTEGER DEFAULT 1',
+    'ALTER TABLE journal_entries ADD COLUMN IF NOT EXISTS energy_level INTEGER',
+    'ALTER TABLE habit_completions ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ DEFAULT NOW()',
     `CREATE TABLE IF NOT EXISTS energy_logs (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, level INTEGER NOT NULL CHECK (level BETWEEN 1 AND 5), note TEXT, logged_at TIMESTAMPTZ DEFAULT NOW())`,
     `CREATE TABLE IF NOT EXISTS daily_intentions (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, intention TEXT NOT NULL, coach_reply TEXT, alignment TEXT, date DATE NOT NULL DEFAULT CURRENT_DATE, created_at TIMESTAMPTZ DEFAULT NOW())`,
-    `CREATE UNIQUE INDEX IF NOT EXISTS daily_intentions_user_date ON daily_intentions (user_id, date)`,
+    'CREATE UNIQUE INDEX IF NOT EXISTS daily_intentions_user_date ON daily_intentions (user_id, date)',
     `CREATE TABLE IF NOT EXISTS decision_log (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, decision TEXT NOT NULL, context TEXT, coach_reply TEXT, alignment TEXT, foundation TEXT, created_at TIMESTAMPTZ DEFAULT NOW())`,
     `CREATE TABLE IF NOT EXISTS coach_sessions (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, phase TEXT NOT NULL DEFAULT 'mindset_checkin', phase_index INTEGER NOT NULL DEFAULT 0, responses JSONB NOT NULL DEFAULT '{}', lens TEXT, completed BOOLEAN NOT NULL DEFAULT false, created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW())`,
-    `CREATE TABLE IF NOT EXISTS life_domains (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, name TEXT NOT NULL, icon TEXT DEFAULT '⚡', color TEXT DEFAULT '#0ea5e9', domain_type TEXT DEFAULT 'custom', created_at TIMESTAMPTZ DEFAULT NOW())`,
-    `CREATE TABLE IF NOT EXISTS domain_metrics (id SERIAL PRIMARY KEY, domain_id INTEGER REFERENCES life_domains(id) ON DELETE CASCADE, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, name TEXT NOT NULL, metric_type TEXT DEFAULT 'number', unit TEXT DEFAULT '', target NUMERIC, current_value NUMERIC DEFAULT 0, period TEXT DEFAULT 'monthly', updated_at TIMESTAMPTZ DEFAULT NOW(), created_at TIMESTAMPTZ DEFAULT NOW())`,
+    `CREATE TABLE IF NOT EXISTS life_domains (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, name TEXT NOT NULL, icon TEXT DEFAULT '?', color TEXT DEFAULT '#0ea5e9', domain_type TEXT DEFAULT 'custom', created_at TIMESTAMPTZ DEFAULT NOW())`,
+    `CREATE TABLE IF NOT EXISTS domain_metrics (id SERIAL PRIMARY KEY, domain_id INTEGER REFERENCES life_domains(id) ON DELETE CASCADE, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, name TEXT NOT NULL, metric_type TEXT DEFAULT 'number', unit TEXT, target NUMERIC, current_value NUMERIC DEFAULT 0, period TEXT DEFAULT 'monthly', updated_at TIMESTAMPTZ DEFAULT NOW(), created_at TIMESTAMPTZ DEFAULT NOW())`,
     `CREATE TABLE IF NOT EXISTS domain_metric_logs (id SERIAL PRIMARY KEY, metric_id INTEGER, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, value NUMERIC NOT NULL, note TEXT, logged_at TIMESTAMPTZ DEFAULT NOW())`,
   ];
   for (const sql of migrations) {
-    try { await db.query(sql); } catch(e) { console.warn('Migration skipped:', sql.slice(0,60), e.message); }
+    try { await db.query(sql); } catch(e) { console.warn('Migration warning:', sql.slice(0,50), e.message); }
   }
-  console.log('✅ Migrations complete');
+  console.log('Migrations complete');
 }
 
-// Run migrations then start server
+app.get('/health', (_, res) => res.json({ status: 'ok', service: 'Luhv+ API' }));
+
 runMigrations().then(() => {
-  app.listen(PORT, '0.0.0.0', () => console.log(`🏆 Luhv+ API running on port ${PORT}`));
+  app.listen(PORT, '0.0.0.0', () => console.log('Luhv+ API running on port ' + PORT));
 });

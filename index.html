@@ -1056,7 +1056,7 @@ body{background:
   </div>
 
   <!-- AI COACH -->
-  <div class="page" id="page-ai">
+  <div class="page" id="page-ai" style="position:relative">
     <div style="position:relative;height:160px;overflow:hidden;flex-shrink:0">
       <img src="https://ggfvluqiwcnhbmetxxao.supabase.co/storage/v1/object/public/coach/coach.png" alt="Coach" style="width:100%;height:100%;object-fit:cover;object-position:center 15%">
       <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.1) 0%,rgba(10,10,15,.95) 100%)"></div>
@@ -1068,7 +1068,13 @@ body{background:
         <button onclick="switchPage('home')" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(14,165,233,.4);background:rgba(14,165,233,.15);color:var(--blue);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">✕</button>
       </div>
     </div>
-    <div class="chat-wrap" id="chat-msgs">
+    <div id="coach-upgrade-gate" style="display:none;position:absolute;inset:0;z-index:10;flex-direction:column;align-items:center;justify-content:center;background:rgba(8,12,18,.92);padding:24px;text-align:center">
+    <div style="font-size:32px;margin-bottom:12px">🔒</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;margin-bottom:8px">COACH IS PRO</div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:20px;max-width:260px">Upgrade to Pro to unlock your AI coach, decision check and weekly reviews.</div>
+    <button onclick="openPaywall('upgrade')" style="padding:13px 28px;border:none;border-radius:14px;background:linear-gradient(135deg,var(--purple),var(--blue));color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:'DM Sans',sans-serif">Upgrade to Pro 🚀</button>
+  </div>
+<div class="chat-wrap" id="chat-msgs">
       <div class="msg a">
         <div class="albl">Coach</div>
         <div class="mb" id="welcome-msg">Let’s move one goal forward today. Tell Coach where you feel stuck, what you want to improve, or what your next step should be.</div>
@@ -1176,6 +1182,31 @@ body{background:
     </div>
   </div>
 
+
+<!-- UPGRADE PAYWALL MODAL -->
+<div id="paywall-modal" style="display:none;position:fixed;inset:0;z-index:3000;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.92);padding:0">
+  <div style="background:linear-gradient(180deg,#0d1520,#080f18);border-radius:28px 28px 0 0;padding:28px 24px 48px;width:100%;max-width:100%;box-sizing:border-box;max-height:90vh;overflow-y:auto">
+    <div style="width:36px;height:4px;border-radius:99px;background:rgba(255,255,255,.15);margin:0 auto 24px"></div>
+    <div id="paywall-content">
+      <!-- filled by JS -->
+    </div>
+    <button onclick="closePaywall()" style="width:100%;padding:14px;border:1px solid rgba(255,255,255,.1);border-radius:14px;background:transparent;color:var(--muted);font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:12px">Maybe later</button>
+  </div>
+</div>
+
+<!-- TOKEN SHOP MODAL -->
+<div id="token-shop-modal" style="display:none;position:fixed;inset:0;z-index:3000;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.92);padding:0">
+  <div style="background:linear-gradient(180deg,#0d1520,#080f18);border-radius:28px 28px 0 0;padding:28px 24px 48px;width:100%;max-width:100%;box-sizing:border-box">
+    <div style="width:36px;height:4px;border-radius:99px;background:rgba(255,255,255,.15);margin:0 auto 20px"></div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;margin-bottom:4px">REFILL YOUR COACH</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.5">You've used all your monthly tokens. Top up to keep coaching.</div>
+    <div id="token-packs-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:8px">
+      <!-- filled by JS -->
+    </div>
+    <button onclick="closeTokenShop()" style="width:100%;padding:14px;border:1px solid rgba(255,255,255,.1);border-radius:14px;background:transparent;color:var(--muted);font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:12px">Cancel</button>
+  </div>
+</div>
+
 <div class="bnav">
     <div class="ni active" id="ni-home" onclick="switchPage('home')"><span class="nico">📊</span><span class="nlbl">Dashboard</span></div>
     <div class="ni" id="ni-roadmap" onclick="switchPage('roadmap')"><span class="nico">🗺️</span><span class="nlbl">Roadmap</span></div>
@@ -1196,6 +1227,152 @@ let quoteIdx = 0;
 
 // Wake up Render server immediately on page load (free tier sleeps after 15min)
 fetch('https://luhv.onrender.com/health').catch(() => {});
+
+
+// ── TIER & BILLING ─────────────────────────────────────────────────────────
+var userTier = 'basic';
+var tokenBalance = 0;
+var tokenPacks = [];
+
+async function loadBillingStatus() {
+  try {
+    const data = await api('/api/billing/status');
+    if (!data) return;
+    userTier = data.tier || 'basic';
+    tokenBalance = data.token_balance || 0;
+    tokenPacks = data.token_packs || [];
+    updateTierUI();
+    // Check URL params for post-Stripe redirect
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('upgraded') === '1') {
+      showToast('Welcome to Pro! 🏆 Your coach is ready.');
+      window.history.replaceState({}, '', '/');
+    }
+    if (params.get('tokens_purchased') === '1') {
+      showToast('Tokens added! Keep going 🔥');
+      window.history.replaceState({}, '', '/');
+    }
+  } catch(e) { console.warn('Billing status unavailable'); }
+}
+
+function updateTierUI() {
+  // Show token balance in profile
+  var balEl = document.getElementById('token-balance-display');
+  if (balEl) {
+    var pct = Math.round((tokenBalance / 400000) * 100);
+    balEl.textContent = userTier === 'pro'
+      ? (pct + '% coach tokens remaining this month')
+      : 'Basic plan — upgrade for coach access';
+  }
+  // Show/hide upgrade banner on coach page
+  var coachGate = document.getElementById('coach-upgrade-gate');
+  var coachChat = document.getElementById('chat-msgs');
+  var coachInput = document.querySelector('.cinrow');
+  if (userTier === 'basic') {
+    if (coachGate) coachGate.style.display = 'flex';
+    if (coachChat) coachChat.style.opacity = '0.3';
+    if (coachInput) coachInput.style.display = 'none';
+  } else {
+    if (coachGate) coachGate.style.display = 'none';
+    if (coachChat) coachChat.style.opacity = '1';
+    if (coachInput) coachInput.style.display = '';
+  }
+}
+
+function openPaywall(type) {
+  var modal = document.getElementById('paywall-modal');
+  var content = document.getElementById('paywall-content');
+  if (!modal || !content) return;
+
+  if (type === 'upgrade') {
+    content.innerHTML = `
+      <div style="text-align:center;margin-bottom:24px">
+        <div style="font-size:36px;margin-bottom:8px">🏆</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px;margin-bottom:6px">UNLOCK YOUR COACH</div>
+        <div style="font-size:14px;color:var(--muted);line-height:1.6">Get AI-powered coaching personalised to your goals, habits and transformation statement.</div>
+      </div>
+      <div style="background:rgba(14,165,233,.06);border:1px solid rgba(14,165,233,.2);border-radius:16px;padding:16px;margin-bottom:14px">
+        <div style="font-size:10px;color:var(--blue);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:8px">Basic — $9.97/mo</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.7">✓ Goals & habit tracking<br>✓ Effectiveness score<br>✓ Roadmap & tasks<br>✓ Inspire feed<br>✗ No coach access</div>
+      </div>
+      <div style="background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(14,165,233,.08));border:1px solid rgba(99,102,241,.35);border-radius:16px;padding:16px;margin-bottom:20px;position:relative">
+        <div style="position:absolute;top:-10px;right:14px;background:linear-gradient(90deg,var(--purple),var(--blue));color:#fff;font-size:10px;font-weight:700;padding:3px 10px;border-radius:99px">MOST POPULAR</div>
+        <div style="font-size:10px;color:var(--purple);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:8px">Pro — $19.97/mo</div>
+        <div style="font-size:13px;color:var(--light);line-height:1.7">✓ Everything in Basic<br>✓ AI Coach — unlimited questions<br>✓ Monthly token allowance included<br>✓ Decision check & weekly review<br>✓ Priority support</div>
+      </div>
+      <button onclick="subscribeTier('pro')" style="width:100%;padding:15px;border:none;border-radius:14px;background:linear-gradient(135deg,var(--purple),var(--blue));color:#fff;font-size:15px;font-weight:800;cursor:pointer;font-family:'DM Sans',sans-serif">
+        Upgrade to Pro — $19.97/mo 🚀
+      </button>`;
+  }
+  modal.style.display = 'flex';
+}
+
+function closePaywall() {
+  document.getElementById('paywall-modal').style.display = 'none';
+}
+
+function openTokenShop() {
+  var modal = document.getElementById('token-shop-modal');
+  var list = document.getElementById('token-packs-list');
+  if (!modal || !list) return;
+
+  list.innerHTML = tokenPacks.map(p => `
+    <button onclick="buyTokens('${p.id}')" style="width:100%;padding:14px 16px;border:1px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.04);color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;justify-content:space-between;align-items:center;transition:background .2s" onmouseover="this.style.background='rgba(255,255,255,.08)'" onmouseout="this.style.background='rgba(255,255,255,.04)'">
+      <span>$${p.price_usd} pack</span>
+      <span style="font-size:12px;color:var(--teal)">+${Math.round(p.tokens/1000)}K tokens</span>
+    </button>`).join('');
+
+  modal.style.display = 'flex';
+}
+
+function closeTokenShop() {
+  document.getElementById('token-shop-modal').style.display = 'none';
+}
+
+async function subscribeTier(tier) {
+  try {
+    var btn = event.target;
+    btn.textContent = 'Redirecting...';
+    btn.disabled = true;
+    const data = await api('/api/billing/subscribe', { method: 'POST', body: JSON.stringify({ tier }) });
+    if (data && data.checkout_url) window.location.href = data.checkout_url;
+  } catch(e) {
+    showToast('Could not start checkout. Try again.');
+  }
+}
+
+async function buyTokens(packId) {
+  try {
+    const data = await api('/api/billing/buy-tokens', { method: 'POST', body: JSON.stringify({ pack_id: packId }) });
+    if (data && data.checkout_url) window.location.href = data.checkout_url;
+  } catch(e) {
+    showToast('Could not start checkout. Try again.');
+  }
+}
+
+// Intercept coach API errors for tier/token issues
+var _origSendMsg = null;
+function patchSendMsg() {
+  // Patch api() responses for coach endpoints
+  var origApi = window.api;
+  window.api = async function(path, opts) {
+    try {
+      const result = await origApi(path, opts);
+      // Update token balance from coach responses
+      if (result && result.token_balance !== undefined) {
+        tokenBalance = result.token_balance;
+        updateTierUI();
+      }
+      return result;
+    } catch(e) {
+      // api() already handles 403 — but check body for our specific errors
+      if (e && e.error === 'upgrade_required') { closePaywall(); openPaywall('upgrade'); throw e; }
+      if (e && e.error === 'tokens_exhausted') { openTokenShop(); throw e; }
+      throw e;
+    }
+  };
+}
+
 
 async function api(path, opts = {}) {
   const res = await fetch(API + path, {

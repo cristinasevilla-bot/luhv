@@ -1232,6 +1232,27 @@ body{background:
 </div>
 
 <script>
+// Create manifest dynamically to avoid 404
+(function() {
+  var existing = document.querySelector('link[rel="manifest"]');
+  if (existing) existing.remove();
+  var manifest = {
+    name: "Luhv+",
+    short_name: "Luhv+",
+    start_url: "/",
+    display: "standalone",
+    background_color: "#060b12",
+    theme_color: "#060b12",
+    icons: [{ src: "/icon-192.png", sizes: "192x192", type: "image/png" }]
+  };
+  var blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+  var url = URL.createObjectURL(blob);
+  var link = document.createElement('link');
+  link.rel = 'manifest';
+  link.href = url;
+  document.head.appendChild(link);
+})();
+
 const API = 'https://luhv.onrender.com';
 let TOKEN = localStorage.getItem('luhv_token');
 let USER  = JSON.parse(localStorage.getItem('luhv_user') || 'null');
@@ -1239,8 +1260,8 @@ let chatHistory = [];
 let allQuotes = [];
 let quoteIdx = 0;
 
-// Wake up Render server immediately on page load (free tier sleeps after 15min)
-fetch('https://luhv.onrender.com/health').catch(() => {});
+// Wake-up ping — ignore CORS errors, just wakes Render
+setTimeout(function(){ fetch('https://luhv.onrender.com/health').catch(function(){}); }, 100);
 
 
 // ── TIER & BILLING ─────────────────────────────────────────────────────────
@@ -1553,7 +1574,7 @@ async function initApp() {
     document.getElementById('streak-count').textContent = streakVal;
   }
   document.getElementById('welcome-msg').textContent       = `Hey ${USER.name}! Let's move one goal forward today. Tell Coach where you feel stuck, what you want to improve, or what your next step should be.`;
-  loadQuotes();
+  if (document.getElementById('qtext')) loadQuotes();
   loadHabits();
   loadGoals();
   loadJournal();
@@ -2362,17 +2383,23 @@ function dismissNudge(id) {
 }
 
 async function loadQuotes() {
-  const q = await api('/api/quotes/today');
-  if (q) { document.getElementById('qtext').textContent = q.text; document.getElementById('qauthor').textContent = q.author; }
-  const all = await api('/api/quotes');
-  if (all) allQuotes = all;
+  try {
+    const q = await api('/api/quotes/today');
+    const qtEl = document.getElementById('qtext');
+    const qaEl = document.getElementById('qauthor');
+    if (q && qtEl) { qtEl.textContent = q.text; if (qaEl) qaEl.textContent = q.author; }
+    const all = await api('/api/quotes');
+    if (all) allQuotes = all;
+  } catch(e) { console.warn('Quotes unavailable'); }
 }
 
 function nextQuote() {
   if (!allQuotes.length) return;
   quoteIdx = (quoteIdx + 1) % allQuotes.length;
-  document.getElementById('qtext').textContent   = allQuotes[quoteIdx].text;
-  document.getElementById('qauthor').textContent = allQuotes[quoteIdx].author;
+  const qtEl2 = document.getElementById('qtext');
+  const qaEl2 = document.getElementById('qauthor');
+  if (qtEl2) qtEl2.textContent = allQuotes[quoteIdx].text;
+  if (qaEl2) qaEl2.textContent = allQuotes[quoteIdx].author;
 }
 
 async function deleteGoal(id) {

@@ -1747,6 +1747,35 @@ app.post('/api/onboarding/complete', auth, async (req, res) => {
 });
 
 
+
+// ── HABIT DELETE & EDIT ───────────────────────────────────────────────────────
+app.delete('/api/habits/:id', auth, async (req, res) => {
+  await db.query('DELETE FROM habit_completions WHERE habit_id=$1 AND user_id=$2', [req.params.id, req.user.id]);
+  await db.query('DELETE FROM habits WHERE id=$1 AND user_id=$2', [req.params.id, req.user.id]);
+  res.json({ success: true });
+});
+
+app.patch('/api/habits/:id/name', auth, async (req, res) => {
+  const { name, icon, time } = req.body;
+  if (!name?.trim()) return res.status(400).json({ error: 'Name required' });
+  const { rows } = await db.query(
+    'UPDATE habits SET name=$1, icon=$2, time=$3 WHERE id=$4 AND user_id=$5 RETURNING *',
+    [name.trim(), icon || '⚡', time || null, req.params.id, req.user.id]
+  );
+  res.json(rows[0] || null);
+});
+
+// ── DOMAIN (LIFESTYLE) EDIT ───────────────────────────────────────────────────
+app.patch('/api/domains/:id', auth, async (req, res) => {
+  const { name, icon, color } = req.body;
+  if (!name?.trim()) return res.status(400).json({ error: 'Name required' });
+  const { rows } = await db.query(
+    'UPDATE life_domains SET name=$1, icon=$2, color=$3 WHERE id=$4 AND user_id=$5 RETURNING *',
+    [name.trim(), icon || '⚡', color || '#0ea5e9', req.params.id, req.user.id]
+  );
+  res.json(rows[0] || null);
+});
+
 // ── SUBSCRIPTION & BILLING ────────────────────────────────────────────────────
 
 // Get current tier + token balance

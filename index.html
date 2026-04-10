@@ -1042,6 +1042,7 @@ body{background:
         <button onclick="addGoal()" style="width:100%;padding:12px 14px;border:none;border-radius:12px;background:linear-gradient(90deg,var(--blue),var(--teal));color:#07111b;font-weight:800;font-size:14px;cursor:pointer">+ Add Goal</button>
         <div id="goal-form-msg" style="margin-top:8px;font-size:12px;color:var(--muted);min-height:16px"></div>
       </div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:6px;padding:0 2px">Tap ✏️ to edit name · 🗑 to delete · use − + to update progress</div>
       <div class="glist" id="goals-list">
         <div style="padding:16px;text-align:center;color:var(--muted);font-size:13px">Loading goals...</div>
       </div>
@@ -1105,7 +1106,10 @@ body{background:
           <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px">COACH</div>
           <div style="font-size:12px;color:rgba(255,255,255,.65);margin-top:2px">Ask anything. Get clarity. Move faster.</div>
         </div>
-        <button onclick="switchPage('home')" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(14,165,233,.4);background:rgba(14,165,233,.15);color:var(--blue);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">✕</button>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button onclick="downloadChat()" title="Download conversation" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:rgba(255,255,255,.6);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center">⬇</button>
+          <button onclick="switchPage('home')" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(14,165,233,.4);background:rgba(14,165,233,.15);color:var(--blue);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">✕</button>
+        </div>
       </div>
     </div>
     <div id="coach-upgrade-gate" style="display:none;position:absolute;inset:0;z-index:10;flex-direction:column;align-items:center;justify-content:center;background:rgba(8,12,18,.92);padding:24px;text-align:center">
@@ -1413,17 +1417,30 @@ function patchSendMsg() {
 }
 
 
-async function api(path, opts = {}) {
-  const res = await fetch(API + path, {
-    ...opts,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(TOKEN ? { Authorization: 'Bearer ' + TOKEN } : {}),
-      ...(opts.headers || {})
+async function api(path, opts = {}, _retry = 0) {
+  try {
+    const res = await fetch(API + path, {
+      ...opts,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(TOKEN ? { Authorization: 'Bearer ' + TOKEN } : {}),
+        ...(opts.headers || {})
+      }
+    });
+    if (res.status === 401) { logout(); return null; }
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw err;
     }
-  });
-  if (res.status === 401) { logout(); return null; }
-  return res.json();
+    return res.json().catch(() => null);
+  } catch(e) {
+    if (_retry < 3 && (e instanceof TypeError || (e.message && e.message.includes('fetch')))) {
+      if (_retry === 0) showToast('Connecting to server... ⚡');
+      await new Promise(r => setTimeout(r, 2500 * (_retry + 1)));
+      return api(path, opts, _retry + 1);
+    }
+    throw e;
+  }
 }
 
 function setTab(t) {
@@ -4140,6 +4157,31 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
+
+
+// ── CHAT DOWNLOAD ─────────────────────────────────────────────────────────────
+async function downloadChat() {
+  try {
+    showToast('Preparing your conversation...');
+    const token = localStorage.getItem('luhv_token');
+    const res = await fetch(API + '/api/coach/export', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (!res.ok) throw new Error('Export failed');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'luhv-coach-' + new Date().toISOString().split('T')[0] + '.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Conversation downloaded ✓');
+  } catch(e) {
+    showToast('Could not download — try again');
+  }
+}
 
 // ── AUTO-SUGGEST TASKS AFTER QUIZ ────────────────────────────────────────────
 async function suggestTasksForGoal(goalText) {

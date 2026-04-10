@@ -1073,6 +1073,7 @@ body{background:
       </div>
       <div style="padding:0 20px;font-size:10px;color:var(--muted);margin-bottom:6px">Daily actions that move you toward your goals. Check them off every day.</div>
       <div style="padding:0 20px;font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);font-weight:700;margin-bottom:10px">My Tasks</div>
+      <div style="padding:0 20px;font-size:10px;color:var(--muted);margin-bottom:6px">Tap ✏️ to rename · 🗑 to delete</div>
       <div class="hlist" id="habits-page-list">
         <div style="padding:16px;text-align:center;color:var(--muted);font-size:13px">Loading habits...</div>
       </div>
@@ -1888,7 +1889,7 @@ function buildDomainCard(domain) {
   var header = '<div class="domain-header">' +
     '<div class="domain-icon" style="background:' + domain.color + '22">' + (domain.icon||'⚡') + '</div>' +
     '<div class="domain-title" style="color:' + domain.color + '">' + domain.name.toUpperCase() + '</div>' +
-    '<button onclick="deleteDomain(' + domain.id + ')" style="width:26px;height:26px;border-radius:8px;border:1px solid rgba(244,63,94,.2);background:rgba(244,63,94,.06);color:#f43f5e;cursor:pointer;font-size:12px">🗑</button>' +
+    '<div style="display:flex;gap:4px" id="domain-btns-' + domain.id + '"></div>' +
     '</div>';
 
   var metricsHtml = '';
@@ -1920,6 +1921,26 @@ function buildDomainCard(domain) {
   '</div>';
 
   wrapper.innerHTML = header + metricsHtml + addMetricHtml;
+
+  // Add edit + delete buttons via DOM (avoids string quoting issues)
+  var btnContainer = wrapper.querySelector('#domain-btns-' + domain.id);
+  if (btnContainer) {
+    var eb = document.createElement('button');
+    eb.textContent = '✏️';
+    eb.title = 'Edit';
+    eb.style.cssText = 'width:26px;height:26px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:var(--muted);cursor:pointer;font-size:12px';
+    var domRef = domain;
+    eb.onclick = function(e) { e.stopPropagation(); editDomain(domRef.id, domRef.name, domRef.icon); };
+    var db2 = document.createElement('button');
+    db2.textContent = '🗑';
+    db2.title = 'Delete';
+    db2.style.cssText = 'width:26px;height:26px;border-radius:8px;border:1px solid rgba(244,63,94,.2);background:rgba(244,63,94,.06);color:#f43f5e;cursor:pointer;font-size:12px';
+    var domId = domain.id;
+    db2.onclick = function(e) { e.stopPropagation(); deleteDomain(domId); };
+    btnContainer.appendChild(eb);
+    btnContainer.appendChild(db2);
+  }
+
   return wrapper;
 }
 
@@ -2774,10 +2795,27 @@ async function loadHabitsPage() {
     chk.onclick = function() { toggleHabit(div, closureId); };
     var topDiv = document.createElement('div');
     topDiv.style.cssText = 'display:flex;align-items:center;gap:12px';
+    var btnStyle = 'width:26px;height:26px;border-radius:7px;border:none;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0';
+    var editBtn = document.createElement('button');
+    editBtn.textContent = '✏️';
+    editBtn.style.cssText = btnStyle + ';background:rgba(255,255,255,.06);color:var(--muted)';
+    editBtn.title = 'Edit task';
+    (function(hh){ editBtn.onclick = function(e){ e.stopPropagation(); editTask(hh); }; })(h);
+    var delBtn = document.createElement('button');
+    delBtn.textContent = '🗑';
+    delBtn.style.cssText = btnStyle + ';background:rgba(244,63,94,.08);color:#f43f5e;border:1px solid rgba(244,63,94,.2)';
+    delBtn.title = 'Delete task';
+    (function(hid){ delBtn.onclick = function(e){ e.stopPropagation(); deleteTask(hid); }; })(h.id);
+
     topDiv.innerHTML = '<div class="hico ' + colors[i%4] + '">' + (h.icon||'\u26a1') + '</div>' +
-      '<div class="hinfo"><div class="hn">' + h.name + '</div>' +
+      '<div class="hinfo" style="flex:1"><div class="hn">' + h.name + '</div>' +
       '<div class="hs">' + (h.time||'Daily') + (isCount ? ' \u00b7 ' + val + '/' + tgt : '') + '</div></div>';
-    topDiv.appendChild(isCount ? incrBtn : chk);
+    var actionGroup = document.createElement('div');
+    actionGroup.style.cssText = 'display:flex;align-items:center;gap:4px;flex-shrink:0';
+    actionGroup.appendChild(editBtn);
+    actionGroup.appendChild(delBtn);
+    actionGroup.appendChild(isCount ? incrBtn : chk);
+    topDiv.appendChild(actionGroup);
     div.appendChild(topDiv);
     var topRow = '';
     // topRow built via DOM (see topDiv above)
@@ -4562,6 +4600,50 @@ function openTokenShop() {}
 function closeTokenShop() {}
 function subscribeTier() { showToast('Payments coming soon'); }
 function buyTokens() { showToast('Payments coming soon'); }
+
+// ── TASK (HABIT) CRUD ─────────────────────────────────────────────────────────
+async function deleteTask(id) {
+  if (!confirm('Delete this task?')) return;
+  var result = await api('/api/habits/' + id, { method: 'DELETE' });
+  if (result && result.success) {
+    await loadHabitsPage();
+    await loadHabits();
+    await loadEffectivenessScore();
+    showToast('Task deleted');
+  }
+}
+
+function editTask(habit) {
+  var newName = prompt('Edit task name:', habit.name);
+  if (!newName || !newName.trim() || newName.trim() === habit.name) return;
+  api('/api/habits/' + habit.id + '/name', {
+    method: 'PATCH',
+    body: JSON.stringify({ name: newName.trim(), icon: habit.icon, time: habit.time })
+  }).then(function(result) {
+    if (result && !result.error) {
+      loadHabitsPage();
+      loadHabits();
+      showToast('Task updated ✓');
+    }
+  });
+}
+
+
+// ── DOMAIN (LIFESTYLE) EDIT ───────────────────────────────────────────────────
+function editDomain(id, currentName, currentIcon) {
+  var newName = prompt('Edit lifestyle area name:', currentName);
+  if (!newName || !newName.trim() || newName.trim() === currentName) return;
+  api('/api/domains/' + id, {
+    method: 'PATCH',
+    body: JSON.stringify({ name: newName.trim(), icon: currentIcon || '⚡' })
+  }).then(function(result) {
+    if (result && !result.error) {
+      loadDomainsPage();
+      showToast('Updated ✓');
+    }
+  });
+}
+
 </script>
 </body>
 </html>

@@ -1104,6 +1104,9 @@ body{background:
         <div class="mb" id="welcome-msg">Let’s move one goal forward today. Tell Coach where you feel stuck, what you want to improve, or what your next step should be.</div>
       </div>
     </div>
+    <div id="coach-history-bar" style="display:none;padding:6px 16px 0;text-align:center">
+      <button onclick="loadChatFromStorage();document.getElementById('coach-history-bar').style.display='none'" style="font-size:11px;color:var(--teal);background:rgba(6,214,160,.08);border:1px solid rgba(6,214,160,.2);border-radius:20px;padding:5px 14px;cursor:pointer;font-family:'DM Sans',sans-serif">↑ Load previous conversation</button>
+    </div>
     <div class="suggs" id="coach-chips">
       <div class="chip" onclick="sendSug('What is my most important goal right now?')">Top goal ⚡</div>
       <div class="chip" onclick="sendSug('Help me plan my week ahead')">Weekly plan 🗓️</div>
@@ -3054,7 +3057,28 @@ function switchPage(name) {
   if (name === 'goals')  { switchPage('roadmap'); setTimeout(function(){ switchRoadmapTab('goals'); }, 50); return; }
   if (name === 'habits') { switchPage('roadmap'); setTimeout(function(){ switchRoadmapTab('habits'); }, 50); return; }
   if (name === 'domains') { switchPage('roadmap'); setTimeout(function(){ switchRoadmapTab('domains'); }, 50); return; }
-  if (name === 'focus')   { loadFocusPage(); loadPeakTimerBadge(); }
+  if (name === 'focus')   { loadFocusPage(); loadPeakTimerBadge(); refreshVisionStrips(); }
+  if (name === 'ai') {
+    var savedChat = localStorage.getItem('luhv_chat');
+    var histBar = document.getElementById('coach-history-bar');
+    if (savedChat && chatHistory.length === 0) {
+      // Show "load previous" button instead of auto-loading
+      if (histBar) histBar.style.display = 'block';
+    } else {
+      if (histBar) histBar.style.display = 'none';
+    }
+  }
+  if (name === 'journal') {
+    setTimeout(function() {
+      var quizDoms = getQuizDomains();
+      if (quizDoms.length > 0 && currentInspireDomain === 'all') {
+        filterInspirationDomain(quizDoms[0]);
+      } else {
+        loadInspireFeed(currentInspireDomain, 0);
+      }
+      refreshInspireSavedPanel();
+    }, 150);
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -4173,6 +4197,7 @@ var inspireDomains = {
 
 function filterInspirationDomain(domain) {
   currentInspireDomain = domain;
+  inspireOffset = 0;
   document.querySelectorAll('[id^="inspire-filter-"]').forEach(function(btn) {
     var isActive = btn.id === 'inspire-filter-' + domain;
     btn.style.background = isActive ? 'rgba(99,102,241,.15)' : 'rgba(255,255,255,.04)';
@@ -4281,7 +4306,8 @@ async function loadInspireFeed(domain, offset) {
   });
 
   // Show load more button
-  if (loadMoreBtn) loadMoreBtn.style.display = 'inline-block';
+  var lmBtn = document.getElementById('inspire-load-more');
+  if (lmBtn) lmBtn.style.display = 'inline-block';
   // Refresh saved panel
   refreshInspireSavedPanel();
 }

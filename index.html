@@ -518,83 +518,147 @@ body{background:
   </div>
 </div>
 <!-- APP GUIDE MODAL -->
-<div id="guide-modal" style="display:none;position:fixed;inset:0;z-index:1500;background:rgba(0,0,0,.85);display:none;align-items:flex-end;justify-content:center" onclick="closeGuideIfOutside(event)">
-  <div style="background:linear-gradient(180deg,#0d1520,#080f18);border-radius:28px 28px 0 0;padding:28px 24px 40px;width:100%;max-width:100%;max-height:85vh;overflow-y:auto;box-sizing:border-box">
-    <div style="width:36px;height:4px;border-radius:99px;background:rgba(255,255,255,.15);margin:0 auto 24px"></div>
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px;margin-bottom:4px">HOW TO GET THE MOST</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:24px">From the book to your daily life — here is how Luhv+ works.</div>
+<div id="guide-modal" style="display:none;position:fixed;inset:0;z-index:1500;background:rgba(0,0,0,.88);display:none;align-items:flex-end;justify-content:center" onclick="closeGuideIfOutside(event)">
+  <div style="background:linear-gradient(180deg,#0c1522,#07101a);border-radius:28px 28px 0 0;padding:0 0 40px;width:100%;max-width:100%;max-height:90vh;overflow-y:auto;box-sizing:border-box">
 
-    <div style="display:flex;flex-direction:column;gap:12px">
-      <div style="padding:14px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-          <span style="font-size:20px">📍</span>
-          <div style="font-size:13px;font-weight:700;color:var(--blue)">Today — Your daily dashboard</div>
-        </div>
-        <div style="font-size:12px;color:var(--muted);line-height:1.6">Start here every morning. Check your Effectiveness Score, see your Peak Window, review today's habits and get your coach message.</div>
-      </div>
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,rgba(14,165,233,.15),rgba(6,214,160,.08));padding:28px 24px 20px;border-bottom:1px solid rgba(255,255,255,.06)">
+      <div style="width:36px;height:4px;border-radius:99px;background:rgba(255,255,255,.2);margin:0 auto 20px"></div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:1px;line-height:1;margin-bottom:6px">HOW IT WORKS</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.5);line-height:1.5">Follow this loop every day to become more effective in less time.</div>
+    </div>
 
-      <div style="padding:14px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-          <span style="font-size:20px">🎯</span>
-          <div style="font-size:13px;font-weight:700;color:var(--teal)">Goals — Your 90-day roadmap</div>
+    <!-- Daily loop visual -->
+    <div style="padding:20px 24px 0">
+      <div style="display:flex;align-items:center;justify-content:center;gap:0;margin-bottom:20px;background:rgba(255,255,255,.03);border-radius:14px;padding:14px 8px;border:1px solid rgba(255,255,255,.06)">
+        <div style="text-align:center;flex:1">
+          <div style="font-size:22px;margin-bottom:4px">📊</div>
+          <div style="font-size:9px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:1px">Check</div>
         </div>
-        <div style="font-size:12px;color:var(--muted);line-height:1.6">Set 2-3 big goals. Use + and − to update progress. The coach tracks your momentum and calls you out if you stall.</div>
-      </div>
-
-      <div style="padding:14px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-          <span style="font-size:20px">✅</span>
-          <div style="font-size:13px;font-weight:700;color:var(--teal)">Habits — Daily non-negotiables</div>
+        <div style="color:rgba(255,255,255,.2);font-size:16px">→</div>
+        <div style="text-align:center;flex:1">
+          <div style="font-size:22px;margin-bottom:4px">✅</div>
+          <div style="font-size:9px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:1px">Do</div>
         </div>
-        <div style="font-size:12px;color:var(--muted);line-height:1.6">Add habits you do every day. Use Daily check for yes/no habits, or Daily target for things like glasses of water. Streak builds here.</div>
-      </div>
-
-      <div style="padding:14px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-          <span style="font-size:20px">⏱️</span>
-          <div style="font-size:13px;font-weight:700;color:var(--blue)">Focus — Protect your time</div>
+        <div style="color:rgba(255,255,255,.2);font-size:16px">→</div>
+        <div style="text-align:center;flex:1">
+          <div style="font-size:22px;margin-bottom:4px">⏱️</div>
+          <div style="font-size:9px;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:1px">Focus</div>
         </div>
-        <div style="font-size:12px;color:var(--muted);line-height:1.6">Use Deep Work (25min) during your Peak Window for maximum output. The timer notifies you when done, even if you leave the app.</div>
-      </div>
-
-      <div style="padding:14px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-          <span style="font-size:20px">⚡</span>
-          <div style="font-size:13px;font-weight:700;color:var(--purple)">Coach — Your AI accountability partner</div>
+        <div style="color:rgba(255,255,255,.2);font-size:16px">→</div>
+        <div style="text-align:center;flex:1">
+          <div style="font-size:22px;margin-bottom:4px">⚡</div>
+          <div style="font-size:9px;font-weight:700;color:#fbbf24;text-transform:uppercase;letter-spacing:1px">Coach</div>
         </div>
-        <div style="font-size:12px;color:var(--muted);line-height:1.6">Ask anything. The coach knows your goals, habits and history. Use it when stuck, planning your week, or needing a push. Messages can be copied and shared.</div>
-      </div>
-
-      <div style="padding:14px;border-radius:14px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2)">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-          <span style="font-size:20px">🎯</span>
-          <div style="font-size:13px;font-weight:700;color:var(--purple)">Decision Check — Hidden gem</div>
+        <div style="color:rgba(255,255,255,.2);font-size:16px">→</div>
+        <div style="text-align:center;flex:1">
+          <div style="font-size:22px;margin-bottom:4px">✨</div>
+          <div style="font-size:9px;font-weight:700;color:#a78bfa;text-transform:uppercase;letter-spacing:1px">Inspire</div>
         </div>
-        <div style="font-size:12px;color:var(--muted);line-height:1.6">Before making any decision, tap the purple button on the left. The coach will tell you if it aligns with your goals — instantly.</div>
-      </div>
-
-      <div style="padding:14px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-          <span style="font-size:20px">📈</span>
-          <div style="font-size:13px;font-weight:700;color:var(--blue)">Progress — See your growth</div>
-        </div>
-        <div style="font-size:12px;color:var(--muted);line-height:1.6">Weekly review from the coach, energy tracking, peak performance report and full check-in log. Check this on Sundays.</div>
-      </div>
-
-      <div style="padding:14px;border-radius:14px;background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2)">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-          <span style="font-size:20px">⚡</span>
-          <div style="font-size:13px;font-weight:700;color:#fbbf24">Peak Performance Window</div>
-        </div>
-        <div style="font-size:12px;color:var(--muted);line-height:1.6">Set your preferred working hours in Profile (top right). The Creativity window is 5am-12pm — the best time for deep work. Aspire to shift your schedule toward it.</div>
       </div>
     </div>
 
-    <button onclick="closeGuideModal()" style="width:100%;padding:14px;border:none;border-radius:14px;background:linear-gradient(135deg,var(--blue),var(--teal));color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:20px">
-      Got it. Let's go 🏆
-    </button>
+    <!-- Cards -->
+    <div style="display:flex;flex-direction:column;gap:10px;padding:0 24px">
+
+      <!-- Dashboard -->
+      <div style="border-radius:16px;overflow:hidden;border:1px solid rgba(14,165,233,.2)">
+        <div style="background:rgba(14,165,233,.1);padding:12px 14px;display:flex;align-items:center;gap:12px">
+          <div style="width:40px;height:40px;border-radius:12px;background:rgba(14,165,233,.2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">📊</div>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#fff">Dashboard</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.45)">Every morning — 30 seconds</div>
+          </div>
+        </div>
+        <div style="padding:12px 14px;background:rgba(14,165,233,.04)">
+          <div style="font-size:12px;color:rgba(255,255,255,.55);line-height:1.7">Check your <span style="color:var(--teal);font-weight:600">Effectiveness Score</span>, streak and today's tasks. This is your daily pulse.</div>
+        </div>
+      </div>
+
+      <!-- Roadmap -->
+      <div style="border-radius:16px;overflow:hidden;border:1px solid rgba(6,214,160,.2)">
+        <div style="background:rgba(6,214,160,.1);padding:12px 14px;display:flex;align-items:center;gap:12px">
+          <div style="width:40px;height:40px;border-radius:12px;background:rgba(6,214,160,.2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🗺️</div>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#fff">Roadmap</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.45)">Tasks → Goals → Lifestyle</div>
+          </div>
+        </div>
+        <div style="padding:12px 14px;background:rgba(6,214,160,.04)">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:rgba(255,255,255,.55)"><span style="font-size:14px">✅</span> <strong style="color:rgba(255,255,255,.8)">Tasks</strong> — daily actions you check off</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:rgba(255,255,255,.55)"><span style="font-size:14px">🎯</span> <strong style="color:rgba(255,255,255,.8)">Goals</strong> — what those tasks add up to</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:rgba(255,255,255,.55)"><span style="font-size:14px">🌟</span> <strong style="color:rgba(255,255,255,.8)">Lifestyle</strong> — the life you're building toward</div>
+          </div>
+          <div style="margin-top:8px;font-size:11px;color:rgba(255,255,255,.35)">Tap ✏️ to edit · 🗑 to delete any task, goal or domain</div>
+        </div>
+      </div>
+
+      <!-- Focus -->
+      <div style="border-radius:16px;overflow:hidden;border:1px solid rgba(99,102,241,.2)">
+        <div style="background:rgba(99,102,241,.1);padding:12px 14px;display:flex;align-items:center;gap:12px">
+          <div style="width:40px;height:40px;border-radius:12px;background:rgba(99,102,241,.2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">⏱️</div>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#fff">Focus</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.45)">Deep Work · Sprint · Break · Custom</div>
+          </div>
+        </div>
+        <div style="padding:12px 14px;background:rgba(99,102,241,.04)">
+          <div style="font-size:12px;color:rgba(255,255,255,.55);line-height:1.7">Link a goal, pick your mode and start. Timer runs even if you close the app. Do your most important task in your <span style="color:#fbbf24;font-weight:600">Peak Window</span>.</div>
+        </div>
+      </div>
+
+      <!-- Coach -->
+      <div style="border-radius:16px;overflow:hidden;border:1px solid rgba(99,102,241,.3);background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(14,165,233,.06))">
+        <div style="padding:12px 14px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(99,102,241,.15)">
+          <div style="width:40px;height:40px;border-radius:12px;background:rgba(99,102,241,.25);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">⚡</div>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#fff">Coach — AI accountability</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.45)">Knows your goals, tasks & streak</div>
+          </div>
+        </div>
+        <div style="padding:12px 14px">
+          <div style="display:flex;flex-direction:column;gap:5px">
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:rgba(255,255,255,.55)"><span>💬</span> Ask anything — weekly plan, next step, stuck</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:rgba(255,255,255,.55)"><span>🎯</span> <strong style="color:rgba(255,255,255,.75)">Decision check</strong> — "Does this align with my goals?"</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:rgba(255,255,255,.55)"><span>💾</span> Conversation saved between sessions</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Inspire -->
+      <div style="border-radius:16px;overflow:hidden;border:1px solid rgba(167,139,250,.2)">
+        <div style="background:rgba(167,139,250,.1);padding:12px 14px;display:flex;align-items:center;gap:12px">
+          <div style="width:40px;height:40px;border-radius:12px;background:rgba(167,139,250,.2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">✨</div>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#fff">Inspire — Vision board</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.45)">The why behind your goals</div>
+          </div>
+        </div>
+        <div style="padding:12px 14px;background:rgba(167,139,250,.04)">
+          <div style="font-size:12px;color:rgba(255,255,255,.55);line-height:1.7">Browse images by category. Tap <span style="color:#f43f5e">♡</span> to save — your saved images appear in Roadmap and Focus as a reminder of what you're working toward.</div>
+        </div>
+      </div>
+
+      <!-- Peak tip -->
+      <div style="border-radius:14px;padding:12px 14px;background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.15);display:flex;gap:10px;align-items:flex-start">
+        <span style="font-size:20px;flex-shrink:0">🔥</span>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#fbbf24;margin-bottom:3px">Peak Performance Window</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.45);line-height:1.6">Set your best hours in Profile. The creativity window is 5am–12pm. Protect that time for Focus sessions — it's worth 2× the output.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div style="padding:20px 24px 0">
+      <button onclick="closeGuideModal()" style="width:100%;padding:14px;border:none;border-radius:14px;background:linear-gradient(135deg,var(--blue),var(--teal));color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">
+        Got it. Let's go 🏆
+      </button>
+    </div>
   </div>
 </div>
+
 <button class="help-btn" id="help-btn" onclick="openGuideModal()" title="App guide">?</button>
 
 <!-- PROFILE MODAL -->

@@ -580,17 +580,26 @@ body{background:
         <div style="background:rgba(6,214,160,.1);padding:12px 14px;display:flex;align-items:center;gap:12px">
           <div style="width:40px;height:40px;border-radius:12px;background:rgba(6,214,160,.2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🗺️</div>
           <div>
-            <div style="font-size:13px;font-weight:700;color:#fff">Roadmap</div>
-            <div style="font-size:11px;color:rgba(255,255,255,.45)">Tasks → Goals → Lifestyle</div>
+            <div style="font-size:13px;font-weight:700;color:#fff">Roadmap — 3 levels</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.45)">Set up once, then work it daily</div>
           </div>
         </div>
-        <div style="padding:12px 14px;background:rgba(6,214,160,.04)">
-          <div style="display:flex;flex-direction:column;gap:6px">
-            <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:rgba(255,255,255,.55)"><span style="font-size:14px">✅</span> <strong style="color:rgba(255,255,255,.8)">Tasks</strong> — daily actions you check off</div>
-            <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:rgba(255,255,255,.55)"><span style="font-size:14px">🎯</span> <strong style="color:rgba(255,255,255,.8)">Goals</strong> — what those tasks add up to</div>
-            <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:rgba(255,255,255,.55)"><span style="font-size:14px">🌟</span> <strong style="color:rgba(255,255,255,.8)">Lifestyle</strong> — the life you're building toward</div>
+        <div style="padding:12px 14px;background:rgba(6,214,160,.04);display:flex;flex-direction:column;gap:7px">
+          <div style="padding:8px 10px;border-radius:10px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.15)">
+            <div style="font-size:11px;font-weight:700;color:#fbbf24;margin-bottom:2px">🌟 Lifestyle — set once</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.45);line-height:1.5">Your life areas (Finance, Fitness, Business…). This is your why. Set it and leave it.</div>
           </div>
-          <div style="margin-top:8px;font-size:11px;color:rgba(255,255,255,.35)">Tap ✏️ to edit · 🗑 to delete any task, goal or domain</div>
+          <div style="text-align:center;font-size:10px;color:rgba(255,255,255,.2)">↓ gives direction to</div>
+          <div style="padding:8px 10px;border-radius:10px;background:rgba(14,165,233,.08);border:1px solid rgba(14,165,233,.15)">
+            <div style="font-size:11px;font-weight:700;color:var(--blue);margin-bottom:2px">🎯 Goals — update monthly</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.45);line-height:1.5">Concrete targets with a deadline. Use + and − to update %. Add a new goal when you hit 100%.</div>
+          </div>
+          <div style="text-align:center;font-size:10px;color:rgba(255,255,255,.2)">↓ achieved by</div>
+          <div style="padding:8px 10px;border-radius:10px;background:rgba(6,214,160,.08);border:1px solid rgba(6,214,160,.15)">
+            <div style="font-size:11px;font-weight:700;color:var(--teal);margin-bottom:2px">✅ Tasks — check off every day</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.45);line-height:1.5">Daily actions that move you toward your goals. These are your non-negotiables. Streak grows here.</div>
+          </div>
+          <div style="font-size:10px;color:rgba(255,255,255,.3);padding-top:2px">Tap ✏️ to rename · 🗑 to delete any item</div>
         </div>
       </div>
 
@@ -1026,16 +1035,54 @@ body{background:
       <button onclick="switchPage('home')" style="position:absolute;top:12px;right:16px;width:32px;height:32px;border-radius:50%;border:1px solid rgba(14,165,233,.4);background:rgba(14,165,233,.12);color:var(--blue);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
     </div>
 
-    <!-- FLOW BANNER -->
-    <div style="margin:12px 16px 0;background:rgba(255,255,255,.03);border:0.5px solid rgba(255,255,255,.07);border-radius:12px;padding:10px 14px">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:6px">
-        <div style="flex:1;text-align:center"><div style="font-size:10px;font-weight:700;color:var(--teal)">TASKS</div><div style="font-size:9px;color:var(--muted)">Daily actions</div></div>
-        <div style="color:var(--muted);font-size:12px">→</div>
-        <div style="flex:1;text-align:center"><div style="font-size:10px;font-weight:700;color:var(--blue)">GOALS</div><div style="font-size:9px;color:var(--muted)">Monthly wins</div></div>
-        <div style="color:var(--muted);font-size:12px">→</div>
-        <div style="flex:1;text-align:center"><div style="font-size:10px;font-weight:700;color:#fbbf24">LIFESTYLE</div><div style="font-size:9px;color:var(--muted)">Your vision</div></div>
+    <!-- FLOW BANNER — pyramid visual -->
+    <div style="margin:12px 16px 0">
+
+      <!-- Lifestyle — top / foundation of vision -->
+      <div onclick="switchRoadmapTab('domains')" style="cursor:pointer;margin-bottom:6px;border-radius:14px;padding:11px 14px;background:linear-gradient(135deg,rgba(251,191,36,.1),rgba(251,191,36,.04));border:1px solid rgba(251,191,36,.2);display:flex;align-items:center;gap:12px">
+        <div style="width:38px;height:38px;border-radius:10px;background:rgba(251,191,36,.15);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🌟</div>
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div style="font-size:12px;font-weight:700;color:#fbbf24">Lifestyle</div>
+            <div style="font-size:9px;color:rgba(251,191,36,.5);font-weight:600">SET ONCE</div>
+          </div>
+          <div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:1px">Your vision — Finance, Fitness, Business, Mindset</div>
+        </div>
+        <div style="color:rgba(255,255,255,.2);font-size:14px">›</div>
       </div>
-      <div style="font-size:10px;color:var(--muted);text-align:center">Your daily tasks build your goals. Your goals build your lifestyle.</div>
+
+      <!-- Arrow down -->
+      <div style="text-align:center;color:rgba(255,255,255,.15);font-size:12px;margin:-2px 0">↓ builds toward</div>
+
+      <!-- Goals — middle -->
+      <div onclick="switchRoadmapTab('goals')" style="cursor:pointer;margin:6px 0;border-radius:14px;padding:11px 14px;background:linear-gradient(135deg,rgba(14,165,233,.1),rgba(14,165,233,.04));border:1px solid rgba(14,165,233,.2);display:flex;align-items:center;gap:12px">
+        <div style="width:38px;height:38px;border-radius:10px;background:rgba(14,165,233,.15);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🎯</div>
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div style="font-size:12px;font-weight:700;color:var(--blue)">Goals</div>
+            <div style="font-size:9px;color:rgba(14,165,233,.5);font-weight:600">MONTHLY</div>
+          </div>
+          <div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:1px">Concrete targets with a deadline — update % as you progress</div>
+        </div>
+        <div style="color:rgba(255,255,255,.2);font-size:14px">›</div>
+      </div>
+
+      <!-- Arrow down -->
+      <div style="text-align:center;color:rgba(255,255,255,.15);font-size:12px;margin:-2px 0">↓ built by</div>
+
+      <!-- Tasks — bottom / daily -->
+      <div onclick="switchRoadmapTab('habits')" style="cursor:pointer;margin-top:6px;border-radius:14px;padding:11px 14px;background:linear-gradient(135deg,rgba(6,214,160,.1),rgba(6,214,160,.04));border:1px solid rgba(6,214,160,.2);display:flex;align-items:center;gap:12px">
+        <div style="width:38px;height:38px;border-radius:10px;background:rgba(6,214,160,.15);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">✅</div>
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div style="font-size:12px;font-weight:700;color:var(--teal)">Tasks</div>
+            <div style="font-size:9px;color:rgba(6,214,160,.5);font-weight:600">EVERY DAY</div>
+          </div>
+          <div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:1px">Your daily non-negotiables — check them off to build your streak</div>
+        </div>
+        <div style="color:rgba(255,255,255,.2);font-size:14px">›</div>
+      </div>
+
     </div>
 
 
@@ -4757,3 +4804,4 @@ function editDomain(id, currentName, currentIcon) {
 </script>
 </body>
 </html>
+

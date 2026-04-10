@@ -1719,8 +1719,8 @@ app.post('/api/onboarding/complete', auth, async (req, res) => {
     msg += `Let's go from good to great. 🔥`;
     res.json({ success: true, welcomeMessage: msg });
   } catch(e) {
-    console.error('Onboarding error:', e);
-    res.status(500).json({ error: 'Could not complete onboarding' });
+    console.error('Onboarding error detail:', e.message, e.code);
+    res.status(500).json({ error: 'Could not complete onboarding', detail: e.message });
   }
 });
 
@@ -1906,23 +1906,47 @@ app.post('/api/billing/cancel', auth, async (req, res) => {
 app.post('/api/goals/suggest-tasks', auth, async (req, res) => {
   const { goal } = req.body;
   if (!goal?.trim()) return res.status(400).json({ error: 'Goal required' });
+  
+  const prompt = `The user's goal is: "${goal}"
+
+Generate 3-5 specific daily tasks that directly lead to achieving this goal.
+Use realistic conversion rates and daily minimums. Examples:
+- "Get 3 new clients" → outreach 10 prospects/day (10% conversion rate)  
+- "Drink more water" → 6 glasses/day at 9am, 1pm, 6pm
+- "Lose 5kg" → 30 min exercise daily + log meals
+- "Save $500/month" → log every expense daily
+- "Read more" → 20 pages before bed
+
+Return ONLY a valid JSON array, no markdown, no explanation:
+[
+  { "name": "Short action verb + what (max 50 chars)", "icon": "single emoji", "target": null_or_number, "time": null_or_"9:00 AM" }
+]`;
+
   try {
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 600,
-      system: 'You are a productivity coach. Return ONLY a valid JSON array, no markdown.',
-      messages: [{ role: 'user', content: `Goal: "${goal}". Generate 3-5 daily tasks to achieve it. Each task: { "name": "verb + action (max 50 chars)", "icon": "emoji", "target": number_or_null, "time": "HH:MM AM/PM or null" }. For countable things (calls, glasses, pages) set target. Think about realistic daily minimums.` }]
+      max_tokens: 700,
+      system: 'You are a productivity coach. Return ONLY valid JSON arrays. No markdown. No explanation.',
+      messages: [{ role: 'user', content: prompt }]
     });
+    
+    const raw = response.content[0].text.trim().replace(/```json|```/g, '').trim();
     let tasks = [];
     try {
-      const raw = response.content[0].text.replace(/\`\`\`json|\`\`\`/g, '').trim();
       tasks = JSON.parse(raw);
       if (!Array.isArray(tasks)) tasks = [];
-    } catch(e) { return res.status(500).json({ error: 'Parse error' }); }
+    } catch(pe) {
+      // Try to extract array from response
+      const match = raw.match(/\[[\s\S]*\]/);
+      if (match) {
+        try { tasks = JSON.parse(match[0]); } catch(e2) { tasks = []; }
+      }
+    }
+    
     res.json({ tasks: tasks.slice(0, 5) });
   } catch(e) {
-    console.error('Suggest tasks error:', e);
-    res.status(500).json({ error: 'Could not generate suggestions' });
+    console.error('Suggest tasks error:', e.message);
+    res.status(500).json({ error: 'Could not generate suggestions', detail: e.message });
   }
 });
 
@@ -1949,6 +1973,7 @@ app.get('/api/coach/export', auth, async (req, res) => {
 async function runMigrations() {
   const migrations = [
     'ALTER TABLE users ADD COLUMN IF NOT EXISTS last_streak_date DATE',
+    'ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarding_data JSONB',
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS tier TEXT DEFAULT 'basic'`,
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS token_balance INTEGER DEFAULT 0`,
     'ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT',

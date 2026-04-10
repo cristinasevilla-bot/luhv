@@ -3259,7 +3259,7 @@ function parseMarkdown(text) {
 }
 
 // ── FOCUS TIMER ──────────────────────────────────────────
-var timerInterval = null, timerSeconds = 25*60, timerRunning = false, timerMode = 'deep', timerTotal = 25*60, sessionsToday = [];
+var timerInterval = null, timerSeconds = 25*60, timerRunning = false, timerMode = 'deep', timerTotal = 25*60, sessionsToday = [], customDurationSet = false;
 
 function requestNotificationPermission() {
   if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
@@ -3307,6 +3307,8 @@ function setMode(mode, minutes) {
   var customRow = document.getElementById('custom-duration-row');
 
   if (mode === 'custom') {
+    customDurationSet = false;
+    timerTotal = 0; timerSeconds = 0;
     // Show the custom input, don't start or set time yet
     if (customRow) customRow.style.display = 'block';
     document.getElementById('timer-display').textContent = '--:--';
@@ -3374,6 +3376,7 @@ function updateCustomDuration(val) {
   mins = Math.min(180, Math.max(1, mins));
   timerTotal = mins * 60;
   timerSeconds = timerTotal;
+  customDurationSet = true;
   document.getElementById('timer-display').textContent = String(mins).padStart(2,'0') + ':00';
   document.getElementById('timer-status').textContent = 'Ready — ' + mins + ' min custom session.';
   var sub = document.getElementById('custom-sub');
@@ -3383,9 +3386,9 @@ function updateCustomDuration(val) {
 }
 function startTimer() {
   // Guard: if custom mode and no time set yet
-  if (timerMode === 'custom' && (timerTotal <= 0 || timerSeconds <= 0)) {
+  if (timerMode === 'custom' && !customDurationSet) {
     var inp = document.getElementById('custom-minutes');
-    if (inp) inp.focus();
+    if (inp) { inp.focus(); inp.style.boxShadow = '0 0 0 2px #f43f5e55'; }
     document.getElementById('timer-status').textContent = 'Enter your custom duration first.';
     return;
   }
@@ -4382,13 +4385,72 @@ if ('serviceWorker' in navigator) {
 
 // ── INSPIRE: domain filter ──────────────────────────────────
 var currentInspireDomain = 'all';
-var inspireDomains = {
-  all:      ['peak performance','success mindset','achievement','ambition','vision board'],
-  finance:  ['financial freedom','wealth mindset','passive income','luxury lifestyle','investment'],
-  fitness:  ['athletic body','fitness motivation','healthy lifestyle','gym training','running'],
-  business: ['entrepreneur mindset','startup office','productivity workspace','business success','leadership'],
-  mindset:  ['meditation','growth mindset','morning routine','focus mindset','mental strength']
+
+// Picsum seeds mapped to aspirational visual themes
+// Each entry: { seed, label } — seed gives consistent beautiful photo, label shown on card
+var inspirePicsumSeeds = {
+  all: [
+    { seed: 15,  label: 'The summit awaits' },
+    { seed: 37,  label: 'Your journey' },
+    { seed: 82,  label: 'Rise every day' },
+    { seed: 110, label: 'Be unstoppable' },
+    { seed: 145, label: 'Your best life' },
+    { seed: 190, label: 'Dream bigger' },
+  ],
+  finance: [
+    { seed: 239, label: 'Financial freedom' },
+    { seed: 292, label: 'Building wealth' },
+    { seed: 342, label: 'Invest in yourself' },
+    { seed: 403, label: 'Abundance mindset' },
+    { seed: 473, label: 'Legacy money' },
+    { seed: 513, label: 'Your future wealth' },
+  ],
+  fitness: [
+    { seed: 26,  label: 'Train hard' },
+    { seed: 64,  label: 'Every rep counts' },
+    { seed: 119, label: 'Stronger every day' },
+    { seed: 169, label: 'Fuelled by purpose' },
+    { seed: 217, label: 'Your body, your temple' },
+    { seed: 274, label: 'Never stop moving' },
+  ],
+  business: [
+    { seed: 338, label: 'Build your empire' },
+    { seed: 371, label: 'Lead with vision' },
+    { seed: 425, label: 'Execute every day' },
+    { seed: 490, label: 'Think big, act bigger' },
+    { seed: 543, label: 'Your name on the door' },
+    { seed: 593, label: 'Success is a decision' },
+  ],
+  mindset: [
+    { seed: 10,  label: 'Master your mind' },
+    { seed: 55,  label: 'Clarity over chaos' },
+    { seed: 98,  label: 'Focus wins' },
+    { seed: 152, label: 'Growth is a choice' },
+    { seed: 204, label: 'Be the standard' },
+    { seed: 251, label: 'Discipline = freedom' },
+  ]
 };
+
+// Legacy — keep for getQuizDomains compatibility
+var inspireDomains = {
+  all:      ['all'],
+  finance:  ['finance'],
+  fitness:  ['fitness'],
+  business: ['business'],
+  mindset:  ['mindset']
+};
+
+function filterInspirationDomain(domain) {
+  currentInspireDomain = domain;
+  inspireOffset = 0;
+  document.querySelectorAll('[id^="inspire-filter-"]').forEach(function(btn) {
+    var isActive = btn.id === 'inspire-filter-' + domain;
+    btn.style.background = isActive ? 'rgba(99,102,241,.15)' : 'rgba(255,255,255,.04)';
+    btn.style.border     = isActive ? '1px solid rgba(99,102,241,.4)' : '1px solid rgba(255,255,255,.1)';
+    btn.style.color      = isActive ? 'var(--purple)' : 'var(--muted)';
+  });
+  loadInspireFeed(domain);
+}
 
 function filterInspirationDomain(domain) {
   currentInspireDomain = domain;
@@ -4406,42 +4468,8 @@ async function loadInspireFeed(domain, offset) {
   var feed = document.getElementById('inspire-feed');
   if (!feed) return;
 
-  // Keyword to Picsum seed mapping — consistent, beautiful images per topic
-  var seedMap = {
-    'financial freedom':    ['money','wealth','success','achieve','luxury'],
-    'wealth mindset':       ['business','professional','office','city','modern'],
-    'passive income':       ['laptop','freedom','beach','remote','travel'],
-    'luxury lifestyle':     ['luxury','elegant','premium','style','fashion'],
-    'investment':           ['growth','chart','strategy','planning','future'],
-    'athletic body':        ['fitness','sport','training','gym','strong'],
-    'fitness motivation':   ['running','athlete','workout','health','energy'],
-    'healthy lifestyle':    ['nature','wellness','yoga','fresh','outdoor'],
-    'gym training':         ['lift','strength','muscle','power','focus'],
-    'running':              ['marathon','road','sunrise','pace','endurance'],
-    'entrepreneur mindset': ['startup','hustle','ideas','vision','create'],
-    'productivity workspace':['desk','minimal','work','coffee','focus'],
-    'business success':     ['team','meeting','growth','leader','win'],
-    'leadership':           ['inspire','guide','future','bold','drive'],
-    'meditation':           ['calm','peace','zen','mind','breathe'],
-    'growth mindset':       ['climb','horizon','potential','rise','evolve'],
-    'morning routine':      ['sunrise','coffee','journal','fresh','start'],
-    'focus mindset':        ['deep','flow','clarity','sharp','execute'],
-    'mental strength':      ['mountain','resilience','power','overcome','bold']
-  };
-
-  // Use quiz domains if available
-  var quizDomains = getQuizDomains();
-  var keywords;
-  if (domain === 'all' && quizDomains.length > 0) {
-    keywords = [];
-    quizDomains.forEach(function(d) {
-      var kws = inspireDomains[d] || [];
-      keywords = keywords.concat(kws.slice(0, 2));
-    });
-    keywords = keywords.slice(0, 6);
-  } else {
-    keywords = (inspireDomains[domain] || inspireDomains.all).slice(0, 6);
-  }
+  var terms = buildInspireKeywords(domain, offset || 0);
+  var PEXELS_KEY = 'dWjqM9AdMMUjVwjuFOSBelGD7glFAMS9I0dyE2koZsmS0DK2i39Tkeza';
 
   // Show skeletons
   feed.innerHTML = '';
@@ -4452,59 +4480,111 @@ async function loadInspireFeed(domain, offset) {
     feed.appendChild(sk);
   }
 
-  // Build Picsum URLs — use keyword hash as seed for consistency
-  function kwSeed(kw, seedOffset) {
-    var h = 0;
-    for (var ci = 0; ci < kw.length; ci++) h = ((h << 5) - h) + kw.charCodeAt(ci);
-    return Math.abs(h % 900) + (seedOffset || 0) + 10;
-  }
-
-  var items = keywords.map(function(kw, idx) {
-    var seed = kwSeed(kw, (idx * 17) + ((offset || 0) * 31));
-    return {
-      kw: kw,
-      url: 'https://picsum.photos/seed/' + seed + '/400/600'
-    };
+  // Fetch one photo per term in parallel from Pexels
+  var promises = terms.map(function(term) {
+    var page = Math.floor((offset || 0) / 6) + 1;
+    return fetch('https://api.pexels.com/v1/search?query=' + encodeURIComponent(term) + '&per_page=1&page=' + page + '&orientation=portrait', {
+      headers: { 'Authorization': PEXELS_KEY }
+    })
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(d) {
+      if (!d || !d.photos || !d.photos.length) return null;
+      var p = d.photos[0];
+      return {
+        term: term,
+        label: term.split(' ').slice(0,3).join(' ').toUpperCase(),
+        url: p.src.portrait || p.src.large,
+        thumb: p.src.medium,
+        photographer: p.photographer,
+        photo_url: p.url
+      };
+    })
+    .catch(function() { return null; });
   });
 
+  var results = await Promise.all(promises);
   feed.innerHTML = '';
 
-  items.forEach(function(item) {
+  var valid = results.filter(Boolean);
+
+  if (valid.length === 0) {
+    feed.innerHTML = '<div style="grid-column:1/-1;padding:24px;text-align:center;color:var(--muted);font-size:13px;border-radius:14px;background:rgba(255,255,255,.03)">Could not load images. Check your connection.</div>';
+    var lmBtn2 = document.getElementById('inspire-load-more');
+    if (lmBtn2) lmBtn2.style.display = 'none';
+    return;
+  }
+
+  valid.forEach(function(item) {
     var saved = visionBoard.some(function(v) { return v.url === item.url; });
     var card = document.createElement('div');
     card.style.cssText = 'border-radius:14px;overflow:hidden;position:relative;aspect-ratio:3/4;background:rgba(255,255,255,.05);';
 
     var img = document.createElement('img');
-    img.src = item.url;
-    img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;transition:opacity .3s;';
+    img.src = item.thumb || item.url;
+    img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
     img.loading = 'lazy';
     img.onerror = function() { card.style.display = 'none'; };
     card.appendChild(img);
 
     var cap = document.createElement('div');
-    cap.style.cssText = 'position:absolute;bottom:0;left:0;right:0;padding:10px 10px 8px;background:linear-gradient(transparent,rgba(0,0,0,.75));';
+    cap.style.cssText = 'position:absolute;bottom:0;left:0;right:0;padding:10px 10px 6px;background:linear-gradient(transparent,rgba(0,0,0,.8));';
     var kwtxt = document.createElement('div');
-    kwtxt.style.cssText = 'font-size:10px;color:rgba(255,255,255,.9);font-weight:700;text-transform:uppercase;letter-spacing:.8px';
-    kwtxt.textContent = item.kw;
+    kwtxt.style.cssText = 'font-size:10px;color:rgba(255,255,255,.9);font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:2px';
+    kwtxt.textContent = item.label;
+    var credit = document.createElement('a');
+    credit.href = item.photo_url + '?utm_source=luhv_app&utm_medium=referral';
+    credit.target = '_blank';
+    credit.style.cssText = 'font-size:9px;color:rgba(255,255,255,.35);text-decoration:none;display:block';
+    credit.textContent = 'Photo: ' + item.photographer + ' · Pexels';
     cap.appendChild(kwtxt);
+    cap.appendChild(credit);
     card.appendChild(cap);
 
     var btn = document.createElement('button');
-    btn.style.cssText = 'position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(0,0,0,.5);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;';
+    btn.style.cssText = 'position:absolute;top:8px;right:8px;width:32px;height:32px;border-radius:50%;border:none;background:rgba(0,0,0,.5);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;';
     btn.style.color = saved ? '#f43f5e' : '#fff';
     btn.textContent = saved ? '♥' : '♡';
-    var itemRef = {kw: item.kw, url: item.url};
+    var itemRef = {kw: item.term, url: item.url, label: item.label};
     btn.onclick = function() { saveToVisionBoard(btn, itemRef); };
     card.appendChild(btn);
 
     feed.appendChild(card);
   });
 
-  // Show load more button
   var lmBtn = document.getElementById('inspire-load-more');
   if (lmBtn) lmBtn.style.display = 'inline-block';
-  // Refresh saved panel
   refreshInspireSavedPanel();
+}
+
+function buildInspireKeywords(domain, offset) {
+  // Aspirational search terms that reliably return motivational images on Pexels
+  var domainTerms = {
+    all:      ['mountain summit victory','luxury lifestyle success','ocean sunrise freedom','city skyline ambition','achievement celebration'],
+    finance:  ['luxury penthouse city','wealth success money','investment growth finance','elegant lifestyle rich','financial freedom travel'],
+    fitness:  ['athlete training gym','running marathon sunrise','strong body workout','healthy lifestyle sport','crossfit motivation power'],
+    business: ['modern office success','entrepreneur working laptop','business leadership team','city professional ambition','startup growth hustle'],
+    mindset:  ['mountain peak sunrise','meditation peace calm','lion strength focus','morning routine discipline','championship winner trophy']
+  };
+
+  var terms = (domainTerms[domain] || domainTerms.all).slice();
+
+  // Add user-goal specific term at the front
+  try {
+    var onb = JSON.parse(localStorage.getItem('luhv_onboarding') || '{}');
+    var goal = (onb.goal_90days || '').toLowerCase();
+    var goalTerm = null;
+    if (goal.match(/client|revenue|sale|business|launch/)) goalTerm = 'business success achievement';
+    else if (goal.match(/fit|weight|run|gym|health|muscle|body/)) goalTerm = 'fitness transformation athlete';
+    else if (goal.match(/money|income|invest|financ|wealth|save/)) goalTerm = 'wealth financial freedom luxury';
+    else if (goal.match(/mind|focus|habit|routine|discipline/)) goalTerm = 'discipline focus mindset success';
+    else if (goal.match(/travel|freedom|lifestyle/)) goalTerm = 'travel freedom adventure lifestyle';
+    if (goalTerm) terms.unshift(goalTerm);
+  } catch(e) {}
+
+  // Rotate by offset for load more
+  var start = ((offset || 0) * 6) % Math.max(terms.length, 1);
+  var rotated = terms.slice(start).concat(terms.slice(0, start));
+  return rotated.slice(0, 6);
 }
 
 function getQuizDomains() {
@@ -4804,4 +4884,3 @@ function editDomain(id, currentName, currentIcon) {
 </script>
 </body>
 </html>
-

@@ -774,6 +774,40 @@ app.delete('/api/quotes/:id', auth, async (req, res) => {
   res.json({ success: true });
 });
 
+
+// ── STREAK HELPER — one increment per day, resets if day missed ──────────────
+async function updateUserStreak(userId) {
+  const { rows: [user] } = await db.query(
+    'SELECT streak, last_streak_date FROM users WHERE id=$1', [userId]
+  );
+  if (!user) return;
+
+  const today = new Date().toISOString().split('T')[0];
+  const lastDate = user.last_streak_date
+    ? new Date(user.last_streak_date).toISOString().split('T')[0]
+    : null;
+
+  if (lastDate === today) return; // already counted today
+
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yStr = yesterday.toISOString().split('T')[0];
+
+  let newStreak;
+  if (lastDate === yStr) {
+    // Consecutive day — increment
+    newStreak = (user.streak || 0) + 1;
+  } else {
+    // Gap or first time — reset to 1
+    newStreak = 1;
+  }
+
+  await db.query(
+    'UPDATE users SET streak=$1, last_streak_date=$2 WHERE id=$3',
+    [newStreak, today, userId]
+  );
+}
+
 // ── HABITS ────────────────────────────────────────────────────────────────────
 app.get('/api/habits', auth, async (req, res) => {
   const today = new Date().toISOString().split('T')[0];
@@ -820,7 +854,7 @@ app.patch('/api/habits/:id/check', auth, async (req, res) => {
       res.json({ done: false, value: 0, target: 1 });
     } else {
       await db.query('INSERT INTO habit_completions (habit_id, user_id, date, value) VALUES ($1,$2,$3,1)', [req.params.id, req.user.id, today]);
-      await db.query('UPDATE users SET streak = streak + 1 WHERE id=$1', [req.user.id]);
+      await updateUserStreak(req.user.id);
       res.json({ done: true, value: 1, target: 1 });
     }
   } else {
@@ -833,7 +867,7 @@ app.patch('/api/habits/:id/check', auth, async (req, res) => {
       await db.query('INSERT INTO habit_completions (habit_id, user_id, date, value) VALUES ($1,$2,$3,$4)', [req.params.id, req.user.id, today, newValue]);
     }
     const done = newValue >= habit.daily_target;
-    if (done && !existing) await db.query('UPDATE users SET streak = streak + 1 WHERE id=$1', [req.user.id]);
+    if (done && !existing) await updateUserStreak(req.user.id);
     res.json({ done, value: newValue, target: habit.daily_target });
   }
 });
@@ -1686,10 +1720,21 @@ app.post('/api/onboarding/complete', auth, async (req, res) => {
     if (data.goal_90days && data.goal_90days.trim().length > 3) {
       const deadline = new Date();
       deadline.setDate(deadline.getDate() + 90);
-      await db.query(
-        "INSERT INTO goals (user_id, title, progress, target, deadline, category, status) VALUES ($1,$2,0,100,$3,'Business','active')",
-        [req.user.id, data.goal_90days.trim(), deadline.toISOString().split('T')[0]]
-      );
+      // Ensure columns exist (run once in Supabase):
+      // ALTER TABLE goals ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'Business';
+      // ALTER TABLE goals ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active';
+      try {
+        await db.query(
+          "INSERT INTO goals (user_id, title, progress, target, deadline, category, status) VALUES ($1,$2,0,100,$3,'Business','active')",
+          [req.user.id, data.goal_90days.trim(), deadline.toISOString().split('T')[0]]
+        );
+      } catch(goalErr) {
+        // Fallback without category/status if columns don't exist yet
+        await db.query(
+          'INSERT INTO goals (user_id, title, progress, target, deadline) VALUES ($1,$2,0,100,$3)',
+          [req.user.id, data.goal_90days.trim(), deadline.toISOString().split('T')[0]]
+        );
+      }
     }
     const name = data.name || 'Champion';
     const stuck = data.stuck_area || 'your goals';
@@ -1946,6 +1991,69 @@ app.post('/api/billing/cancel', auth, async (req, res) => {
   }
 });
 
+
+// ── CHAT EXPORT ───────────────────────────────────────────────────────────────
+app.get('/api/coach/export', auth, async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      'SELECT role, content, created_at FROM conversations WHERE user_id=$1 ORDER BY created_at ASC',
+      [req.user.id]
+    );
+    const { rows: [user] } = await db.query('SELECT name FROM users WHERE id=$1', [req.user.id]);
+
+    let text = `LUHV+ COACH CONVERSATION\n`;
+    text += `User: ${user.name}\n`;
+    text += `Exported: ${new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' })}\n`;
+    text += `${'─'.repeat(40)}\n\n`;
+
+    rows.forEach(msg => {
+      const time = new Date(msg.created_at).toLocaleString('en-US', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+      const label = msg.role === 'user' ? `YOU (${time})` : `COACH (${time})`;
+      text += `${label}\n${msg.content}\n\n`;
+    });
+
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="luhv-coach-${new Date().toISOString().split('T')[0]}.txt"`);
+    res.send(text);
+  } catch(e) {
+    res.status(500).json({ error: 'Could not export chat' });
+  }
+});
+
 app.get('/health', (_, res) => res.json({ status: 'ok', service: 'Luhv+ API' }));
 
-app.listen(PORT, '0.0.0.0', () => console.log(`🏆 Luhv+ API running on port ${PORT}`));
+
+// ── STARTUP DB MIGRATIONS (safe, idempotent) ─────────────────────────────────
+async function runMigrations() {
+  const migrations = [
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_streak_date DATE`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS tier TEXT DEFAULT 'basic'`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS token_balance INTEGER DEFAULT 0`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS billing_period_end TIMESTAMPTZ`,
+    `ALTER TABLE goals ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'Business'`,
+    `ALTER TABLE goals ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active'`,
+    `ALTER TABLE habits ADD COLUMN IF NOT EXISTS target_type TEXT DEFAULT 'check'`,
+    `ALTER TABLE habits ADD COLUMN IF NOT EXISTS daily_target INTEGER DEFAULT 1`,
+    `ALTER TABLE journal_entries ADD COLUMN IF NOT EXISTS energy_level INTEGER`,
+    `ALTER TABLE habit_completions ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ DEFAULT NOW()`,
+    `CREATE TABLE IF NOT EXISTS energy_logs (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, level INTEGER NOT NULL CHECK (level BETWEEN 1 AND 5), note TEXT, logged_at TIMESTAMPTZ DEFAULT NOW())`,
+    `CREATE TABLE IF NOT EXISTS daily_intentions (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, intention TEXT NOT NULL, coach_reply TEXT, alignment TEXT, date DATE NOT NULL DEFAULT CURRENT_DATE, created_at TIMESTAMPTZ DEFAULT NOW())`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS daily_intentions_user_date ON daily_intentions (user_id, date)`,
+    `CREATE TABLE IF NOT EXISTS decision_log (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, decision TEXT NOT NULL, context TEXT, coach_reply TEXT, alignment TEXT, foundation TEXT, created_at TIMESTAMPTZ DEFAULT NOW())`,
+    `CREATE TABLE IF NOT EXISTS coach_sessions (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, phase TEXT NOT NULL DEFAULT 'mindset_checkin', phase_index INTEGER NOT NULL DEFAULT 0, responses JSONB NOT NULL DEFAULT '{}', lens TEXT, completed BOOLEAN NOT NULL DEFAULT false, created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW())`,
+    `CREATE TABLE IF NOT EXISTS life_domains (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, name TEXT NOT NULL, icon TEXT DEFAULT '⚡', color TEXT DEFAULT '#0ea5e9', domain_type TEXT DEFAULT 'custom', created_at TIMESTAMPTZ DEFAULT NOW())`,
+    `CREATE TABLE IF NOT EXISTS domain_metrics (id SERIAL PRIMARY KEY, domain_id INTEGER REFERENCES life_domains(id) ON DELETE CASCADE, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, name TEXT NOT NULL, metric_type TEXT DEFAULT 'number', unit TEXT DEFAULT '', target NUMERIC, current_value NUMERIC DEFAULT 0, period TEXT DEFAULT 'monthly', updated_at TIMESTAMPTZ DEFAULT NOW(), created_at TIMESTAMPTZ DEFAULT NOW())`,
+    `CREATE TABLE IF NOT EXISTS domain_metric_logs (id SERIAL PRIMARY KEY, metric_id INTEGER, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, value NUMERIC NOT NULL, note TEXT, logged_at TIMESTAMPTZ DEFAULT NOW())`,
+  ];
+  for (const sql of migrations) {
+    try { await db.query(sql); } catch(e) { console.warn('Migration skipped:', sql.slice(0,60), e.message); }
+  }
+  console.log('✅ Migrations complete');
+}
+
+// Run migrations then start server
+runMigrations().then(() => {
+  app.listen(PORT, '0.0.0.0', () => console.log(`🏆 Luhv+ API running on port ${PORT}`));
+});

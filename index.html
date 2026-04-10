@@ -2285,26 +2285,35 @@ async function obNext() {
       // Show profile result card on dashboard
       showProfileResultCard(obAnswers);
 
-      // Auto-generate suggested tasks based on the goal
-      if (answers.goal_90days) {
-        setTimeout(function() { suggestTasksForGoal(answers.goal_90days); }, 1500);
-      }
-
       // Update quiz banner to "retake"
       var titleEl = document.getElementById('quiz-banner-title');
       var subEl = document.getElementById('quiz-banner-sub');
       if (titleEl) titleEl.textContent = 'Retake your profile quiz →';
       if (subEl) subEl.textContent = 'Update your goals, style & peak hour';
 
-      // Show personalized welcome in coach
-      if (result && result.welcomeMessage) {
-        switchPage('ai');
-        setTimeout(function() { addMsg(result.welcomeMessage, 'a'); }, 400);
-      }
       // Reload goals and score
       await loadGoals();
       await loadEffectivenessScore();
       loadPeakHourCard();
+
+      // Auto-suggest tasks based on goal — do this BEFORE switching to coach
+      if (obAnswers.goal_90days && obAnswers.goal_90days.trim().length > 2) {
+        showToast('Coach is analysing your goal... 🧠');
+        setTimeout(async function() {
+          await suggestTasksForGoal(obAnswers.goal_90days);
+          // THEN show welcome message in coach
+          if (result && result.welcomeMessage) {
+            switchPage('ai');
+            setTimeout(function() { addMsg(result.welcomeMessage, 'a'); }, 400);
+          }
+        }, 800);
+      } else {
+        // No goal set — go straight to coach welcome
+        if (result && result.welcomeMessage) {
+          switchPage('ai');
+          setTimeout(function() { addMsg(result.welcomeMessage, 'a'); }, 400);
+        }
+      }
     } catch(e) {
       document.getElementById('onboarding-modal').style.display = 'none';
     }
@@ -4130,6 +4139,91 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(function() { loadInspireFeed(currentInspireDomain); }, 300);
   }
 });
+
+
+// ── AUTO-SUGGEST TASKS AFTER QUIZ ────────────────────────────────────────────
+async function suggestTasksForGoal(goalText) {
+  try {
+    const data = await api('/api/goals/suggest-tasks', {
+      method: 'POST',
+      body: JSON.stringify({ goal: goalText })
+    });
+    if (!data || !data.tasks || !data.tasks.length) return;
+    showTaskSuggestions(goalText, data.tasks);
+  } catch(e) {
+    console.warn('Task suggestion unavailable:', e);
+  }
+}
+
+function showTaskSuggestions(goalText, tasks) {
+  var existing = document.getElementById('task-suggestion-banner');
+  if (existing) existing.remove();
+
+  var banner = document.createElement('div');
+  banner.id = 'task-suggestion-banner';
+  banner.style.cssText = 'margin:0 16px 16px;background:linear-gradient(135deg,rgba(6,214,160,.1),rgba(14,165,233,.06));border:1px solid rgba(6,214,160,.25);border-radius:16px;padding:16px;';
+
+  var tasksHTML = tasks.map(function(t, i) {
+    return '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(255,255,255,.05);border-radius:10px;border:1px solid rgba(255,255,255,.08);margin-bottom:6px">'
+      + '<input type="checkbox" id="stask-' + i + '" checked style="accent-color:#06d6a0;width:16px;height:16px;cursor:pointer;flex-shrink:0">'
+      + '<label for="stask-' + i + '" style="font-size:13px;color:var(--light);cursor:pointer;flex:1">' + (t.icon||'⚡') + ' ' + t.name + '</label>'
+      + (t.target ? '<span style="font-size:10px;color:var(--muted);flex-shrink:0">×' + t.target + '/day</span>' : '')
+      + '</div>';
+  }).join('');
+
+  banner.innerHTML = '<div style="font-size:10px;color:var(--teal);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:6px">Coach suggests — based on your goal 💡</div>'
+    + '<div style="font-size:12px;font-weight:600;color:var(--light);margin-bottom:10px;line-height:1.4">"' + goalText.substring(0,60) + (goalText.length>60?'...':'') + '"</div>'
+    + tasksHTML
+    + '<div style="display:flex;gap:8px;margin-top:4px">'
+    + '<button onclick="addSuggestedTasks(' + JSON.stringify(tasks).replace(/'/g,"&#39;") + ')" style="flex:1;padding:10px;border:none;border-radius:10px;background:linear-gradient(90deg,var(--teal),var(--blue));color:#07111b;font-size:13px;font-weight:800;cursor:pointer;font-family:'DM Sans',sans-serif">Add selected tasks ✓</button>'
+    + '<button onclick="document.getElementById('task-suggestion-banner').remove()" style="padding:10px 14px;border:1px solid rgba(255,255,255,.1);border-radius:10px;background:transparent;color:var(--muted);font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif">Skip</button>'
+    + '</div>';
+
+  // Insert at top of home page, after the quiz banner
+  var quizBanner = document.getElementById('quiz-banner');
+  var profileCard = document.getElementById('profile-result-card');
+  var anchor = profileCard && profileCard.style.display !== 'none' ? profileCard : quizBanner;
+  if (anchor && anchor.parentNode) {
+    anchor.parentNode.insertBefore(banner, anchor.nextSibling);
+    // Scroll to it
+    setTimeout(function() { banner.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 200);
+  } else {
+    // Fallback: prepend to home page
+    var homePage = document.getElementById('page-home');
+    if (homePage) homePage.insertBefore(banner, homePage.children[1]);
+  }
+}
+
+async function addSuggestedTasks(tasks) {
+  var added = 0;
+  var errors = 0;
+  for (var i = 0; i < tasks.length; i++) {
+    var cb = document.getElementById('stask-' + i);
+    if (!cb || !cb.checked) continue;
+    var t = tasks[i];
+    try {
+      await api('/api/habits', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: t.name,
+          icon: t.icon || '⚡',
+          target_type: t.target ? 'count' : 'check',
+          daily_target: t.target || 1,
+          time: t.time || null
+        })
+      });
+      added++;
+    } catch(e) { errors++; }
+  }
+
+  var banner = document.getElementById('task-suggestion-banner');
+  if (banner) banner.remove();
+
+  await loadHabits();
+  showToast(added + ' task' + (added !== 1 ? 's' : '') + ' added to your Roadmap 🏆');
+  switchPage('roadmap');
+  setTimeout(function() { switchRoadmapTab('habits'); }, 150);
+}
 
 </script>
 </body>

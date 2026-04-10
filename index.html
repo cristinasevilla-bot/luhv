@@ -1235,6 +1235,11 @@ var tokenBalance = 0;
 var tokenPacks = [];
 
 async function loadBillingStatus() {
+  // STRIPE_DISABLED — give everyone pro access until payments are live
+  userTier = 'pro';
+  tokenBalance = 999999;
+  updateTierUI();
+  /* Re-enable when Stripe is live:
   try {
     const data = await api('/api/billing/status');
     if (!data) return;
@@ -1242,17 +1247,11 @@ async function loadBillingStatus() {
     tokenBalance = data.token_balance || 0;
     tokenPacks = data.token_packs || [];
     updateTierUI();
-    // Check URL params for post-Stripe redirect
     const params = new URLSearchParams(window.location.search);
-    if (params.get('upgraded') === '1') {
-      showToast('Welcome to Pro! 🏆 Your coach is ready.');
-      window.history.replaceState({}, '', '/');
-    }
-    if (params.get('tokens_purchased') === '1') {
-      showToast('Tokens added! Keep going 🔥');
-      window.history.replaceState({}, '', '/');
-    }
+    if (params.get('upgraded') === '1') { showToast('Welcome to Pro! 🏆 Your coach is ready.'); window.history.replaceState({}, '', '/'); }
+    if (params.get('tokens_purchased') === '1') { showToast('Tokens added! Keep going 🔥'); window.history.replaceState({}, '', '/'); }
   } catch(e) { console.warn('Billing status unavailable'); }
+  */
 }
 
 function updateTierUI() {

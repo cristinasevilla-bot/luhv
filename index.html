@@ -878,8 +878,8 @@ body{background:
         <div style="flex:1"><div style="font-size:9px;color:var(--muted);margin-bottom:3px">To</div><input type="date" id="report-to" style="width:100%;padding:6px 8px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#fff;font-size:11px;outline:none"></div>
       </div>
       <div style="display:flex;gap:6px;margin-bottom:16px">
-        <button onclick="exportPDF()" style="flex:1;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--blue),var(--teal));color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">⬇️ PDF Report</button>
-        <button onclick="exportCSV()" style="flex:1;padding:10px;border:1px solid rgba(6,214,160,.3);border-radius:10px;background:rgba(6,214,160,.06);color:var(--teal);font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">⬇️ CSV Data</button>
+        <button onclick="showReportSummary()" style="flex:1;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--blue),var(--teal));color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">📊 View Summary</button>
+        <button onclick="exportCSV()" style="flex:1;padding:10px;border:1px solid rgba(6,214,160,.3);border-radius:10px;background:rgba(6,214,160,.06);color:var(--teal);font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">⬇️ CSV Export</button>
       </div>
       <div id="export-msg" style="font-size:11px;color:var(--muted);text-align:center;margin-top:-8px;min-height:14px"></div>
     </div>
@@ -974,6 +974,15 @@ body{background:
       <div style="font-size:10px;color:var(--muted);text-align:center">Your daily tasks build your goals. Your goals build your lifestyle.</div>
     </div>
 
+
+    <!-- VISION BOARD STRIP -->
+    <div id="roadmap-vision-strip" style="display:none;padding:8px 16px 0">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;font-weight:700">Your vision</div>
+        <button onclick="switchPage('journal')" style="font-size:10px;color:var(--teal);background:none;border:none;cursor:pointer;padding:0">Add more →</button>
+      </div>
+      <div id="roadmap-vision-imgs" style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:4px"></div>
+    </div>
     <!-- SECTION TABS -->
     <div style="display:flex;gap:0;padding:10px 20px 0;border-bottom:1px solid rgba(255,255,255,.06)">
       <button id="rtab-habits" onclick="switchRoadmapTab('habits')" style="flex:1;padding:8px;border:none;background:none;color:var(--teal);font-size:12px;font-weight:700;cursor:pointer;border-bottom:2px solid var(--teal);font-family:'DM Sans',sans-serif">Tasks</button>
@@ -1128,13 +1137,26 @@ body{background:
       <button onclick="filterInspirationDomain('mindset')" id="inspire-filter-mindset" style="flex-shrink:0;padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">🧠 Mindset</button>
     </div>
 
-    <!-- INSPIRE: Vision feed (Unsplash via keyword) -->
-    <div id="inspire-feed" style="margin:12px 16px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <!-- Cards rendered by JS -->
-      <div style="grid-column:1/-1;padding:24px;text-align:center;color:var(--muted);font-size:13px;background:rgba(255,255,255,.03);border-radius:16px;border:1px solid rgba(255,255,255,.07)">
-        <div style="font-size:28px;margin-bottom:8px">✨</div>
-        <div style="font-weight:700;color:var(--light);margin-bottom:4px">Your Vision Board</div>
-        <div style="font-size:12px;line-height:1.6">Images will load based on your goals.<br>Connect to the API to activate the feed.</div>
+    <!-- INSPIRE: 2-col layout — saved left, feed right -->
+    <div style="display:flex;gap:0;margin:10px 0 0">
+      <!-- SAVED panel -->
+      <div id="inspire-saved-panel" style="width:80px;flex-shrink:0;padding:0 0 0 12px;display:none">
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:6px">♥ Saved</div>
+        <div id="inspire-saved-list" style="display:flex;flex-direction:column;gap:5px;overflow-y:auto;max-height:70vh;scrollbar-width:none"></div>
+      </div>
+      <!-- FEED -->
+      <div style="flex:1;padding:0 12px">
+        <div id="inspire-feed" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div style="grid-column:1/-1;padding:20px;text-align:center;color:var(--muted);font-size:13px">
+            <div style="font-size:24px;margin-bottom:6px">✨</div>
+            <div style="font-weight:700;color:var(--light);margin-bottom:4px">Your Vision Board</div>
+            <div style="font-size:11px;line-height:1.6">Loading images for your goals...</div>
+          </div>
+        </div>
+        <!-- Load more -->
+        <div style="text-align:center;padding:12px 0">
+          <button id="inspire-load-more" onclick="loadMoreInspire()" style="display:none;padding:8px 20px;border:1px solid rgba(255,255,255,.15);border-radius:20px;background:transparent;color:var(--muted);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif">Load more ↓</button>
+        </div>
       </div>
     </div>
 
@@ -1154,6 +1176,15 @@ body{background:
       <div style="flex-shrink:0;display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.3);font-size:11px;font-weight:700;color:var(--purple)">1. Link a goal</div>
       <div style="flex-shrink:0;color:var(--muted);display:flex;align-items:center">→</div>
       <div style="flex-shrink:0;display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);font-size:11px;font-weight:700;color:var(--muted)">2. Start timer</div>
+    </div>
+
+    <!-- VISION BOARD STRIP -->
+    <div id="focus-vision-strip" style="display:none;padding:8px 16px 0">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;font-weight:700">Your vision</div>
+        <button onclick="switchPage('journal')" style="font-size:10px;color:var(--teal);background:none;border:none;cursor:pointer;padding:0">Add more →</button>
+      </div>
+      <div id="focus-vision-imgs" style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:4px"></div>
     </div>
     <div style="display:flex;gap:8px;margin:0 20px 10px">
       <div class="focus-mode active" id="mode-deep" onclick="setMode('deep',25)">
@@ -2942,9 +2973,29 @@ async function sendMsg() {
   const reply = data?.reply || "Let's get this TRIUMPH 🏆 — I'm right here with you!";
   addMsg(reply, 'a');
   chatHistory.push({ role: 'assistant', content: reply });
+  saveChatToStorage();
 }
 
 function sendSug(text) { document.getElementById('cin').value = text; sendMsg(); }
+
+function saveChatToStorage() {
+  try { localStorage.setItem('luhv_chat', JSON.stringify(chatHistory.slice(-40))); } catch(e) {}
+}
+
+function loadChatFromStorage() {
+  try {
+    var saved = localStorage.getItem('luhv_chat');
+    if (!saved) return;
+    var msgs = JSON.parse(saved);
+    if (!msgs || !msgs.length) return;
+    chatHistory = msgs;
+    var w = document.getElementById('chat-msgs');
+    if (!w) return;
+    // Clear the welcome message placeholder
+    w.innerHTML = '';
+    msgs.forEach(function(m) { addMsg(m.content, m.role === 'user' ? 'u' : 'a'); });
+  } catch(e) {}
+}
 
 function addMsg(text, role) {
   const w = document.getElementById('chat-msgs');
@@ -2986,7 +3037,7 @@ function switchPage(name) {
   document.getElementById('page-' + name).classList.add('active');
   document.getElementById('ni-' + name).classList.add('active');
   if (name === 'journal') { loadJournal(); loadGoals(); loadLineChart(); loadEnergyTracker(); loadPeakReport(); }
-  if (name === 'roadmap') { switchRoadmapTab('habits'); }
+  if (name === 'roadmap') { switchRoadmapTab('habits'); refreshVisionStrips(); }
   if (name === 'home') {
     loadTodayWeeklyDashboard();
     dashboardLoadGoalsPreview();
@@ -3724,77 +3775,104 @@ async function exportCSV() {
   }
 }
 
-async function exportPDF() {
+async function showReportSummary() {
   var msg = document.getElementById('export-msg');
   var { from, to } = getReportDates();
-  if (msg) { msg.textContent = 'Generating PDF report...'; msg.style.color = 'var(--muted)'; }
+  if (msg) { msg.textContent = 'Generating summary...'; msg.style.color = 'var(--muted)'; }
   try {
     var data = await api('/api/report?from=' + from + '&to=' + to);
     if (!data || data.error) throw new Error('No data');
-    // Build printable HTML report and open in new tab
-    var html = buildPDFHTML(data);
-    var w = window.open('', '_blank');
-    w.document.write(html);
-    w.document.close();
-    setTimeout(function() { w.print(); }, 500);
-    if (msg) { msg.textContent = 'Report opened — use Print → Save as PDF'; msg.style.color = 'var(--teal)'; }
+
+    var goals = data.goals || [];
+    var habits = data.habits || [];
+    var avgE = data.energy?.avg ? parseFloat(data.energy.avg).toFixed(1) : null;
+    var aligned = data.decisions?.aligned || 0;
+    var totalD = data.decisions?.total || 0;
+
+    // Build highlight summary
+    var topGoal = goals.sort(function(a,b){ return b.pct - a.pct; })[0];
+    var topHabit = habits.sort(function(a,b){ return b.rate - a.rate; })[0];
+    var strugglingHabit = habits.sort(function(a,b){ return a.rate - b.rate; })[0];
+    var avgGoalPct = goals.length ? Math.round(goals.reduce(function(s,g){ return s + g.pct; }, 0) / goals.length) : 0;
+
+    // Show as overlay card on the page
+    var existing = document.getElementById('report-summary-card');
+    if (existing) existing.remove();
+
+    var card = document.createElement('div');
+    card.id = 'report-summary-card';
+    card.style.cssText = 'position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,.85);display:flex;align-items:flex-end;justify-content:center;padding:0';
+    
+    var inner = document.createElement('div');
+    inner.style.cssText = 'background:linear-gradient(180deg,#0d1520,#080f18);border-radius:28px 28px 0 0;padding:28px 24px 40px;width:100%;max-width:640px;max-height:85vh;overflow-y:auto;box-sizing:border-box';
+    
+    var handle = document.createElement('div');
+    handle.style.cssText = 'width:36px;height:4px;border-radius:99px;background:rgba(255,255,255,.15);margin:0 auto 20px';
+    
+    var title = document.createElement('div');
+    title.style.cssText = 'font-family:"Bebas Neue",sans-serif;font-size:26px;letter-spacing:1px;margin-bottom:4px';
+    title.textContent = 'YOUR PROGRESS REPORT';
+    
+    var period = document.createElement('div');
+    period.style.cssText = 'font-size:12px;color:var(--muted);margin-bottom:20px';
+    period.textContent = from + ' — ' + to;
+
+    // Stats row
+    var statsRow = document.createElement('div');
+    statsRow.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:20px';
+    var stats = [
+      { num: avgGoalPct + '%', lbl: 'Goals avg' },
+      { num: avgE ? avgE + '/5' : '—', lbl: 'Avg energy' },
+      { num: totalD > 0 ? Math.round((aligned/totalD)*100) + '%' : '—', lbl: 'Aligned decisions' }
+    ];
+    stats.forEach(function(s) {
+      var box = document.createElement('div');
+      box.style.cssText = 'background:rgba(255,255,255,.05);border-radius:12px;padding:12px;text-align:center';
+      box.innerHTML = '<div style="font-size:22px;font-weight:700;color:var(--teal)">' + s.num + '</div><div style="font-size:10px;color:var(--muted);margin-top:2px">' + s.lbl + '</div>';
+      statsRow.appendChild(box);
+    });
+
+    // Highlights
+    var highlights = document.createElement('div');
+    highlights.style.cssText = 'display:flex;flex-direction:column;gap:10px;margin-bottom:20px';
+    
+    var hlData = [];
+    if (topGoal) hlData.push({ icon: '🏆', color: '#06d6a0', title: 'Top goal', text: topGoal.title + ' — ' + topGoal.pct + '% complete' });
+    if (topHabit && topHabit.rate >= 50) hlData.push({ icon: '🔥', color: '#fbbf24', title: 'Strongest task', text: topHabit.name + ' — ' + topHabit.rate + '% consistency' });
+    if (strugglingHabit && strugglingHabit.rate < 50) hlData.push({ icon: '⚡', color: '#f43f5e', title: 'Needs attention', text: strugglingHabit.name + ' — only ' + strugglingHabit.rate + '% this period' });
+    if (avgE && parseFloat(avgE) >= 4) hlData.push({ icon: '💪', color: '#0ea5e9', title: 'High energy period', text: 'Average energy of ' + avgE + '/5 — you were firing on all cylinders' });
+    if (goals.filter(function(g){ return g.pct >= 100; }).length > 0) hlData.push({ icon: '✅', color: '#06d6a0', title: 'Goals completed', text: goals.filter(function(g){ return g.pct >= 100; }).map(function(g){ return g.title; }).join(', ') });
+
+    if (hlData.length === 0) hlData.push({ icon: '📈', color: '#0ea5e9', title: 'Keep building', text: 'Add goals and complete tasks daily to see your highlights here.' });
+
+    hlData.forEach(function(hl) {
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px 14px;background:rgba(255,255,255,.04);border-radius:12px;border:1px solid rgba(255,255,255,.07)';
+      row.innerHTML = '<div style="font-size:24px;flex-shrink:0">' + hl.icon + '</div>' +
+        '<div><div style="font-size:11px;color:' + hl.color + ';text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:2px">' + hl.title + '</div>' +
+        '<div style="font-size:13px;color:var(--light);line-height:1.4">' + hl.text + '</div></div>';
+      highlights.appendChild(row);
+    });
+
+    var closeBtn = document.createElement('button');
+    closeBtn.style.cssText = 'width:100%;padding:14px;border:1px solid rgba(255,255,255,.1);border-radius:14px;background:transparent;color:var(--muted);font-size:14px;font-weight:700;cursor:pointer;font-family:"DM Sans",sans-serif;margin-top:8px';
+    closeBtn.textContent = 'Close';
+    closeBtn.onclick = function() { card.remove(); };
+
+    inner.appendChild(handle);
+    inner.appendChild(title);
+    inner.appendChild(period);
+    inner.appendChild(statsRow);
+    inner.appendChild(highlights);
+    inner.appendChild(closeBtn);
+    card.appendChild(inner);
+    card.onclick = function(e) { if (e.target === card) card.remove(); };
+    document.body.appendChild(card);
+
+    if (msg) { msg.textContent = ''; }
   } catch(e) {
-    if (msg) { msg.textContent = 'Could not generate PDF.'; msg.style.color = '#f43f5e'; }
+    if (msg) { msg.textContent = 'Could not load report. Try again.'; msg.style.color = '#f43f5e'; }
   }
-}
-
-function buildPDFHTML(data) {
-  var goals = data.goals || [];
-  var habits = data.habits || [];
-  var avgE = data.energy?.avg;
-  var aligned = data.decisions?.aligned || 0;
-  var totalD = data.decisions?.total || 0;
-
-  var goalsHTML = goals.map(function(g) {
-    var pct = g.pct || 0;
-    var color = pct >= 80 ? '#06d6a0' : pct >= 50 ? '#f59e0b' : '#f43f5e';
-    return '<tr><td style="padding:8px 12px;border-bottom:1px solid #eee">' + g.title + '</td>' +
-      '<td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center">' +
-        '<div style="background:#eee;border-radius:99px;height:8px;overflow:hidden;width:120px;display:inline-block">' +
-          '<div style="height:100%;width:' + pct + '%;background:' + color + ';border-radius:99px"></div>' +
-        '</div> <strong>' + pct + '%</strong></td>' +
-      '<td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center">' + (g.deadline || 'No deadline') + '</td></tr>';
-  }).join('');
-
-  var habitsHTML = habits.map(function(h) {
-    var color = h.rate >= 80 ? '#06d6a0' : h.rate >= 50 ? '#f59e0b' : '#f43f5e';
-    return '<tr><td style="padding:8px 12px;border-bottom:1px solid #eee">' + (h.icon||'') + ' ' + h.name + '</td>' +
-      '<td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center">' + h.completedDays + '/' + h.totalDays + ' days</td>' +
-      '<td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;color:' + color + ';font-weight:700">' + h.rate + '%</td></tr>';
-  }).join('');
-
-  return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Luhv+ Report</title>' +
-    '<style>body{font-family:Arial,sans-serif;color:#1a1a2e;padding:40px;max-width:800px;margin:0 auto}' +
-    'h1{color:#0ea5e9;border-bottom:3px solid #0ea5e9;padding-bottom:10px}' +
-    'h2{color:#0a1628;margin-top:30px;border-left:4px solid #06d6a0;padding-left:12px}' +
-    '.stat-row{display:flex;gap:20px;margin:20px 0}' +
-    '.stat{flex:1;background:#f8fafc;border-radius:12px;padding:16px;text-align:center}' +
-    '.stat-num{font-size:32px;font-weight:700;color:#0ea5e9}' +
-    '.stat-lbl{font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:1px}' +
-    'table{width:100%;border-collapse:collapse;margin-top:10px}' +
-    'th{background:#0a1628;color:#fff;padding:10px 12px;text-align:left}' +
-    '@media print{body{padding:20px}}' +
-    '</style></head><body>' +
-    '<h1>&#9889; Luhv+ Performance Report</h1>' +
-    '<p style="color:#64748b">Period: <strong>' + data.period.from + '</strong> to <strong>' + data.period.to + '</strong> &nbsp;·&nbsp; ' +
-    'Generated for <strong>' + data.user.name + '</strong></p>' +
-    '<div class="stat-row">' +
-      '<div class="stat"><div class="stat-num">' + goals.length + '</div><div class="stat-lbl">Active Goals</div></div>' +
-      '<div class="stat"><div class="stat-num">' + habits.length + '</div><div class="stat-lbl">Habits Tracked</div></div>' +
-      '<div class="stat"><div class="stat-num">' + (avgE || '—') + '</div><div class="stat-lbl">Avg Energy (1-5)</div></div>' +
-      '<div class="stat"><div class="stat-num">' + (totalD > 0 ? Math.round((aligned/totalD)*100) + '%' : '—') + '</div><div class="stat-lbl">Decisions Aligned</div></div>' +
-    '</div>' +
-    '<h2>Goals Progress</h2>' +
-    (goals.length ? '<table><tr><th>Goal</th><th>Progress</th><th>Deadline</th></tr>' + goalsHTML + '</table>' : '<p style="color:#64748b">No active goals in this period.</p>') +
-    '<h2>Habit Completion</h2>' +
-    (habits.length ? '<table><tr><th>Habit</th><th>Completed</th><th>Rate</th></tr>' + habitsHTML + '</table>' : '<p style="color:#64748b">No habits tracked in this period.</p>') +
-    '<p style="margin-top:40px;color:#94a3b8;font-size:12px;text-align:center">Generated by Luhv+ · Becoming More Effective in Less Time</p>' +
-    '</body></html>';
 }
 
 async function dashboardLoadGoalsPreview() {
@@ -4104,7 +4182,7 @@ function filterInspirationDomain(domain) {
   loadInspireFeed(domain);
 }
 
-async function loadInspireFeed(domain) {
+async function loadInspireFeed(domain, offset) {
   var feed = document.getElementById('inspire-feed');
   if (!feed) return;
 
@@ -4155,14 +4233,14 @@ async function loadInspireFeed(domain) {
   }
 
   // Build Picsum URLs — use keyword hash as seed for consistency
-  function kwSeed(kw, offset) {
+  function kwSeed(kw, seedOffset) {
     var h = 0;
     for (var ci = 0; ci < kw.length; ci++) h = ((h << 5) - h) + kw.charCodeAt(ci);
-    return Math.abs(h % 900) + offset + 10;
+    return Math.abs(h % 900) + (seedOffset || 0) + 10;
   }
 
   var items = keywords.map(function(kw, idx) {
-    var seed = kwSeed(kw, idx * 17);
+    var seed = kwSeed(kw, (idx * 17) + ((offset || 0) * 31));
     return {
       kw: kw,
       url: 'https://picsum.photos/seed/' + seed + '/400/600'
@@ -4201,6 +4279,11 @@ async function loadInspireFeed(domain) {
 
     feed.appendChild(card);
   });
+
+  // Show load more button
+  if (loadMoreBtn) loadMoreBtn.style.display = 'inline-block';
+  // Refresh saved panel
+  refreshInspireSavedPanel();
 }
 
 function getQuizDomains() {
@@ -4229,23 +4312,83 @@ function getQuizDomains() {
 }
 
 var visionBoard = JSON.parse(localStorage.getItem('luhv_vision_board') || '[]');
+// Refresh strips after DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(function() { 
+    if (typeof refreshVisionStrips === 'function') refreshVisionStrips();
+    if (typeof refreshInspireSavedPanel === 'function') refreshInspireSavedPanel();
+  }, 500);
+});
 
 function saveToVisionBoard(btn, item) {
   if (!item || !item.url) return;
   var idx = visionBoard.findIndex(function(v) { return v.url === item.url; });
   if (idx > -1) {
     visionBoard.splice(idx, 1);
-    btn.textContent = 'o';
+    btn.textContent = '♡';
     btn.style.color = '#fff';
+    btn.style.background = 'rgba(0,0,0,.5)';
     showToast('Removed from vision board');
   } else {
     item.savedAt = Date.now();
     visionBoard.push(item);
-    btn.textContent = 'x';
+    btn.textContent = '♥';
     btn.style.color = '#f43f5e';
-    showToast('Saved to vision board');
+    btn.style.background = 'rgba(244,63,94,.25)';
+    showToast('Saved to vision board ✨');
   }
   localStorage.setItem('luhv_vision_board', JSON.stringify(visionBoard));
+  if (typeof refreshVisionStrips === 'function') refreshVisionStrips();
+  if (typeof refreshInspireSavedPanel === 'function') refreshInspireSavedPanel();
+}
+
+function refreshVisionStrips() {
+  ['roadmap', 'focus'].forEach(function(page) {
+    var strip = document.getElementById(page + '-vision-strip');
+    var imgs = document.getElementById(page + '-vision-imgs');
+    if (!strip || !imgs) return;
+    if (visionBoard.length === 0) { strip.style.display = 'none'; return; }
+    strip.style.display = 'block';
+    imgs.innerHTML = '';
+    visionBoard.slice(0, 8).forEach(function(item) {
+      var img = document.createElement('img');
+      img.src = item.url;
+      img.style.cssText = 'width:52px;height:70px;border-radius:8px;object-fit:cover;flex-shrink:0;cursor:pointer;';
+      img.title = item.kw || '';
+      img.onclick = function() { switchPage('journal'); };
+      imgs.appendChild(img);
+    });
+    if (visionBoard.length > 8) {
+      var more = document.createElement('div');
+      more.style.cssText = 'width:36px;height:70px;border-radius:8px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted);flex-shrink:0;cursor:pointer;';
+      more.textContent = '+' + (visionBoard.length - 8);
+      more.onclick = function() { switchPage('journal'); };
+      imgs.appendChild(more);
+    }
+  });
+}
+
+function refreshInspireSavedPanel() {
+  var panel = document.getElementById('inspire-saved-panel');
+  var list = document.getElementById('inspire-saved-list');
+  if (!panel || !list) return;
+  if (visionBoard.length === 0) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  list.innerHTML = '';
+  visionBoard.slice().reverse().forEach(function(item) {
+    var img = document.createElement('img');
+    img.src = item.url;
+    img.style.cssText = 'width:60px;height:80px;border-radius:8px;object-fit:cover;display:block;cursor:pointer;border:2px solid transparent;transition:border-color .15s;';
+    img.title = item.kw || '';
+    img.onclick = function() { img.style.borderColor = '#f43f5e'; };
+    list.appendChild(img);
+  });
+}
+
+var inspireOffset = 0;
+function loadMoreInspire() {
+  inspireOffset += 6;
+  loadInspireFeed(currentInspireDomain, inspireOffset);
 }
 
 // Load feed when switching to journal/inspire page

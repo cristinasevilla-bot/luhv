@@ -544,9 +544,9 @@ body{background:
       <div style="padding:14px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
           <span style="font-size:20px">✅</span>
-          <div style="font-size:13px;font-weight:700;color:var(--teal)">Tasks — Your daily actions</div>
+          <div style="font-size:13px;font-weight:700;color:var(--teal)">Habits — Daily non-negotiables</div>
         </div>
-        <div style="font-size:12px;color:var(--muted);line-height:1.6">Add daily tasks that move you toward your goals. Use Daily check for yes/no tasks, or Daily target for measurable ones like glasses of water. Streak builds here.</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.6">Add habits you do every day. Use Daily check for yes/no habits, or Daily target for things like glasses of water. Streak builds here.</div>
       </div>
 
       <div style="padding:14px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)">
@@ -961,46 +961,27 @@ body{background:
       <button onclick="switchPage('home')" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(14,165,233,.4);background:rgba(14,165,233,.12);color:var(--blue);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
     </div>
 
-    <!-- TASKS→GOALS→LIFESTYLE FLOW BANNER -->
-    <div style="margin:12px 16px 0;background:rgba(255,255,255,.03);border:0.5px solid rgba(255,255,255,.08);border-radius:14px;padding:12px 14px">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
-        <div style="flex:1;text-align:center">
-          <div style="font-size:16px;margin-bottom:2px">✅</div>
-          <div style="font-size:10px;font-weight:700;color:var(--teal)">TASKS</div>
-          <div style="font-size:9px;color:var(--muted);margin-top:1px">Daily actions</div>
-        </div>
-        <div style="color:var(--muted);font-size:14px">→</div>
-        <div style="flex:1;text-align:center">
-          <div style="font-size:16px;margin-bottom:2px">🎯</div>
-          <div style="font-size:10px;font-weight:700;color:var(--blue)">GOALS</div>
-          <div style="font-size:9px;color:var(--muted);margin-top:1px">Monthly wins</div>
-        </div>
-        <div style="color:var(--muted);font-size:14px">→</div>
-        <div style="flex:1;text-align:center">
-          <div style="font-size:16px;margin-bottom:2px">🌟</div>
-          <div style="font-size:10px;font-weight:700;color:#fbbf24">LIFESTYLE</div>
-          <div style="font-size:9px;color:var(--muted);margin-top:1px">Your vision</div>
-        </div>
+    <!-- FLOW BANNER -->
+    <div style="margin:12px 16px 0;background:rgba(255,255,255,.03);border:0.5px solid rgba(255,255,255,.07);border-radius:12px;padding:10px 14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:6px">
+        <div style="flex:1;text-align:center"><div style="font-size:10px;font-weight:700;color:var(--teal)">TASKS</div><div style="font-size:9px;color:var(--muted)">Daily actions</div></div>
+        <div style="color:var(--muted);font-size:12px">→</div>
+        <div style="flex:1;text-align:center"><div style="font-size:10px;font-weight:700;color:var(--blue)">GOALS</div><div style="font-size:9px;color:var(--muted)">Monthly wins</div></div>
+        <div style="color:var(--muted);font-size:12px">→</div>
+        <div style="flex:1;text-align:center"><div style="font-size:10px;font-weight:700;color:#fbbf24">LIFESTYLE</div><div style="font-size:9px;color:var(--muted)">Your vision</div></div>
       </div>
-      <div style="margin-top:8px;font-size:11px;color:var(--muted);text-align:center;line-height:1.5">Complete your daily tasks → hit your goals → build the life you want.</div>
+      <div style="font-size:10px;color:var(--muted);text-align:center">Your daily tasks build your goals. Your goals build your lifestyle.</div>
     </div>
 
-    <!-- SECTION TABS — Tasks first -->
-    <div style="display:flex;gap:0;padding:12px 20px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+    <!-- SECTION TABS -->
+    <div style="display:flex;gap:0;padding:10px 20px 0;border-bottom:1px solid rgba(255,255,255,.06)">
       <button id="rtab-habits" onclick="switchRoadmapTab('habits')" style="flex:1;padding:8px;border:none;background:none;color:var(--teal);font-size:12px;font-weight:700;cursor:pointer;border-bottom:2px solid var(--teal);font-family:'DM Sans',sans-serif">Tasks</button>
       <button id="rtab-goals" onclick="switchRoadmapTab('goals')" style="flex:1;padding:8px;border:none;background:none;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;border-bottom:2px solid transparent;font-family:'DM Sans',sans-serif">Goals</button>
       <button id="rtab-domains" onclick="switchRoadmapTab('domains')" style="flex:1;padding:8px;border:none;background:none;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;border-bottom:2px solid transparent;font-family:'DM Sans',sans-serif">Lifestyle</button>
     </div>
 
-      </div>
-    </div>
-
-    <!-- LIFESTYLE TAB -->
+    <!-- DOMAINS TAB -->
     <div id="rsection-domains" style="display:none">
-      <div style="margin:12px 16px 0;background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.15);border-radius:12px;padding:11px 14px;margin-bottom:4px">
-        <div style="font-size:12px;font-weight:700;color:#fbbf24;margin-bottom:3px">Your vision — the why behind everything</div>
-        <div style="font-size:11px;color:var(--muted);line-height:1.6">Define the areas of life you want to transform. Each domain becomes the foundation for your goals. Tasks → Goals → this lifestyle. This is what you're building toward.</div>
-      </div>
       <div style="padding:12px 20px 4px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none">
         <button onclick="addPresetDomain('finance')" style="flex-shrink:0;padding:6px 12px;border-radius:20px;border:1px solid rgba(6,214,160,.3);background:rgba(6,214,160,.08);color:var(--teal);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">💰 Finance</button>
         <button onclick="addPresetDomain('fitness')" style="flex-shrink:0;padding:6px 12px;border-radius:20px;border:1px solid rgba(14,165,233,.3);background:rgba(14,165,233,.08);color:var(--blue);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">💪 Fitness</button>
@@ -1014,12 +995,7 @@ body{background:
     </div>
 
     <!-- GOALS TAB -->
-    <div id="rsection-goals" style="display:none">
-      <div style="margin:12px 16px 0;background:rgba(14,165,233,.06);border:1px solid rgba(14,165,233,.15);border-radius:12px;padding:11px 14px">
-        <div style="font-size:12px;font-weight:700;color:var(--blue);margin-bottom:3px">How goals work</div>
-        <div style="font-size:11px;color:var(--muted);line-height:1.6">Set 2–3 clear goals with a deadline. Use + and − to update your progress. Your daily tasks are what get you here — the coach monitors momentum and will call you out if you stall.</div>
-      </div>
-      <div style="padding:12px 20px">
+    <div id="rsection-goals" style="display:none;padding:12px 20px">
       <div style="background:linear-gradient(180deg,rgba(17,24,39,.92),rgba(12,18,28,.96));border:0.5px solid var(--border);border-radius:16px;padding:14px;margin-bottom:14px">
         <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--blue);font-weight:700;margin-bottom:10px">Add Goal</div>
         <input id="goal-title-input" type="text" placeholder="Example: Close 10 clients this month"
@@ -1042,7 +1018,7 @@ body{background:
         <button onclick="addGoal()" style="width:100%;padding:12px 14px;border:none;border-radius:12px;background:linear-gradient(90deg,var(--blue),var(--teal));color:#07111b;font-weight:800;font-size:14px;cursor:pointer">+ Add Goal</button>
         <div id="goal-form-msg" style="margin-top:8px;font-size:12px;color:var(--muted);min-height:16px"></div>
       </div>
-      <div style="font-size:10px;color:var(--muted);margin-bottom:6px;padding:0 2px">Tap ✏️ to edit name · 🗑 to delete · use − + to update progress</div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:6px">Tap ✏️ to rename · 🗑 to delete · use − + to update %</div>
       <div class="glist" id="goals-list">
         <div style="padding:16px;text-align:center;color:var(--muted);font-size:13px">Loading goals...</div>
       </div>
@@ -1050,14 +1026,10 @@ body{background:
 
     <!-- HABITS TAB -->
     <div id="rsection-habits" style="display:block">
-      <div style="margin:12px 16px 0;background:rgba(6,214,160,.06);border:1px solid rgba(6,214,160,.15);border-radius:12px;padding:11px 14px">
-        <div style="font-size:12px;font-weight:700;color:var(--teal);margin-bottom:3px">How tasks work</div>
-        <div style="font-size:11px;color:var(--muted);line-height:1.6">Add the daily actions that move you toward your goals. Check them off each day — your streak and effectiveness score update automatically. The more consistent you are, the faster you reach your goals.</div>
-      </div>
       <div style="padding:12px 20px">
         <div style="background:linear-gradient(180deg,rgba(17,24,39,.92),rgba(12,18,28,.96));border:0.5px solid var(--border);border-radius:16px;padding:14px;">
-          <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:10px">Add Task</div>
-          <input id="habit-name-input" type="text" placeholder="Example: Drink 8 glasses of water daily"
+          <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:10px">Add Habit</div>
+          <input id="habit-name-input" type="text" placeholder="Example: Drink 8 glasses of water"
             style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:var(--light);font-size:14px;outline:none;margin-bottom:6px;"
             oninput="showHabitTip(this.value)" />
           <div id="habit-tip" style="font-size:11px;color:var(--muted);margin-bottom:8px;min-height:16px;line-height:1.5;padding-left:2px"></div>
@@ -1085,10 +1057,11 @@ body{background:
             <input id="habit-target-input" type="number" min="1" max="100" placeholder="Target (e.g. 8)"
               style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:var(--light);font-size:14px;outline:none;display:none;" />
           </div>
-          <button onclick="addHabit()" style="width:100%;padding:12px 14px;border:none;border-radius:12px;background:linear-gradient(90deg,var(--teal),var(--blue));color:#07111b;font-weight:800;font-size:14px;cursor:pointer">+ Add Task</button>
+          <button onclick="addHabit()" style="width:100%;padding:12px 14px;border:none;border-radius:12px;background:linear-gradient(90deg,var(--teal),var(--blue));color:#07111b;font-weight:800;font-size:14px;cursor:pointer">+ Add Habit</button>
           <div id="habit-form-msg" style="margin-top:8px;font-size:12px;color:var(--muted);min-height:16px"></div>
         </div>
       </div>
+      <div style="padding:0 20px;font-size:10px;color:var(--muted);margin-bottom:6px">Daily actions that move you toward your goals. Check them off every day.</div>
       <div style="padding:0 20px;font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);font-weight:700;margin-bottom:10px">My Tasks</div>
       <div class="hlist" id="habits-page-list">
         <div style="padding:16px;text-align:center;color:var(--muted);font-size:13px">Loading habits...</div>
@@ -1106,10 +1079,7 @@ body{background:
           <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px">COACH</div>
           <div style="font-size:12px;color:rgba(255,255,255,.65);margin-top:2px">Ask anything. Get clarity. Move faster.</div>
         </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <button onclick="downloadChat()" title="Download conversation" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:rgba(255,255,255,.6);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center">⬇</button>
-          <button onclick="switchPage('home')" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(14,165,233,.4);background:rgba(14,165,233,.15);color:var(--blue);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">✕</button>
-        </div>
+        <button onclick="switchPage('home')" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(14,165,233,.4);background:rgba(14,165,233,.15);color:var(--blue);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">✕</button>
       </div>
     </div>
     <div id="coach-upgrade-gate" style="display:none;position:absolute;inset:0;z-index:10;flex-direction:column;align-items:center;justify-content:center;background:rgba(8,12,18,.92);padding:24px;text-align:center">
@@ -1435,7 +1405,7 @@ async function api(path, opts = {}, _retry = 0) {
     return res.json().catch(() => null);
   } catch(e) {
     if (_retry < 3 && (e instanceof TypeError || (e.message && e.message.includes('fetch')))) {
-      if (_retry === 0) showToast('Connecting to server... ⚡');
+      if (_retry === 0) showToast('Connecting to server... hold on');
       await new Promise(r => setTimeout(r, 2500 * (_retry + 1)));
       return api(path, opts, _retry + 1);
     }
@@ -2298,38 +2268,31 @@ async function obNext() {
     try {
       var result = await api('/api/onboarding/complete', { method: 'POST', body: JSON.stringify({ data: obAnswers }) });
       document.getElementById('onboarding-modal').style.display = 'none';
-
-      // Show profile result card on dashboard
       showProfileResultCard(obAnswers);
 
-      // Update quiz banner to "retake"
+      // Update quiz banner
       var titleEl = document.getElementById('quiz-banner-title');
       var subEl = document.getElementById('quiz-banner-sub');
       if (titleEl) titleEl.textContent = 'Retake your profile quiz →';
       if (subEl) subEl.textContent = 'Update your goals, style & peak hour';
 
-      // Reload goals and score
       await loadGoals();
       await loadEffectivenessScore();
       loadPeakHourCard();
 
-      // Auto-suggest tasks based on goal — do this BEFORE switching to coach
+      // Auto-suggest tasks from goal, then show coach welcome
       if (obAnswers.goal_90days && obAnswers.goal_90days.trim().length > 2) {
-        showToast('Coach is analysing your goal... 🧠');
+        showToast('Coach is reading your goal... hang on');
         setTimeout(async function() {
           await suggestTasksForGoal(obAnswers.goal_90days);
-          // THEN show welcome message in coach
           if (result && result.welcomeMessage) {
             switchPage('ai');
             setTimeout(function() { addMsg(result.welcomeMessage, 'a'); }, 400);
           }
         }, 800);
-      } else {
-        // No goal set — go straight to coach welcome
-        if (result && result.welcomeMessage) {
-          switchPage('ai');
-          setTimeout(function() { addMsg(result.welcomeMessage, 'a'); }, 400);
-        }
+      } else if (result && result.welcomeMessage) {
+        switchPage('ai');
+        setTimeout(function() { addMsg(result.welcomeMessage, 'a'); }, 400);
       }
     } catch(e) {
       document.getElementById('onboarding-modal').style.display = 'none';
@@ -2978,7 +2941,6 @@ function switchPage(name) {
   if (name === 'goals')  { switchPage('roadmap'); setTimeout(function(){ switchRoadmapTab('goals'); }, 50); return; }
   if (name === 'habits') { switchPage('roadmap'); setTimeout(function(){ switchRoadmapTab('habits'); }, 50); return; }
   if (name === 'domains') { switchPage('roadmap'); setTimeout(function(){ switchRoadmapTab('domains'); }, 50); return; }
-  if (name === 'lifestyle') { switchPage('roadmap'); setTimeout(function(){ switchRoadmapTab('domains'); }, 50); return; }
   if (name === 'focus')   { loadFocusPage(); loadPeakTimerBadge(); }
 }
 
@@ -4084,65 +4046,84 @@ async function loadInspireFeed(domain) {
   var feed = document.getElementById('inspire-feed');
   if (!feed) return;
   var keywords = inspireDomains[domain] || inspireDomains.all;
+
   feed.innerHTML = '';
   for (var s = 0; s < 6; s++) {
-    var skel = document.createElement('div');
-    skel.style.cssText = 'border-radius:14px;aspect-ratio:3/4;background:rgba(255,255,255,.06);';
-    skel.className = 'inspire-skel';
-    feed.appendChild(skel);
+    var sk = document.createElement('div');
+    sk.style.cssText = 'border-radius:14px;aspect-ratio:3/4;background:rgba(255,255,255,.06);animation:inspirePulse 1.4s ease-in-out infinite';
+    feed.appendChild(sk);
   }
 
   var promises = keywords.slice(0, 6).map(function(kw) {
     return fetch('/.netlify/functions/unsplash?query=' + encodeURIComponent(kw))
       .then(function(r) { return r.ok ? r.json() : null; })
-      .then(function(d) { return d ? { kw: kw, thumb: d.urls.small, url: d.urls.regular, credit: d.user.name, link: d.links.html } : null; })
+      .then(function(d) {
+        if (!d || !d.urls) return null;
+        return { kw: kw, thumb: d.urls.small, url: d.urls.regular, credit: d.user.name, link: d.links.html };
+      })
       .catch(function() { return null; });
   });
 
   var results = await Promise.all(promises);
   feed.innerHTML = '';
 
-  results.forEach(function(item) {
-    if (!item) return;
+  results.filter(Boolean).forEach(function(item) {
     var saved = visionBoard.some(function(v) { return v.url === item.url; });
-    var enc = encodeURIComponent(JSON.stringify({kw:item.kw, url:item.url, credit:item.credit}));
+
     var card = document.createElement('div');
     card.style.cssText = 'border-radius:14px;overflow:hidden;position:relative;aspect-ratio:3/4;background:rgba(255,255,255,.05);';
-    card.innerHTML =
-      '<img src="' + item.thumb + '" style="width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s" loading="lazy" onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform=''">'
-      + '<div style="position:absolute;bottom:0;left:0;right:0;padding:10px 10px 8px;background:linear-gradient(transparent,rgba(0,0,0,.72))">'
-      + '<div style="font-size:10px;color:rgba(255,255,255,.9);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px">' + item.kw + '</div>'
-      + '<a href="' + item.link + '?utm_source=luhv_app&utm_medium=referral" target="_blank" style="font-size:9px;color:rgba(255,255,255,.45);text-decoration:none">by ' + item.credit + ' · Unsplash</a>'
-      + '</div>'
-      + '<button onclick="saveToVisionBoard(this,'' + enc + '')" style="position:absolute;top:8px;right:8px;width:32px;height:32px;border-radius:50%;border:none;background:rgba(0,0,0,.55);color:' + (saved?'#f43f5e':'#fff') + ';font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">'
-      + (saved ? '♥' : '♡') + '</button>';
+
+    var img = document.createElement('img');
+    img.src = item.thumb;
+    img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+    img.loading = 'lazy';
+    card.appendChild(img);
+
+    var cap = document.createElement('div');
+    cap.style.cssText = 'position:absolute;bottom:0;left:0;right:0;padding:8px;background:linear-gradient(transparent,rgba(0,0,0,.7));';
+    var kwtxt = document.createElement('div');
+    kwtxt.style.cssText = 'font-size:10px;color:rgba(255,255,255,.9);font-weight:700;text-transform:uppercase;margin-bottom:2px';
+    kwtxt.textContent = item.kw;
+    var credit = document.createElement('a');
+    credit.href = item.link + '?utm_source=luhv_app&utm_medium=referral';
+    credit.target = '_blank';
+    credit.style.cssText = 'font-size:9px;color:rgba(255,255,255,.45);text-decoration:none';
+    credit.textContent = 'by ' + item.credit + ' - Unsplash';
+    cap.appendChild(kwtxt); cap.appendChild(credit);
+    card.appendChild(cap);
+
+    var btn = document.createElement('button');
+    btn.style.cssText = 'position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(0,0,0,.5);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;';
+    btn.style.color = saved ? '#f43f5e' : '#fff';
+    btn.textContent = saved ? 'x' : 'o';
+    var itemRef = item;
+    btn.onclick = function() { saveToVisionBoard(btn, itemRef); };
+    card.appendChild(btn);
+
     feed.appendChild(card);
   });
 
   if (feed.children.length === 0) {
-    feed.innerHTML = '<div style="grid-column:1/-1;padding:24px;text-align:center;color:var(--muted);font-size:13px;border-radius:16px;background:rgba(255,255,255,.03)">No images found for this category.</div>';
+    feed.innerHTML = '<div style="grid-column:1/-1;padding:24px;text-align:center;color:var(--muted);font-size:13px">No images found.</div>';
   }
 }
 
 var visionBoard = JSON.parse(localStorage.getItem('luhv_vision_board') || '[]');
 
-function saveToVisionBoard(btn, encoded) {
-  var item;
-  try { item = JSON.parse(decodeURIComponent(encoded)); } catch(e) { item = {kw: encoded, url: '', credit: ''}; }
-  var already = visionBoard.findIndex(function(v) { return v.url === item.url; });
-  if (already > -1) {
-    visionBoard.splice(already, 1);
-    btn.textContent = '♡';
+function saveToVisionBoard(btn, item) {
+  if (!item || !item.url) return;
+  var idx = visionBoard.findIndex(function(v) { return v.url === item.url; });
+  if (idx > -1) {
+    visionBoard.splice(idx, 1);
+    btn.textContent = 'o';
     btn.style.color = '#fff';
-    btn.style.background = 'rgba(0,0,0,.55)';
     showToast('Removed from vision board');
   } else {
     item.savedAt = Date.now();
     visionBoard.push(item);
-    btn.textContent = '♥';
+    btn.textContent = 'x';
     btn.style.color = '#f43f5e';
-    btn.style.background = 'rgba(244,63,94,.35)';
-    showToast('Saved to your vision board ✨');
+    showToast('Saved to vision board');
   }
   localStorage.setItem('luhv_vision_board', JSON.stringify(visionBoard));
 }
@@ -4162,12 +4143,12 @@ document.addEventListener('DOMContentLoaded', function() {
 // ── CHAT DOWNLOAD ─────────────────────────────────────────────────────────────
 async function downloadChat() {
   try {
-    showToast('Preparing your conversation...');
-    const token = localStorage.getItem('luhv_token');
+    showToast('Preparing download...');
+    const token = localStorage.getItem('luhv_token') || TOKEN;
     const res = await fetch(API + '/api/coach/export', {
       headers: { 'Authorization': 'Bearer ' + token }
     });
-    if (!res.ok) throw new Error('Export failed');
+    if (!res.ok) throw new Error('failed');
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -4177,10 +4158,8 @@ async function downloadChat() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    showToast('Conversation downloaded ✓');
-  } catch(e) {
-    showToast('Could not download — try again');
-  }
+    showToast('Downloaded ✓');
+  } catch(e) { showToast('Could not download. Try again.'); }
 }
 
 // ── AUTO-SUGGEST TASKS AFTER QUIZ ────────────────────────────────────────────
@@ -4192,9 +4171,7 @@ async function suggestTasksForGoal(goalText) {
     });
     if (!data || !data.tasks || !data.tasks.length) return;
     showTaskSuggestions(goalText, data.tasks);
-  } catch(e) {
-    console.warn('Task suggestion unavailable:', e);
-  }
+  } catch(e) { console.warn('Task suggestion unavailable:', e); }
 }
 
 function showTaskSuggestions(goalText, tasks) {
@@ -4205,40 +4182,59 @@ function showTaskSuggestions(goalText, tasks) {
   banner.id = 'task-suggestion-banner';
   banner.style.cssText = 'margin:0 16px 16px;background:linear-gradient(135deg,rgba(6,214,160,.1),rgba(14,165,233,.06));border:1px solid rgba(6,214,160,.25);border-radius:16px;padding:16px;';
 
-  var tasksHTML = tasks.map(function(t, i) {
-    return '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(255,255,255,.05);border-radius:10px;border:1px solid rgba(255,255,255,.08);margin-bottom:6px">'
-      + '<input type="checkbox" id="stask-' + i + '" checked style="accent-color:#06d6a0;width:16px;height:16px;cursor:pointer;flex-shrink:0">'
-      + '<label for="stask-' + i + '" style="font-size:13px;color:var(--light);cursor:pointer;flex:1">' + (t.icon||'⚡') + ' ' + t.name + '</label>'
-      + (t.target ? '<span style="font-size:10px;color:var(--muted);flex-shrink:0">×' + t.target + '/day</span>' : '')
-      + '</div>';
-  }).join('');
+  var lbl = document.createElement('div');
+  lbl.style.cssText = 'font-size:10px;color:var(--teal);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:6px';
+  lbl.textContent = 'Coach suggests - based on your goal';
+  banner.appendChild(lbl);
 
-  banner.innerHTML = '<div style="font-size:10px;color:var(--teal);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:6px">Coach suggests — based on your goal 💡</div>'
-    + '<div style="font-size:12px;font-weight:600;color:var(--light);margin-bottom:10px;line-height:1.4">"' + goalText.substring(0,60) + (goalText.length>60?'...':'') + '"</div>'
-    + tasksHTML
-    + '<div style="display:flex;gap:8px;margin-top:4px">'
-    + '<button onclick="addSuggestedTasks(' + JSON.stringify(tasks).replace(/'/g,"&#39;") + ')" style="flex:1;padding:10px;border:none;border-radius:10px;background:linear-gradient(90deg,var(--teal),var(--blue));color:#07111b;font-size:13px;font-weight:800;cursor:pointer;font-family:'DM Sans',sans-serif">Add selected tasks ✓</button>'
-    + '<button onclick="document.getElementById('task-suggestion-banner').remove()" style="padding:10px 14px;border:1px solid rgba(255,255,255,.1);border-radius:10px;background:transparent;color:var(--muted);font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif">Skip</button>'
-    + '</div>';
+  var goalLbl = document.createElement('div');
+  goalLbl.style.cssText = 'font-size:12px;font-weight:600;color:var(--light);margin-bottom:10px;line-height:1.4';
+  goalLbl.textContent = '"' + goalText.substring(0, 60) + (goalText.length > 60 ? '...' : '') + '"';
+  banner.appendChild(goalLbl);
 
-  // Insert at top of home page, after the quiz banner
-  var quizBanner = document.getElementById('quiz-banner');
-  var profileCard = document.getElementById('profile-result-card');
-  var anchor = profileCard && profileCard.style.display !== 'none' ? profileCard : quizBanner;
+  tasks.forEach(function(t, i) {
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(255,255,255,.05);border-radius:10px;border:1px solid rgba(255,255,255,.08);margin-bottom:6px';
+    var cb = document.createElement('input');
+    cb.type = 'checkbox'; cb.id = 'stask-' + i; cb.checked = true;
+    cb.style.cssText = 'accent-color:#06d6a0;width:16px;height:16px;cursor:pointer;flex-shrink:0';
+    var lbl2 = document.createElement('label');
+    lbl2.htmlFor = 'stask-' + i;
+    lbl2.style.cssText = 'font-size:13px;color:var(--light);cursor:pointer;flex:1';
+    lbl2.textContent = (t.icon || 'x') + ' ' + t.name;
+    row.appendChild(cb); row.appendChild(lbl2);
+    if (t.target) {
+      var tgt = document.createElement('span');
+      tgt.style.cssText = 'font-size:10px;color:var(--muted);flex-shrink:0';
+      tgt.textContent = 'x' + t.target + '/day';
+      row.appendChild(tgt);
+    }
+    banner.appendChild(row);
+  });
+
+  var btnRow = document.createElement('div');
+  btnRow.style.cssText = 'display:flex;gap:8px;margin-top:4px';
+  var addBtn = document.createElement('button');
+  addBtn.style.cssText = "flex:1;padding:10px;border:none;border-radius:10px;background:linear-gradient(90deg,var(--teal),var(--blue));color:#07111b;font-size:13px;font-weight:800;cursor:pointer;font-family:'DM Sans',sans-serif";
+  addBtn.textContent = 'Add selected tasks';
+  var tasksCopy = JSON.parse(JSON.stringify(tasks));
+  addBtn.onclick = function() { addSuggestedTasks(tasksCopy); };
+  var skipBtn = document.createElement('button');
+  skipBtn.style.cssText = "padding:10px 14px;border:1px solid rgba(255,255,255,.1);border-radius:10px;background:transparent;color:var(--muted);font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif";
+  skipBtn.textContent = 'Skip';
+  skipBtn.onclick = function() { banner.remove(); };
+  btnRow.appendChild(addBtn); btnRow.appendChild(skipBtn);
+  banner.appendChild(btnRow);
+
+  var anchor = document.getElementById('profile-result-card') || document.getElementById('quiz-banner');
   if (anchor && anchor.parentNode) {
     anchor.parentNode.insertBefore(banner, anchor.nextSibling);
-    // Scroll to it
-    setTimeout(function() { banner.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 200);
-  } else {
-    // Fallback: prepend to home page
-    var homePage = document.getElementById('page-home');
-    if (homePage) homePage.insertBefore(banner, homePage.children[1]);
+    setTimeout(function() { banner.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 300);
   }
 }
 
 async function addSuggestedTasks(tasks) {
   var added = 0;
-  var errors = 0;
   for (var i = 0; i < tasks.length; i++) {
     var cb = document.getElementById('stask-' + i);
     if (!cb || !cb.checked) continue;
@@ -4248,25 +4244,35 @@ async function addSuggestedTasks(tasks) {
         method: 'POST',
         body: JSON.stringify({
           name: t.name,
-          icon: t.icon || '⚡',
+          icon: t.icon || 'x',
           target_type: t.target ? 'count' : 'check',
           daily_target: t.target || 1,
           time: t.time || null
         })
       });
       added++;
-    } catch(e) { errors++; }
+    } catch(e) {}
   }
-
-  var banner = document.getElementById('task-suggestion-banner');
-  if (banner) banner.remove();
-
+  var b = document.getElementById('task-suggestion-banner');
+  if (b) b.remove();
   await loadHabits();
-  showToast(added + ' task' + (added !== 1 ? 's' : '') + ' added to your Roadmap 🏆');
+  showToast(added + ' task' + (added !== 1 ? 's' : '') + ' added to Roadmap');
   switchPage('roadmap');
   setTimeout(function() { switchRoadmapTab('habits'); }, 150);
 }
 
+// ── BILLING STUBS (Stripe disabled) ───────────────────────────────────────────
+var userTier = 'pro';
+var tokenBalance = 999999;
+var tokenPacks = [];
+function loadBillingStatus() {}
+function patchSendMsg() {}
+function openPaywall() {}
+function closePaywall() {}
+function openTokenShop() {}
+function closeTokenShop() {}
+function subscribeTier() { showToast('Payments coming soon'); }
+function buyTokens() { showToast('Payments coming soon'); }
 </script>
 </body>
 </html>

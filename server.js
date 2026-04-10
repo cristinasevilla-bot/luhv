@@ -550,7 +550,7 @@ Use the Luhv+ voice and energy. End with "Lock in. Show up. Win. 🏆"
 `;
       const aiRes = await anthropic.messages.create({
         model:      'claude-sonnet-4-20250514',
-        max_tokens: 300,
+        max_tokens: 600,
         system:     buildCoachSystem(`USER: ${user.name}, Streak: ${user.streak} days`),
         messages:   [{ role: 'user', content: summaryPrompt }]
       });
@@ -589,7 +589,7 @@ Keep it warm, under 5 sentences, Luhv+ voice.
 `;
       const aiRes = await anthropic.messages.create({
         model:      'claude-sonnet-4-20250514',
-        max_tokens: 250,
+        max_tokens: 400,
         system:     buildCoachSystem(`USER: ${user.name}`),
         messages:   [{ role: 'user', content: bridgePrompt }]
       });
@@ -697,7 +697,7 @@ COACHING SESSION CONTEXT:
   try {
     const response = await anthropic.messages.create({
       model:      'claude-sonnet-4-20250514',
-      max_tokens: 300,
+      max_tokens: 1200,
       system:     buildCoachSystem(userContext, sessionContext) + '\n\nIMPORTANT: End every response with ONE specific follow-up question based on what was just discussed. Make it feel natural, not formulaic.',
       messages: [
         ...history.map(m => ({ role: m.role, content: m.content })),
@@ -1054,7 +1054,7 @@ COACH: [2-3 sentences in Luhv+ voice — validate or redirect, then energize the
   try {
     const response = await anthropic.messages.create({
       model:      'claude-sonnet-4-20250514',
-      max_tokens: 300,
+      max_tokens: 500,
       system:     buildCoachSystem(userContext, '', 'intention'),
       messages:   [{ role: 'user', content: prompt }],
     });
@@ -1139,7 +1139,7 @@ COACH: [2-4 sentences — give clear direction. If aligned: reinforce and push f
   try {
     const response = await anthropic.messages.create({
       model:      'claude-sonnet-4-20250514',
-      max_tokens: 400,
+      max_tokens: 600,
       system:     buildCoachSystem(userContext, '', 'decision'),
       messages:   [{ role: 'user', content: prompt }],
     });
@@ -1244,7 +1244,7 @@ ${fullContext}`;
     const [greetingRes, chipRes] = await Promise.all([
       anthropic.messages.create({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 120,
+        max_tokens: 200,
         system: buildCoachSystem(fullContext, '', 'chat'),
         messages: [{ role: 'user', content: prompt }]
       }),
@@ -1380,7 +1380,7 @@ WEEKLY REVIEW DATA for ${user.name}:
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 400,
+      max_tokens: 800,
       system: buildCoachSystem(context, '', 'chat'),
       messages: [{ role: 'user', content: `Write a weekly performance review for ${user.name}. 
 Rules:
@@ -1707,6 +1707,68 @@ app.post('/api/onboarding/complete', auth, async (req, res) => {
   }
 });
 
+
+
+// ── SMART TASK SUGGESTIONS ────────────────────────────────────────────────────
+// POST /api/goals/suggest-tasks
+// Body: { goal: "3 new clients this month" }
+// Returns: { tasks: [{ name, icon, target, time }] }
+app.post('/api/goals/suggest-tasks', auth, async (req, res) => {
+  const { goal } = req.body;
+  if (!goal?.trim()) return res.status(400).json({ error: 'Goal required' });
+
+  const { rows: [user] } = await db.query('SELECT name FROM users WHERE id=$1', [req.user.id]);
+
+  const prompt = `A user's goal is: "${goal}"
+
+Generate 3-5 concrete daily tasks that will directly help them achieve this goal.
+For each task, think about realistic conversion rates, daily minimums, or measurable targets.
+
+Examples of good task logic:
+- "Get 3 new clients" → outreach 10 people/day (10% conversion = 1 client per 10 days)
+- "Drink more water" → 6 glasses/day, scheduled at 9am, 1pm, 6pm
+- "Lose 5kg" → 30min exercise daily + track meals
+- "Save $500/month" → log every expense daily + cut 1 subscription/week
+- "Read more" → 20 pages/day before bed
+
+Respond ONLY with a valid JSON array, no markdown, no explanation. Format:
+[
+  { "name": "task name (specific and actionable)", "icon": "emoji", "target": 6, "time": "9:00 AM" },
+  { "name": "task name", "icon": "emoji", "target": null, "time": null }
+]
+
+Rules:
+- target = number (for countable tasks like glasses of water, pages, outreach calls) or null (for yes/no tasks)
+- time = suggested time string or null
+- icon = single relevant emoji
+- name = max 50 chars, starts with a verb
+- 3-5 tasks max, most impactful ones only`;
+
+  try {
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 600,
+      system: 'You are a productivity coach. You generate JSON arrays of daily tasks. Return ONLY valid JSON, no markdown, no explanation.',
+      messages: [{ role: 'user', content: prompt }]
+    });
+
+    let tasks = [];
+    try {
+      const raw = response.content[0].text.trim();
+      const clean = raw.replace(/```json|```/g, '').trim();
+      tasks = JSON.parse(clean);
+      if (!Array.isArray(tasks)) tasks = [];
+    } catch(e) {
+      console.error('Task parse error:', e.message);
+      return res.status(500).json({ error: 'Could not parse task suggestions' });
+    }
+
+    res.json({ tasks: tasks.slice(0, 5) });
+  } catch(e) {
+    console.error('Suggest tasks error:', e);
+    res.status(500).json({ error: 'Could not generate task suggestions' });
+  }
+});
 
 // ── SUBSCRIPTION & BILLING ────────────────────────────────────────────────────
 

@@ -544,9 +544,9 @@ body{background:
       <div style="padding:14px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
           <span style="font-size:20px">✅</span>
-          <div style="font-size:13px;font-weight:700;color:var(--teal)">Habits — Daily non-negotiables</div>
+          <div style="font-size:13px;font-weight:700;color:var(--teal)">Tasks — Your daily actions</div>
         </div>
-        <div style="font-size:12px;color:var(--muted);line-height:1.6">Add habits you do every day. Use Daily check for yes/no habits, or Daily target for things like glasses of water. Streak builds here.</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.6">Add daily tasks that move you toward your goals. Use Daily check for yes/no tasks, or Daily target for measurable ones like glasses of water. Streak builds here.</div>
       </div>
 
       <div style="padding:14px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)">
@@ -961,15 +961,46 @@ body{background:
       <button onclick="switchPage('home')" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(14,165,233,.4);background:rgba(14,165,233,.12);color:var(--blue);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
     </div>
 
-    <!-- SECTION TABS -->
-    <div style="display:flex;gap:0;padding:12px 20px 0;border-bottom:1px solid rgba(255,255,255,.06)">
-      <button id="rtab-domains" onclick="switchRoadmapTab('domains')" style="flex:1;padding:8px;border:none;background:none;color:var(--teal);font-size:12px;font-weight:700;cursor:pointer;border-bottom:2px solid var(--teal);font-family:'DM Sans',sans-serif">Life</button>
-      <button id="rtab-goals" onclick="switchRoadmapTab('goals')" style="flex:1;padding:8px;border:none;background:none;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;border-bottom:2px solid transparent;font-family:'DM Sans',sans-serif">Goals</button>
-      <button id="rtab-habits" onclick="switchRoadmapTab('habits')" style="flex:1;padding:8px;border:none;background:none;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;border-bottom:2px solid transparent;font-family:'DM Sans',sans-serif">Habits</button>
+    <!-- TASKS→GOALS→LIFESTYLE FLOW BANNER -->
+    <div style="margin:12px 16px 0;background:rgba(255,255,255,.03);border:0.5px solid rgba(255,255,255,.08);border-radius:14px;padding:12px 14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
+        <div style="flex:1;text-align:center">
+          <div style="font-size:16px;margin-bottom:2px">✅</div>
+          <div style="font-size:10px;font-weight:700;color:var(--teal)">TASKS</div>
+          <div style="font-size:9px;color:var(--muted);margin-top:1px">Daily actions</div>
+        </div>
+        <div style="color:var(--muted);font-size:14px">→</div>
+        <div style="flex:1;text-align:center">
+          <div style="font-size:16px;margin-bottom:2px">🎯</div>
+          <div style="font-size:10px;font-weight:700;color:var(--blue)">GOALS</div>
+          <div style="font-size:9px;color:var(--muted);margin-top:1px">Monthly wins</div>
+        </div>
+        <div style="color:var(--muted);font-size:14px">→</div>
+        <div style="flex:1;text-align:center">
+          <div style="font-size:16px;margin-bottom:2px">🌟</div>
+          <div style="font-size:10px;font-weight:700;color:#fbbf24">LIFESTYLE</div>
+          <div style="font-size:9px;color:var(--muted);margin-top:1px">Your vision</div>
+        </div>
+      </div>
+      <div style="margin-top:8px;font-size:11px;color:var(--muted);text-align:center;line-height:1.5">Complete your daily tasks → hit your goals → build the life you want.</div>
     </div>
 
-    <!-- DOMAINS TAB -->
-    <div id="rsection-domains" style="display:block">
+    <!-- SECTION TABS — Tasks first -->
+    <div style="display:flex;gap:0;padding:12px 20px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+      <button id="rtab-habits" onclick="switchRoadmapTab('habits')" style="flex:1;padding:8px;border:none;background:none;color:var(--teal);font-size:12px;font-weight:700;cursor:pointer;border-bottom:2px solid var(--teal);font-family:'DM Sans',sans-serif">Tasks</button>
+      <button id="rtab-goals" onclick="switchRoadmapTab('goals')" style="flex:1;padding:8px;border:none;background:none;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;border-bottom:2px solid transparent;font-family:'DM Sans',sans-serif">Goals</button>
+      <button id="rtab-domains" onclick="switchRoadmapTab('domains')" style="flex:1;padding:8px;border:none;background:none;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;border-bottom:2px solid transparent;font-family:'DM Sans',sans-serif">Lifestyle</button>
+    </div>
+
+      </div>
+    </div>
+
+    <!-- LIFESTYLE TAB -->
+    <div id="rsection-domains" style="display:none">
+      <div style="margin:12px 16px 0;background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.15);border-radius:12px;padding:11px 14px;margin-bottom:4px">
+        <div style="font-size:12px;font-weight:700;color:#fbbf24;margin-bottom:3px">Your vision — the why behind everything</div>
+        <div style="font-size:11px;color:var(--muted);line-height:1.6">Define the areas of life you want to transform. Each domain becomes the foundation for your goals. Tasks → Goals → this lifestyle. This is what you're building toward.</div>
+      </div>
       <div style="padding:12px 20px 4px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none">
         <button onclick="addPresetDomain('finance')" style="flex-shrink:0;padding:6px 12px;border-radius:20px;border:1px solid rgba(6,214,160,.3);background:rgba(6,214,160,.08);color:var(--teal);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">💰 Finance</button>
         <button onclick="addPresetDomain('fitness')" style="flex-shrink:0;padding:6px 12px;border-radius:20px;border:1px solid rgba(14,165,233,.3);background:rgba(14,165,233,.08);color:var(--blue);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">💪 Fitness</button>
@@ -983,7 +1014,12 @@ body{background:
     </div>
 
     <!-- GOALS TAB -->
-    <div id="rsection-goals" style="display:none;padding:12px 20px">
+    <div id="rsection-goals" style="display:none">
+      <div style="margin:12px 16px 0;background:rgba(14,165,233,.06);border:1px solid rgba(14,165,233,.15);border-radius:12px;padding:11px 14px">
+        <div style="font-size:12px;font-weight:700;color:var(--blue);margin-bottom:3px">How goals work</div>
+        <div style="font-size:11px;color:var(--muted);line-height:1.6">Set 2–3 clear goals with a deadline. Use + and − to update your progress. Your daily tasks are what get you here — the coach monitors momentum and will call you out if you stall.</div>
+      </div>
+      <div style="padding:12px 20px">
       <div style="background:linear-gradient(180deg,rgba(17,24,39,.92),rgba(12,18,28,.96));border:0.5px solid var(--border);border-radius:16px;padding:14px;margin-bottom:14px">
         <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--blue);font-weight:700;margin-bottom:10px">Add Goal</div>
         <input id="goal-title-input" type="text" placeholder="Example: Close 10 clients this month"
@@ -1012,11 +1048,15 @@ body{background:
     </div>
 
     <!-- HABITS TAB -->
-    <div id="rsection-habits" style="display:none">
+    <div id="rsection-habits" style="display:block">
+      <div style="margin:12px 16px 0;background:rgba(6,214,160,.06);border:1px solid rgba(6,214,160,.15);border-radius:12px;padding:11px 14px">
+        <div style="font-size:12px;font-weight:700;color:var(--teal);margin-bottom:3px">How tasks work</div>
+        <div style="font-size:11px;color:var(--muted);line-height:1.6">Add the daily actions that move you toward your goals. Check them off each day — your streak and effectiveness score update automatically. The more consistent you are, the faster you reach your goals.</div>
+      </div>
       <div style="padding:12px 20px">
         <div style="background:linear-gradient(180deg,rgba(17,24,39,.92),rgba(12,18,28,.96));border:0.5px solid var(--border);border-radius:16px;padding:14px;">
-          <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:10px">Add Habit</div>
-          <input id="habit-name-input" type="text" placeholder="Example: Drink 8 glasses of water"
+          <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:10px">Add Task</div>
+          <input id="habit-name-input" type="text" placeholder="Example: Drink 8 glasses of water daily"
             style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:var(--light);font-size:14px;outline:none;margin-bottom:6px;"
             oninput="showHabitTip(this.value)" />
           <div id="habit-tip" style="font-size:11px;color:var(--muted);margin-bottom:8px;min-height:16px;line-height:1.5;padding-left:2px"></div>
@@ -1044,11 +1084,11 @@ body{background:
             <input id="habit-target-input" type="number" min="1" max="100" placeholder="Target (e.g. 8)"
               style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:var(--light);font-size:14px;outline:none;display:none;" />
           </div>
-          <button onclick="addHabit()" style="width:100%;padding:12px 14px;border:none;border-radius:12px;background:linear-gradient(90deg,var(--teal),var(--blue));color:#07111b;font-weight:800;font-size:14px;cursor:pointer">+ Add Habit</button>
+          <button onclick="addHabit()" style="width:100%;padding:12px 14px;border:none;border-radius:12px;background:linear-gradient(90deg,var(--teal),var(--blue));color:#07111b;font-weight:800;font-size:14px;cursor:pointer">+ Add Task</button>
           <div id="habit-form-msg" style="margin-top:8px;font-size:12px;color:var(--muted);min-height:16px"></div>
         </div>
       </div>
-      <div style="padding:0 20px;font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);font-weight:700;margin-bottom:10px">All Habits</div>
+      <div style="padding:0 20px;font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);font-weight:700;margin-bottom:10px">My Tasks</div>
       <div class="hlist" id="habits-page-list">
         <div style="padding:16px;text-align:center;color:var(--muted);font-size:13px">Loading habits...</div>
       </div>
@@ -2245,6 +2285,11 @@ async function obNext() {
       // Show profile result card on dashboard
       showProfileResultCard(obAnswers);
 
+      // Auto-generate suggested tasks based on the goal
+      if (answers.goal_90days) {
+        setTimeout(function() { suggestTasksForGoal(answers.goal_90days); }, 1500);
+      }
+
       // Update quiz banner to "retake"
       var titleEl = document.getElementById('quiz-banner-title');
       var subEl = document.getElementById('quiz-banner-sub');
@@ -2890,7 +2935,7 @@ function switchPage(name) {
   document.getElementById('page-' + name).classList.add('active');
   document.getElementById('ni-' + name).classList.add('active');
   if (name === 'journal') { loadJournal(); loadGoals(); loadLineChart(); loadEnergyTracker(); loadPeakReport(); }
-  if (name === 'roadmap') { loadDomainsPage(); }
+  if (name === 'roadmap') { switchRoadmapTab('habits'); }
   if (name === 'home') {
     loadTodayWeeklyDashboard();
     dashboardLoadGoalsPreview();
@@ -2907,6 +2952,7 @@ function switchPage(name) {
   if (name === 'goals')  { switchPage('roadmap'); setTimeout(function(){ switchRoadmapTab('goals'); }, 50); return; }
   if (name === 'habits') { switchPage('roadmap'); setTimeout(function(){ switchRoadmapTab('habits'); }, 50); return; }
   if (name === 'domains') { switchPage('roadmap'); setTimeout(function(){ switchRoadmapTab('domains'); }, 50); return; }
+  if (name === 'lifestyle') { switchPage('roadmap'); setTimeout(function(){ switchRoadmapTab('domains'); }, 50); return; }
   if (name === 'focus')   { loadFocusPage(); loadPeakTimerBadge(); }
 }
 

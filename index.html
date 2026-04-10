@@ -1208,7 +1208,7 @@ body{background:
         <div class="focus-mode-sub" id="custom-sub">— min</div>
       </div>
     </div>
-    <div id="custom-duration-row" style="display:none;margin:0 20px 14px;display:none">
+    <div id="custom-duration-row" style="display:none;margin:0 20px 14px">
       <input id="custom-minutes" type="number" min="1" max="180" placeholder="Minutes (e.g. 90)"
         style="width:100%;padding:11px 14px;border-radius:12px;border:1px solid rgba(14,165,233,.3);background:rgba(255,255,255,.04);color:#fff;font-size:14px;outline:none;"
         oninput="updateCustomDuration(this.value)" />
@@ -3189,12 +3189,37 @@ function restoreTimerIfRunning() {
 var focusQuotes = ['One hour of focused work beats eight hours of busy work.','Clarity on what NOT to do is more valuable than a to-do list.','The most effective people protect their time like money.','Deep work is the skill that separates effective from busy.'];
 
 function setMode(mode, minutes) {
-  timerMode = mode; timerTotal = minutes*60; timerSeconds = timerTotal;
+  timerMode = mode;
   if (timerRunning) { clearInterval(timerInterval); timerRunning = false; }
   document.getElementById('timer-start-btn').textContent = 'Start ⚡';
-  document.getElementById('timer-status').textContent = 'Ready when you are.';
+
+  var customRow = document.getElementById('custom-duration-row');
+
+  if (mode === 'custom') {
+    // Show the custom input, don't start or set time yet
+    if (customRow) customRow.style.display = 'block';
+    document.getElementById('timer-display').textContent = '--:--';
+    document.getElementById('timer-status').textContent = 'Enter your duration below.';
+    document.querySelectorAll('.focus-mode').forEach(function(el) { el.classList.remove('active'); });
+    var modeEl = document.getElementById('mode-custom');
+    if (modeEl) modeEl.classList.add('active');
+    var lbl = document.getElementById('timer-mode-label');
+    if (lbl) lbl.textContent = 'Custom Session';
+    // Focus the input
+    setTimeout(function() {
+      var inp = document.getElementById('custom-minutes');
+      if (inp) inp.focus();
+    }, 100);
+    return;
+  }
+
+  // Non-custom modes
+  if (customRow) customRow.style.display = 'none';
+  timerTotal = minutes * 60;
+  timerSeconds = timerTotal;
   document.getElementById('timer-display').textContent = String(Math.floor(timerSeconds/60)).padStart(2,'0')+':00';
-  document.querySelectorAll('.focus-mode').forEach(el => el.classList.remove('active'));
+  document.getElementById('timer-status').textContent = 'Ready when you are.';
+  document.querySelectorAll('.focus-mode').forEach(function(el) { el.classList.remove('active'); });
   var modeEl = document.getElementById('mode-'+mode); if (modeEl) modeEl.classList.add('active');
   var labels = {deep:'Deep Work Session',quick:'Quick Sprint',break:'Recovery Break'};
   var lbl = document.getElementById('timer-mode-label'); if (lbl) lbl.textContent = labels[mode]||mode;
@@ -3231,7 +3256,28 @@ function timerTick() {
   }
 }
 
+
+function updateCustomDuration(val) {
+  var mins = parseInt(val);
+  if (!mins || mins < 1) return;
+  mins = Math.min(180, Math.max(1, mins));
+  timerTotal = mins * 60;
+  timerSeconds = timerTotal;
+  document.getElementById('timer-display').textContent = String(mins).padStart(2,'0') + ':00';
+  document.getElementById('timer-status').textContent = 'Ready — ' + mins + ' min custom session.';
+  var sub = document.getElementById('custom-sub');
+  if (sub) sub.textContent = mins + ' min';
+  var lbl = document.getElementById('timer-mode-label');
+  if (lbl) lbl.textContent = 'Custom Session — ' + mins + ' min';
+}
 function startTimer() {
+  // Guard: if custom mode and no time set yet
+  if (timerMode === 'custom' && (timerTotal <= 0 || timerSeconds <= 0)) {
+    var inp = document.getElementById('custom-minutes');
+    if (inp) inp.focus();
+    document.getElementById('timer-status').textContent = 'Enter your custom duration first.';
+    return;
+  }
   if (timerRunning) {
     clearInterval(timerInterval); timerRunning = false; clearTimerState();
     document.getElementById('timer-start-btn').textContent = 'Resume ⚡';

@@ -49,6 +49,9 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json());
+// Push notifications
+const pushRouter = require('./routes/push');
+app.use('/push', pushRouter);
 
 // ── DATABASE ──────────────────────────────────────────────────────────────────
 const db = new Pool({

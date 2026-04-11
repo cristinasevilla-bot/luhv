@@ -33,6 +33,11 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 
+const db = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
+
 const pushRouter = require('./routes/push');
 app.use('/push', pushRouter);
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });

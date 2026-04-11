@@ -4880,7 +4880,95 @@ function editDomain(id, currentName, currentIcon) {
     }
   });
 }
+<!-- ADD THIS: Push Notification Manager -->
+<script>
+const VAPID_PUBLIC_KEY = 'PASTE_YOUR_VAPID_PUBLIC_KEY_HERE';
 
+function urlBase64ToUint8Array(base64) {
+  const pad = '='.repeat((4 - base64.length % 4) % 4);
+  const b64 = (base64 + pad).replace(/-/g, '+').replace(/_/g, '/');
+  return Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+}
+
+async function registerPushNotifications(userId, peakHour) {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  if (Notification.permission === 'denied') return;
+
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+    }
+    await api('POST', '/push/subscribe', {
+      subscription: sub.toJSON(),
+      userId,
+      peakHour
+    });
+    console.log('[Luhv+] Push subscription saved ✅');
+  } catch (err) {
+    console.warn('[Luhv+] Push subscription failed:', err.message);
+  }
+}
+
+async function unsubscribeFromPush(userId) {
+  const reg = await navigator.serviceWorker.ready;
+  const sub = await reg.pushManager.getSubscription();
+  if (sub) await sub.unsubscribe();
+  await api('POST', '/push/unsubscribe', { userId });
+}
+
+function showPushPermissionBanner(userId, peakHour) {
+  if (document.getElementById('luhv-push-banner')) return;
+  const dismissed = localStorage.getItem('luhv_push_dismissed');
+  if (dismissed) return;
+  if (Notification.permission !== 'default') return;
+
+  const banner = document.createElement('div');
+  banner.id = 'luhv-push-banner';
+  banner.innerHTML = `
+    <div style="
+      position:fixed; bottom:80px; left:50%; transform:translateX(-50%);
+      background:#1a2535; border:1px solid #2a3f55; border-radius:16px;
+      padding:14px 20px; display:flex; align-items:center; gap:14px;
+      box-shadow:0 8px 32px rgba(0,0,0,0.4); z-index:9999;
+      max-width:380px; width:calc(100% - 32px);
+    ">
+      <span style="font-size:24px">🔔</span>
+      <div style="flex:1">
+        <p style="margin:0;color:#fff;font-size:14px;font-weight:600">
+          Get nudged at your peak hour
+        </p>
+        <p style="margin:4px 0 0;color:#8899aa;font-size:12px">
+          We'll remind you to complete your daily habits at the right time
+        </p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button id="luhv-push-yes" style="
+          background:#00c896;color:#000;border:none;border-radius:8px;
+          padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer
+        ">Turn on</button>
+        <button id="luhv-push-no" style="
+          background:transparent;color:#8899aa;border:none;
+          font-size:11px;cursor:pointer;padding:0
+        ">Not now</button>
+      </div>
+    </div>`;
+  document.body.appendChild(banner);
+
+  document.getElementById('luhv-push-yes').onclick = async () => {
+    banner.remove();
+    const perm = await Notification.requestPermission();
+    if (perm === 'granted') await registerPushNotifications(userId, peakHour);
+  };
+  document.getElementById('luhv-push-no').onclick = () => {
+    banner.remove();
+    localStorage.setItem('luhv_push_dismissed', Date.now());
+  };
+}
 </script>
 </body>
 </html>

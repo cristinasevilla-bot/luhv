@@ -1,57 +1,16 @@
 {
-  "name": "luhv-plus-api",
+  "name": "luhv-plus-backend",
   "version": "1.0.0",
-  "description": "Luhv+ Motivational App — Backend API",
   "main": "server.js",
- "scripts": {
-  "start": "node server.js & node cron.js"
-}
-```
-
----
-
-## Summary — everything in order
-```
-Step 1  Terminal          →  npx web-push generate-vapid-keys
-
-Step 2  Render dashboard  →  Add env vars:
-                              VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY,
-                              VAPID_MAILTO, CRON_SECRET
-
-Step 3  Supabase SQL      →  Paste + run the new CREATE TABLE block
-
-Step 4  index.html        →  Add push <script> before </body>
-                              Add 3 lines after initDemoNudges()
-
-Step 5  sw.js             →  Full replace
-
-Step 6  server.js         →  Add 2 lines to mount /push route
-
-Step 7  package.json      →  Add 3 packages + update start script
-                              Run: npm install
-
-Step 8  routes/push.js         →  CREATE new file
-        routes/nudge-engine.js →  CREATE new file
-        cron.js                →  CREATE new file at root
-
-Step 9  git push backend  →  Render auto-deploys
-        git push frontend →  Netlify auto-deploys
+  "scripts": {
+    "start": "node server.js & node cron.js"
+  },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.20.0",
-    "bcryptjs": "^2.4.3",
-    "cors": "^2.8.5",
     "express": "^4.18.2",
-    "jsonwebtoken": "^9.0.2",
-    "openai": "^4.104.0",
-    "pg": "^8.11.3"
+    "jsonwebtoken": "^9.0.0",
+    "@supabase/supabase-js": "^2.39.0",
     "web-push": "^3.6.7",
-"node-cron": "^3.0.3",
-"node-fetch": "^2.7.0"
-  },
-  "devDependencies": {
-    "nodemon": "^3.0.2"
-  },
-  "engines": {
-    "node": "20.x"
+    "node-cron": "^3.0.3",
+    "node-fetch": "^2.7.0"
   }
 }

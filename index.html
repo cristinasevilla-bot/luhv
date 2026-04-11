@@ -814,6 +814,11 @@ body{background:
 
 
 
+    <!-- IN-APP NUDGES -->
+    <div class="nudge-section" id="inapp-reminders-wrapper">
+      <div class="nudge-stack" id="inapp-reminders"></div>
+    </div>
+
     <!-- QUIZ BANNER — siempre visible -->
     <div id="quiz-banner" style="margin:0 16px 8px;background:linear-gradient(135deg,rgba(99,102,241,.18),rgba(14,165,233,.12));border:1px solid rgba(99,102,241,.35);border-radius:14px;padding:12px 14px;cursor:pointer;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between" onclick="startOnboarding()">
       <div style="position:absolute;top:-20px;right:-20px;font-size:80px;opacity:.06;pointer-events:none">🧠</div>
@@ -1761,9 +1766,17 @@ async function initApp() {
   dashboardLoadEnergyToday();
   loadLineChart();
   document.getElementById('help-btn').style.display = 'flex';
-  // decision-fab removed
   restoreTimerIfRunning();
   if (!localStorage.getItem('luhv_welcomed')) { setTimeout(showWelcome, 600); }
+
+  // ── Push notifications ──────────────────────────────────────
+  var _onb = JSON.parse(localStorage.getItem('luhv_onboarding') || '{}');
+  if (Notification.permission === 'granted') {
+    registerPushNotifications(USER.id, _onb.peak_hour);
+  }
+  setTimeout(function() {
+    showPushPermissionBanner(USER.id, _onb.peak_hour);
+  }, 30000);
 }
 
 async function loadCoachGreeting() {
@@ -2542,38 +2555,40 @@ function showProfileResultCard(answers) {
 
 function initDemoNudges() {
   const container = document.getElementById('inapp-reminders');
+  const wrapper   = document.getElementById('inapp-reminders-wrapper');
   if (!container) return;
-  const name = (USER?.name || 'there').split(' ')[0];
   const streak = USER?.streak || 0;
   const habitOpenText = streak > 0
     ? 'Keep the streak alive with one completed action.'
     : 'A small win today is enough to restart momentum.';
   const nudges = [
-    { id:'checkin', icon:'⚡', eyebrow:'Now', title:'Quick coach check-in', copy:habitOpenText,
-      primary:{label:'Open Coach',action:"switchPage('ai')"}, secondary:{label:'Dismiss',action:"dismissNudge('checkin')"}},
+    { id:'checkin', icon:'⚡', eyebrow:'Now', title:'Quick coach check-in', copy: habitOpenText,
+      primary:{label:'Open Coach', action:"switchPage('ai')"}, secondary:{label:'Dismiss', action:"dismissNudge('checkin')"}},
     { id:'goal', icon:'🎯', eyebrow:'Momentum', title:'Update one goal', copy:'Visible progress keeps accountability concrete.',
-      primary:{label:'Go to Goals',action:"switchPage('goals')"}, secondary:{label:'Dismiss',action:"dismissNudge('goal')"}},
-    { id:'reset', icon:'📝', eyebrow:'Later today', title:'Evening reset', copy:`Before the day closes, log one lesson or one win.`,
-      primary:{label:'Open Progress',action:"switchPage('journal')"}, secondary:{label:'Dismiss',action:"dismissNudge('reset')"}}
+      primary:{label:'Go to Goals', action:"switchPage('roadmap');setTimeout(function(){switchRoadmapTab('goals')},50)"}, secondary:{label:'Dismiss', action:"dismissNudge('goal')"}},
+    { id:'reset', icon:'📝', eyebrow:'Later today', title:'Evening reset', copy:'Before the day closes, log one lesson or one win.',
+      primary:{label:'Open Progress', action:"switchPage('journal')"}, secondary:{label:'Dismiss', action:"dismissNudge('reset')"}}
   ];
   const dismissed = JSON.parse(localStorage.getItem('luhv_demo_nudges_closed') || '[]');
-  const visible = nudges.filter(n => !dismissed.includes(n.id));
-  container.innerHTML = visible.map(n => `
-    <div class="nudge-card" id="nudge-${n.id}">
-      <button class="nudge-close" onclick="dismissNudge('${n.id}')">×</button>
-      <div class="nudge-top">
-        <div class="nudge-icon">${n.icon}</div>
-        <div class="nudge-meta">
-          <div class="nudge-eyebrow">${n.eyebrow}</div>
-          <div class="nudge-title">${n.title}</div>
-          <div class="nudge-copy">${n.copy}</div>
-        </div>
-      </div>
-      <div class="nudge-actions">
-        <button class="nudge-btn primary" onclick="${n.primary.action}">${n.primary.label}</button>
-        <button class="nudge-btn secondary" onclick="${n.secondary.action}">${n.secondary.label}</button>
-      </div>
-    </div>`).join('') || '<div style="padding:14px;text-align:center;color:var(--muted);font-size:13px">All reminders dismissed.</div>';
+  const visible = nudges.filter(function(n){ return !dismissed.includes(n.id); });
+  if (wrapper) wrapper.style.display = visible.length ? 'block' : 'none';
+  container.innerHTML = visible.map(function(n){ return (
+    '<div class="nudge-card" id="nudge-' + n.id + '">' +
+      '<button class="nudge-close" onclick="dismissNudge(\'' + n.id + '\')">×</button>' +
+      '<div class="nudge-top">' +
+        '<div class="nudge-icon">' + n.icon + '</div>' +
+        '<div class="nudge-meta">' +
+          '<div class="nudge-eyebrow">' + n.eyebrow + '</div>' +
+          '<div class="nudge-title">' + n.title + '</div>' +
+          '<div class="nudge-copy">' + n.copy + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="nudge-actions">' +
+        '<button class="nudge-btn primary" onclick="' + n.primary.action + '">' + n.primary.label + '</button>' +
+        '<button class="nudge-btn secondary" onclick="' + n.secondary.action + '">' + n.secondary.label + '</button>' +
+      '</div>' +
+    '</div>'
+  ); }).join('');
 }
 
 function dismissNudge(id) {

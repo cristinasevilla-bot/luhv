@@ -1,72 +1,50 @@
-// LUHV+ Service Worker
-// Change VERSION every deploy — forces cache refresh for all users
-const VERSION = 'v1.0.3';
-const CACHE = 'luhv-' + VERSION;
+// ============================================================
+// LUHV+ Service Worker — Push + Cache
+// ============================================================
+const CACHE = 'luhv-v1';
 
-const ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png'
-];
-
-// Install — cache core assets
-self.addEventListener('install', function(e) {
+self.addEventListener('install', e => {
   self.skipWaiting();
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(['/', '/icon-192.png'])));
+});
+
+self.addEventListener('activate', e => e.waitUntil(clients.claim()));
+
+// ── Receive push ─────────────────────────────────────────────
+self.addEventListener('push', e => {
+  if (!e.data) return;
+  let p;
+  try { p = e.data.json(); }
+  catch { p = { title: 'Luhv+', body: e.data.text(), url: '/' }; }
+
   e.waitUntil(
-    caches.open(CACHE).then(function(cache) {
-      return cache.addAll(ASSETS);
+    self.registration.showNotification(p.title, {
+      body:               p.body,
+      icon:               '/icon-192.png',
+      badge:              '/icon-192.png',
+      tag:                p.tag || 'luhv-nudge',
+      renotify:           true,
+      requireInteraction: false,
+      data:               { url: p.url || '/' },
+      actions: [
+        { action: 'open',    title: '✅ Go to my tasks' },
+        { action: 'dismiss', title: 'Later'             },
+      ],
     })
   );
 });
 
-// Activate — delete old caches immediately
-self.addEventListener('activate', function(e) {
+// ── Notification click ───────────────────────────────────────
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  if (e.action === 'dismiss') return;
+  const url = e.notification.data?.url || '/';
   e.waitUntil(
-    caches.keys().then(function(keys) {
-      return Promise.all(
-        keys.filter(function(key) { return key !== CACHE; })
-            .map(function(key) { return caches.delete(key); })
-      );
-    }).then(function() { return self.clients.claim(); })
-  );
-});
-
-// Fetch — network first, cache as fallback
-self.addEventListener('fetch', function(e) {
-  // Never cache API calls
-  if (e.request.url.includes('/api/') ||
-      e.request.url.includes('onrender.com') ||
-      e.request.url.includes('supabase.co')) {
-    return;
-  }
-
-  e.respondWith(
-    fetch(e.request)
-      .then(function(response) {
-        if (response && response.status === 200 && e.request.method === 'GET') {
-          var clone = response.clone();
-          caches.open(CACHE).then(function(cache) { cache.put(e.request, clone); });
-        }
-        return response;
-      })
-      .catch(function() {
-        return caches.match(e.request).then(function(cached) {
-          return cached || caches.match('/index.html');
-        });
-      })
-  );
-});
-
-// Push notifications support
-self.addEventListener('push', function(e) {
-  var data = e.data ? e.data.json() : {};
-  e.waitUntil(
-    self.registration.showNotification(data.title || 'Luhv+', {
-      body: data.body || 'Your coach is waiting.',
-      icon: '/icon-192.png',
-      badge: '/icon-192.png'
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+      for (const c of list) {
+        if (c.url.includes(self.location.origin) && 'focus' in c) return c.focus();
+      }
+      return clients.openWindow(url);
     })
   );
 });

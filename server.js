@@ -52,7 +52,14 @@ app.use(express.json());
 // Push notifications
 const pushRouter = require('./routes/push');
 app.use('/push', pushRouter);
+// ADD at the end of initApp(), after user data is loaded:
+const onboarding = JSON.parse(localStorage.getItem('luhv_onboarding') || '{}');
+setTimeout(() => showPushPermissionBanner(user.id, onboarding.peak_hour), 30000);
 
+// If permission already granted, silently re-sync subscription
+if (Notification.permission === 'granted') {
+  registerPushNotifications(user.id, onboarding.peak_hour);
+}
 // ── DATABASE ──────────────────────────────────────────────────────────────────
 const db = new Pool({
   connectionString: process.env.DATABASE_URL,

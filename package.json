@@ -3,10 +3,39 @@
   "version": "1.0.0",
   "description": "Luhv+ Motivational App — Backend API",
   "main": "server.js",
-  "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
-  },
+ "scripts": {
+  "start": "node server.js & node cron.js"
+}
+```
+
+---
+
+## Summary — everything in order
+```
+Step 1  Terminal          →  npx web-push generate-vapid-keys
+
+Step 2  Render dashboard  →  Add env vars:
+                              VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY,
+                              VAPID_MAILTO, CRON_SECRET
+
+Step 3  Supabase SQL      →  Paste + run the new CREATE TABLE block
+
+Step 4  index.html        →  Add push <script> before </body>
+                              Add 3 lines after initDemoNudges()
+
+Step 5  sw.js             →  Full replace
+
+Step 6  server.js         →  Add 2 lines to mount /push route
+
+Step 7  package.json      →  Add 3 packages + update start script
+                              Run: npm install
+
+Step 8  routes/push.js         →  CREATE new file
+        routes/nudge-engine.js →  CREATE new file
+        cron.js                →  CREATE new file at root
+
+Step 9  git push backend  →  Render auto-deploys
+        git push frontend →  Netlify auto-deploys
   "dependencies": {
     "@anthropic-ai/sdk": "^0.20.0",
     "bcryptjs": "^2.4.3",

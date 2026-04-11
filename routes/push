@@ -62,18 +62,21 @@ async function sendNudgesForType(nudgeType) {
       var userData       = await supabase.from('users').select('name, streak, coins').eq('id', sub.user_id).single();
       var habitsData     = await supabase.from('habits').select('id, name, icon, target_type, daily_target').eq('user_id', sub.user_id);
       var goalsData      = await supabase.from('goals').select('title, progress, status, deadline, category').eq('user_id', sub.user_id).eq('status', 'active');
-      var onboardingData = await supabase.from('onboarding').select('*').eq('user_id', sub.user_id).single();
-      var logsToday      = await supabase.from('habit_logs').select('habit_id, completed').eq('user_id', sub.user_id).eq('date', today);
-      var logsWeek       = await supabase.from('habit_logs').select('habit_id, completed, date').eq('user_id', sub.user_id).gte('date', weekAgo);
+      var onboardingData = await supabase.from('users').select('onboarding_data').eq('id', sub.user_id).single();
+      var logsToday      = await supabase.from('habit_completions').select('habit_id, value').eq('user_id', sub.user_id).eq('date', today);
+      var logsWeek       = await supabase.from('habit_completions').select('habit_id, value, date').eq('user_id', sub.user_id).gte('date', weekAgo);
 
       var doneIds = {};
       if (logsToday.data) {
-        logsToday.data.filter(function(l) { return l.completed; }).forEach(function(l) { doneIds[l.habit_id] = true; });
+        logsToday.data.forEach(function(l) { if (l.value >= 1) doneIds[l.habit_id] = true; });
       }
+
       var habits = (habitsData.data || []).map(function(h) {
         return Object.assign({}, h, { done: !!doneIds[h.id] });
       });
+
       var weeklyHabits = buildWeeklyRates(habitsData.data || [], logsWeek.data || []);
+      var onboarding = (onboardingData.data && onboardingData.data.onboarding_data) || {};
 
       var doneCount = habits.filter(function(h) { return h.done; }).length;
       var pct = habits.length > 0 ? Math.round(doneCount / habits.length * 100) : 0;
@@ -84,7 +87,7 @@ async function sendNudgesForType(nudgeType) {
       var payload = engine.buildNudge(
         nudgeType,
         userData.data || {},
-        onboardingData.data || {},
+        onboarding,
         habits,
         goalsData.data || [],
         weeklyHabits
@@ -103,28 +106,20 @@ async function sendNudgesForType(nudgeType) {
         await supabase.from('push_subscriptions').delete().eq('user_id', sub.user_id);
       }
       results.failed++;
-      console.error('[Luhv+] Push failed user ' + sub.user_id + ': ' + err.message);
+      console.error('[MELTOS] Push failed user ' + sub.user_id + ': ' + err.message);
     }
   }
-  console.log('[Luhv+] Nudge done: ' + JSON.stringify(results));
+
+  console.log('[MELTOS] Nudge done: ' + JSON.stringify(results));
   return results;
 }
 
 function buildWeeklyRates(habits, weekLogs) {
   return habits.map(function(habit) {
     var logs = weekLogs.filter(function(l) { return l.habit_id === habit.id; });
-    var completed = logs.filter(function(l) { return l.completed; }).length;
+    var completed = logs.filter(function(l) { return l.value >= 1; }).length;
     return Object.assign({}, habit, { completedDays: completed, totalDays: 7, rate: Math.round((completed / 7) * 100) });
   });
 }
 
 module.exports = router;
-```
-
----
-
-Resumen de los **3 archivos** a crear/subir ahora:
-```
-routes/nudge-engine.js   ← CREAR (código arriba)
-routes/push.js           ← CREAR (código arriba)
-cron.js                  ← CREAR (código del mensaje anterior)

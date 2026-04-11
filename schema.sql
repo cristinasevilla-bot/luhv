@@ -89,3 +89,39 @@ CREATE TABLE IF NOT EXISTS conversations (
 -- INDEX for fast conversation lookups
 CREATE INDEX idx_conversations_user ON conversations(user_id, created_at DESC);
 CREATE INDEX idx_journal_user ON journal_entries(user_id, created_at DESC);
+-- Push notification subscriptions
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id         SERIAL PRIMARY KEY,
+  user_id    INT NOT NULL UNIQUE,
+  endpoint   TEXT NOT NULL,
+  keys       JSONB NOT NULL,
+  peak_hour  TEXT DEFAULT 'Evening (5–9pm)',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+Then run this in your **Supabase SQL Editor** to apply it.
+
+---
+
+## FILE 6 + 7 — New files in `routes/` folder
+
+Create these 2 new files inside your existing `routes/` folder:
+```
+routes/
+├── push.js           ← CREATE (copy full code from previous response)
+└── nudge-engine.js   ← CREATE (copy full code from previous response)
+```
+
+---
+
+## FILE 8 — `cron.js` (create at root of backend)
+
+Create this at the same level as `server.js`:
+```
+luhv-plus-backend/
+├── server.js
+├── cron.js     ← CREATE HERE (copy full code from previous response)
+├── package.json
+└── routes/

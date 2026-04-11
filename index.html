@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Luhv+</title>
+<title>MELTOS by Luhv+</title>
 <meta name="theme-color" content="#0a0a0f">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Luhv+">
+<meta name="apple-mobile-web-app-title" content="MELTOS">
 <link rel="manifest" href="/manifest.json">
 <link rel="apple-touch-icon" href="/icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -361,7 +361,7 @@ body{background:
 @keyframes inspirePulse{0%,100%{opacity:.4}50%{opacity:.8}}
 .inspire-skel{animation:inspirePulse 1.4s ease-in-out infinite}
 /* ============================================
-   RESPONSIVE — Luhv+  (base is now 100% wide)
+   RESPONSIVE — MELTOS  (base is now 100% wide)
    These media queries ADD constraints as screen grows
    ============================================ */
 
@@ -512,7 +512,7 @@ body{background:
 <div id="welcome-modal" style="display:none">
   <div class="welcome-box">
     <div class="welcome-emoji">🏆</div>
-    <div class="welcome-title">Welcome to Luhv+!</div>
+    <div class="welcome-title">Welcome to MELTOS!</div>
     <div class="welcome-text">You are the MVP in your life — and this is your platform to prove it every single day.<br><br>Let me show you around in 60 seconds.</div>
     <button class="welcome-btn" onclick="closeWelcome()">Let's Go 🔥</button>
   </div>
@@ -712,8 +712,8 @@ body{background:
 <!-- AUTH -->
 <div id="auth-screen">
   <div class="auth-box">
-    <div class="auth-logo">LUHV<span>+</span></div>
-    <div class="auth-sub">Your transformation starts here 🏆</div>
+    <div class="auth-logo">MELTOS<span style="color:var(--teal);font-size:14px;vertical-align:super;margin-left:2px">by Luhv+</span></div>
+    <div class="auth-sub">Your Personal Performance OS 🏆</div>
     <div class="auth-tabs">
       <div class="auth-tab active" onclick="setTab('login')">Sign In</div>
       <div class="auth-tab" onclick="setTab('register')">Create Account</div>
@@ -737,7 +737,7 @@ body{background:
 <div id="app-screen">
 <div class="app-shell">
   <div class="top-bar">
-    <div class="logo">LUHV<span>+</span></div>
+    <div class="logo">MELTOS<span style="color:var(--teal);font-size:9px;vertical-align:super;margin-left:2px;letter-spacing:1px">by Luhv+</span></div>
     <div class="coins">⚡ <span id="coin-count">30</span></div>
     <div class="avatar" id="user-avatar" title="Profile" onclick="openProfile()">?</div>
   </div>
@@ -1408,8 +1408,8 @@ function showToast(msg, duration) {
   var existing = document.querySelector('link[rel="manifest"]');
   if (existing) existing.remove();
   var manifest = {
-    name: "Luhv+",
-    short_name: "Luhv+",
+    name: "MELTOS by Luhv+",
+    short_name: "MELTOS",
     start_url: "/",
     display: "standalone",
     background_color: "#060b12",
@@ -3989,7 +3989,7 @@ async function exportCSV() {
     var blob = await response.blob();
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
-    a.href = url; a.download = 'luhv-' + from + '-to-' + to + '.csv';
+    a.href = url; a.download = 'meltos-' + from + '-to-' + to + '.csv';
     a.click();
     if (msg) { msg.textContent = 'CSV downloaded!'; msg.style.color = 'var(--teal)'; }
   } catch(e) {
@@ -4532,7 +4532,7 @@ async function loadInspireFeed(domain, offset) {
     kwtxt.style.cssText = 'font-size:10px;color:rgba(255,255,255,.9);font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:2px';
     kwtxt.textContent = item.label;
     var credit = document.createElement('a');
-    credit.href = item.photo_url + '?utm_source=luhv_app&utm_medium=referral';
+    credit.href = item.photo_url + '?utm_source=meltos_app&utm_medium=referral';
     credit.target = '_blank';
     credit.style.cssText = 'font-size:9px;color:rgba(255,255,255,.35);text-decoration:none;display:block';
     credit.textContent = 'Photo: ' + item.photographer + ' · Pexels';
@@ -4717,7 +4717,7 @@ async function downloadChat() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'luhv-coach-' + new Date().toISOString().split('T')[0] + '.txt';
+    a.download = 'meltos-coach-' + new Date().toISOString().split('T')[0] + '.txt';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -4908,9 +4908,9 @@ async function registerPushNotifications(userId, peakHour) {
       userId,
       peakHour
     });
-    console.log('[Luhv+] Push subscription saved ✅');
+    console.log('[MELTOS] Push subscription saved ✅');
   } catch (err) {
-    console.warn('[Luhv+] Push subscription failed:', err.message);
+    console.warn('[MELTOS] Push subscription failed:', err.message);
   }
 }
 

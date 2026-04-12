@@ -2543,7 +2543,8 @@ async function obNext() {
             '1. A specific breakdown of what I need to do DAILY to hit my 90-day goal. Use real numbers and conversion rates where relevant (e.g. if I want 3 clients, calculate outreach needed based on realistic conversion rates). Apply the Renovate/Innovate/Collaborate method if relevant.\n' +
             '2. My single most important daily non-negotiable task — the ONE thing that moves the needle most.\n' +
             '3. One Luhv+ principle from the knowledge base that directly applies to my situation.\n\n' +
-            'Be direct, specific, and use my name. No generic advice — ground everything in my actual goal and numbers.';
+            'Be direct, specific, and use my name. No generic advice — ground everything in my actual goal and numbers.\n\n' +
+            'IMPORTANT: End your response with a short paragraph that says something like: "I am now setting this up for you in your Roadmap — I will create your goal and your daily tasks so you can start today." Make it feel natural and coach-like, not robotic. This is important because the app will automatically create the tasks right after you respond.';
           var aiResp = await api('/api/coach/chat', {
             method: 'POST',
             body: JSON.stringify({ message: coachMsg, history: [] })
@@ -2588,7 +2589,7 @@ async function obNext() {
                 if (created > 0) {
                   // Show a follow-up message in coach listing the tasks
                   var taskNames = taskData.tasks.slice(0, created).map(function(t){ return t.name; }).join(', ');
-                  var confirmMsg = 'Done! I added ' + created + ' daily tasks to your Roadmap: ' + taskNames + '. Check them off every day. Consistency is what separates those who hit their goals from those who do not. Ready?';
+                  var confirmMsg = 'Done! I have added ' + created + ' daily tasks to your Roadmap: ' + taskNames + '. You will also see them in your Dashboard every morning. Check them off every day — consistency is what separates those who hit their goals from those who do not. Ready to start?';
                   addMsg(confirmMsg, 'a');
                   chatHistory.push({ role: 'assistant', content: 'Tasks added to Roadmap.' });
                   saveChatToStorage();

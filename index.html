@@ -2521,20 +2521,52 @@ async function obNext() {
       await loadEffectivenessScore();
       loadPeakHourCard();
 
-      // Auto-suggest tasks from goal, then show coach welcome
-      if (obAnswers.goal_90days && obAnswers.goal_90days.trim().length > 2) {
-        showToast('Coach is reading your goal... hang on');
-        setTimeout(async function() {
-          await suggestTasksForGoal(obAnswers.goal_90days);
-          if (result && result.welcomeMessage) {
-            switchPage('ai');
-            setTimeout(function() { addMsg(result.welcomeMessage, 'a'); }, 400);
+      // Switch to coach and send a personalised AI welcome
+      switchPage('ai');
+      setTimeout(async function() {
+        // Clear the static welcome msg and show typing
+        var chatEl = document.getElementById('chat-msgs');
+        if (chatEl) chatEl.innerHTML = '';
+        showTyping();
+        try {
+          // Get a real AI coach welcome based on the onboarding answers
+          var goalText = obAnswers.goal_90days || '';
+          var name = obAnswers.name || USER?.name || 'Champion';
+          var coachMsg = 'My name is ' + name + ' and I just finished my profile setup. Here is everything about me:\n' +
+            '- Area I am working on: ' + (obAnswers.stuck_area || 'my goals') + '\n' +
+            '- My biggest obstacle: ' + (obAnswers.obstacle || 'staying consistent') + '\n' +
+            '- My 90-day goal: ' + goalText + '\n' +
+            '- My peak performance hours: ' + (obAnswers.peak_hour || 'morning') + '\n' +
+            '- How I grow best: ' + (obAnswers.growth_style || 'taking action') + '\n\n' +
+            'Based on my goal and the Luhv+ frameworks, give me:\n' +
+            '1. A specific breakdown of what I need to do DAILY to hit my 90-day goal. Use real numbers and conversion rates where relevant (e.g. if I want 3 clients, calculate outreach needed based on realistic conversion rates). Apply the Renovate/Innovate/Collaborate method if relevant.\n' +
+            '2. My single most important daily non-negotiable task — the ONE thing that moves the needle most.\n' +
+            '3. One Luhv+ principle from the knowledge base that directly applies to my situation.\n\n' +
+            'Be direct, specific, and use my name. No generic advice — ground everything in my actual goal and numbers.';
+          var aiResp = await api('/api/coach/chat', {
+            method: 'POST',
+            body: JSON.stringify({ message: coachMsg, history: [] })
+          });
+          hideTyping();
+          if (aiResp && aiResp.reply) {
+            addMsg(aiResp.reply, 'a');
+            chatHistory.push({ role: 'user', content: coachMsg });
+            chatHistory.push({ role: 'assistant', content: aiResp.reply });
+            saveChatToStorage();
+          } else if (result && result.welcomeMessage) {
+            addMsg(result.welcomeMessage, 'a');
           }
-        }, 800);
-      } else if (result && result.welcomeMessage) {
-        switchPage('ai');
-        setTimeout(function() { addMsg(result.welcomeMessage, 'a'); }, 400);
-      }
+        } catch(ce) {
+          hideTyping();
+          if (result && result.welcomeMessage) addMsg(result.welcomeMessage, 'a');
+        }
+        // Suggest tasks in background after coach responds
+        if (obAnswers.goal_90days && obAnswers.goal_90days.trim().length > 2) {
+          setTimeout(async function() {
+            try { await suggestTasksForGoal(obAnswers.goal_90days); } catch(se) {}
+          }, 1000);
+        }
+      }, 300);
     } catch(e) {
       console.error('Onboarding error:', e);
       document.getElementById('onboarding-modal').style.display = 'none';
@@ -2567,27 +2599,108 @@ function showProfileResultCard(answers) {
   el.style.display = 'block';
 }
 
-function initDemoNudges() {
+async function initDemoNudges() {
   const container = document.getElementById('inapp-reminders');
   const wrapper   = document.getElementById('inapp-reminders-wrapper');
   if (!container) return;
-  const streak = USER?.streak || 0;
-  const habitOpenText = streak > 0
-    ? 'Keep the streak alive with one completed action.'
-    : 'A small win today is enough to restart momentum.';
-  const nudges = [
-    { id:'checkin', icon:'⚡', eyebrow:'Now', title:'Quick coach check-in', copy: habitOpenText,
-      primary:{label:'Open Coach', action:"switchPage('ai')"}, secondary:{label:'Dismiss', action:"dismissNudge('checkin')"}},
-    { id:'goal', icon:'🎯', eyebrow:'Momentum', title:'Update one goal', copy:'Visible progress keeps accountability concrete.',
-      primary:{label:'Go to Goals', action:"switchPage('roadmap');setTimeout(function(){switchRoadmapTab('goals')},50)"}, secondary:{label:'Dismiss', action:"dismissNudge('goal')"}},
-    { id:'reset', icon:'📝', eyebrow:'Later today', title:'Evening reset', copy:'Before the day closes, log one lesson or one win.',
-      primary:{label:'Open Progress', action:"switchPage('journal')"}, secondary:{label:'Dismiss', action:"dismissNudge('reset')"}}
-  ];
-  const dismissed = JSON.parse(localStorage.getItem('luhv_demo_nudges_closed') || '[]');
-  const visible = nudges.filter(function(n){ return !dismissed.includes(n.id); });
+
+  // Build nudges dynamically based on user context
+  var nudges = [];
+  var now = new Date();
+  var hour = now.getHours();
+  var streak = USER?.streak || 0;
+  var name = (USER?.name || 'Champion').split(' ')[0];
+
+  // Get goals and habits from localStorage cache or live
+  var cachedGoals = [];
+  var cachedHabits = [];
+  try {
+    var onb = JSON.parse(localStorage.getItem('luhv_onboarding') || '{}');
+    var goalText = onb.goal_90days || '';
+
+    // ── MORNING NUDGE (5am-11am): task reminder based on real goal ──────────
+    if (hour >= 5 && hour < 12) {
+      var morningCopy = goalText
+        ? 'Your goal: "' + goalText.substring(0, 45) + (goalText.length > 45 ? '...' : '') + '". What is the ONE task you are doing today to move it forward?'
+        : 'What is the single most important thing you will do today?';
+      nudges.push({
+        id: 'morning-' + now.toDateString(),
+        icon: '🌅',
+        eyebrow: 'Good morning, ' + name,
+        title: 'Set your intention',
+        copy: morningCopy,
+        primary: {label: 'Ask Coach', action: "sendSug('What should I focus on today based on my goals?');switchPage('ai')"},
+        secondary: {label: 'Got it', action: "dismissNudge('morning-" + now.toDateString() + "')"}
+      });
+    }
+
+    // ── MIDDAY NUDGE (12pm-3pm): progress check ──────────────────────────────
+    if (hour >= 12 && hour < 15) {
+      nudges.push({
+        id: 'midday-' + now.toDateString(),
+        icon: '⚡',
+        eyebrow: 'Midday check',
+        title: 'How is your momentum?',
+        copy: streak > 0
+          ? 'You are on a ' + streak + '-day streak. Make sure today counts — check off at least one task before 3pm.'
+          : 'No streak yet. One completed task today starts everything.',
+        primary: {label: 'Check tasks', action: "switchPage('roadmap');setTimeout(function(){switchRoadmapTab('habits')},50)"},
+        secondary: {label: 'Dismiss', action: "dismissNudge('midday-" + now.toDateString() + "')"}
+      });
+    }
+
+    // ── AFTERNOON NUDGE (3pm-6pm): focus session ────────────────────────────
+    if (hour >= 15 && hour < 18) {
+      nudges.push({
+        id: 'afternoon-' + now.toDateString(),
+        icon: '⏱️',
+        eyebrow: 'Focus window',
+        title: 'One deep work session',
+        copy: '25 minutes of focused work on your most important goal beats 2 hours of distracted effort. Start now.',
+        primary: {label: 'Start Focus', action: "switchPage('focus')"},
+        secondary: {label: 'Later', action: "dismissNudge('afternoon-" + now.toDateString() + "')"}
+      });
+    }
+
+    // ── EVENING NUDGE (6pm+): reflect and plan ──────────────────────────────
+    if (hour >= 18) {
+      nudges.push({
+        id: 'evening-' + now.toDateString(),
+        icon: '📊',
+        eyebrow: 'Evening reset',
+        title: 'Daily wrap-up',
+        copy: 'Before you close the day — log your energy, update your goal progress, and tell the coach one win from today.',
+        primary: {label: 'Talk to Coach', action: "sendSug('Here is my win for today and what I did to move my goal forward:');switchPage('ai')"},
+        secondary: {label: 'Done', action: "dismissNudge('evening-" + now.toDateString() + "')"}
+      });
+    }
+
+    // ── GOAL-SPECIFIC NUDGE: if goal not updated in 3+ days ─────────────────
+    var lastGoalUpdate = localStorage.getItem('luhv_last_goal_update');
+    var daysSinceGoal = lastGoalUpdate
+      ? Math.floor((Date.now() - parseInt(lastGoalUpdate)) / (1000*60*60*24))
+      : 999;
+    if (daysSinceGoal >= 3 && goalText) {
+      nudges.push({
+        id: 'goal-stale',
+        icon: '🎯',
+        eyebrow: 'Goal momentum',
+        title: 'Update your progress',
+        copy: 'You have not updated "' + goalText.substring(0,40) + '..." in ' + daysSinceGoal + ' days. Even +5% keeps the momentum alive.',
+        primary: {label: 'Update goal', action: "switchPage('roadmap');setTimeout(function(){switchRoadmapTab('goals')},50)"},
+        secondary: {label: 'Dismiss', action: "dismissNudge('goal-stale')"}
+      });
+    }
+
+  } catch(e) {}
+
+  // Filter dismissed
+  var dismissed = JSON.parse(localStorage.getItem('luhv_nudges_dismissed') || '[]');
+  var visible = nudges.filter(function(n) { return !dismissed.includes(n.id); });
+
   if (wrapper) wrapper.style.display = visible.length ? 'block' : 'none';
-  container.innerHTML = visible.map(function(n){ return (
-    '<div class="nudge-card" id="nudge-' + n.id + '">' +
+  container.innerHTML = visible.slice(0,2).map(function(n) {
+    return '<div class="nudge-card" id="nudge-' + n.id + '">' +
       '<button class="nudge-close" onclick="dismissNudge(\'' + n.id + '\')">×</button>' +
       '<div class="nudge-top">' +
         '<div class="nudge-icon">' + n.icon + '</div>' +
@@ -2601,15 +2714,22 @@ function initDemoNudges() {
         '<button class="nudge-btn primary" onclick="' + n.primary.action + '">' + n.primary.label + '</button>' +
         '<button class="nudge-btn secondary" onclick="' + n.secondary.action + '">' + n.secondary.label + '</button>' +
       '</div>' +
-    '</div>'
-  ); }).join('');
+    '</div>';
+  }).join('');
 }
 
 function dismissNudge(id) {
-  const current = JSON.parse(localStorage.getItem('luhv_demo_nudges_closed') || '[]');
-  if (!current.includes(id)) current.push(id);
-  localStorage.setItem('luhv_demo_nudges_closed', JSON.stringify(current));
-  initDemoNudges();
+  var current = JSON.parse(localStorage.getItem('luhv_nudges_dismissed') || '[]');
+  // Only persist non-time-based dismissals — time-based ones reset daily
+  if (!id.includes(new Date().toDateString())) {
+    if (!current.includes(id)) current.push(id);
+    localStorage.setItem('luhv_nudges_dismissed', JSON.stringify(current));
+  }
+  var el = document.getElementById('nudge-' + id);
+  if (el) el.remove();
+  var remaining = document.querySelectorAll('.nudge-card');
+  var wrapper = document.getElementById('inapp-reminders-wrapper');
+  if (wrapper && remaining.length === 0) wrapper.style.display = 'none';
 }
 
 async function loadQuotes() {
@@ -3200,6 +3320,11 @@ function addMsg(text, role) {
     d.innerHTML = '<div class="mb">'+ct+'</div>';
   }
   w.appendChild(d); w.scrollTop = w.scrollHeight;
+}
+
+function hideTyping() {
+  var t = document.getElementById('typing-indicator');
+  if (t) t.remove();
 }
 
 function showTyping() {

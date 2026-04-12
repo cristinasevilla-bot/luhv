@@ -1686,7 +1686,7 @@ function openProfile() {
   // Fill user info
   var initials = USER ? USER.name.split(' ').map(function(n){return n[0];}).join('').toUpperCase().slice(0,2) : '?';
   document.getElementById('profile-avatar-big').textContent = initials;
-  document.getElementById('profile-name').textContent = USER?.name?.toUpperCase() || 'CHAMPION';
+  document.getElementById('profile-name').textContent = USER?.name?.toUpperCase() || 'MVP';
   document.getElementById('profile-email').textContent = USER?.email || '';
   // Fill peak options
   var current = getPeakHourPref() || '';
@@ -2532,7 +2532,7 @@ async function obNext() {
         try {
           // Get a real AI coach welcome based on the onboarding answers
           var goalText = obAnswers.goal_90days || '';
-          var name = obAnswers.name || USER?.name || 'Champion';
+          var name = obAnswers.name || USER?.name || 'MVP';
           var coachMsg = 'My name is ' + name + ' and I just finished my profile setup. Here is everything about me:\n' +
             '- Area I am working on: ' + (obAnswers.stuck_area || 'my goals') + '\n' +
             '- My biggest obstacle: ' + (obAnswers.obstacle || 'staying consistent') + '\n' +
@@ -2642,7 +2642,7 @@ async function initDemoNudges() {
   var now = new Date();
   var hour = now.getHours();
   var streak = USER?.streak || 0;
-  var name = (USER?.name || 'Champion').split(' ')[0];
+  var name = (USER?.name || 'MVP').split(' ')[0];
 
   // Get goals and habits from localStorage cache or live
   var cachedGoals = [];

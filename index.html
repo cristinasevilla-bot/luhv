@@ -3406,14 +3406,23 @@ function switchPage(name) {
   }
   if (name === 'journal') {
     setTimeout(function() {
+      var feed = document.getElementById('inspire-feed');
+      if (!feed) { console.warn('inspire-feed not found'); return; }
+      // Always reload when opening Inspire
       var quizDoms = getQuizDomains();
       if (quizDoms.length > 0 && currentInspireDomain === 'all') {
-        filterInspirationDomain(quizDoms[0]);
-      } else {
-        loadInspireFeed(currentInspireDomain, 0);
+        currentInspireDomain = quizDoms[0];
+        // Update active pill
+        document.querySelectorAll('[id^="inspire-filter-"]').forEach(function(btn) {
+          var isActive = btn.id === 'inspire-filter-' + currentInspireDomain;
+          btn.style.background = isActive ? 'rgba(99,102,241,.15)' : 'rgba(255,255,255,.04)';
+          btn.style.border     = isActive ? '1px solid rgba(99,102,241,.4)' : '1px solid rgba(255,255,255,.1)';
+          btn.style.color      = isActive ? 'var(--purple)' : 'var(--muted)';
+        });
       }
+      loadInspireFeed(currentInspireDomain, 0);
       refreshInspireSavedPanel();
-    }, 150);
+    }, 300);
   }
 }
 
@@ -3617,6 +3626,8 @@ async function loadFocusGoalSelect() {
   var sel = document.getElementById('focus-goal-select');
   if (!sel) return;
   var goals = await api('/api/goals');
+  // Cache for inspire board
+  if (goals) try { localStorage.setItem('luhv_goals_cache', JSON.stringify(goals)); } catch(e) {}
   sel.innerHTML = '<option value="">No goal linked</option>';
   if (goals && goals.length) {
     goals.filter(g => Math.round((g.progress/g.target)*100) < 100).forEach(function(g) {
@@ -4636,19 +4647,7 @@ function filterInspirationDomain(domain) {
     btn.style.border     = isActive ? '1px solid rgba(99,102,241,.4)' : '1px solid rgba(255,255,255,.1)';
     btn.style.color      = isActive ? 'var(--purple)' : 'var(--muted)';
   });
-  loadInspireFeed(domain);
-}
-
-function filterInspirationDomain(domain) {
-  currentInspireDomain = domain;
-  inspireOffset = 0;
-  document.querySelectorAll('[id^="inspire-filter-"]').forEach(function(btn) {
-    var isActive = btn.id === 'inspire-filter-' + domain;
-    btn.style.background = isActive ? 'rgba(99,102,241,.15)' : 'rgba(255,255,255,.04)';
-    btn.style.border     = isActive ? '1px solid rgba(99,102,241,.4)' : '1px solid rgba(255,255,255,.1)';
-    btn.style.color      = isActive ? 'var(--purple)' : 'var(--muted)';
-  });
-  loadInspireFeed(domain);
+  loadInspireFeed(domain, 0);
 }
 
 async function loadInspireFeed(domain, offset) {
@@ -4743,8 +4742,21 @@ async function loadInspireFeed(domain, offset) {
   refreshInspireSavedPanel();
 }
 
+function goalTextToSearchTerm(goalText) {
+  var g = (goalText || '').toLowerCase();
+  if (g.match(/client|revenue|sale|customer|prospect|deal/)) return 'business success entrepreneur achievement';
+  if (g.match(/webinar|course|launch|product|brand/)) return 'business launch success stage presentation';
+  if (g.match(/fit|weight|gym|muscle|run|marathon|body|health/)) return 'fitness athlete training motivation';
+  if (g.match(/money|income|invest|financ|wealth|save|passive/)) return 'wealth financial freedom luxury lifestyle';
+  if (g.match(/mind|focus|meditat|habit|routine|discipline|anxiety/)) return 'meditation mindset calm focus clarity';
+  if (g.match(/travel|freedom|digital.nomad|remote/)) return 'travel adventure freedom explore world';
+  if (g.match(/relation|dating|love|partner|family/)) return 'love relationship happiness lifestyle';
+  if (g.match(/career|promot|job|work|leader/)) return 'leadership career success professional growth';
+  if (g.match(/content|social|influenc|follow|youtube|instagram/)) return 'social media content creator success';
+  return 'success achievement motivation goal inspiration';
+}
+
 function buildInspireKeywords(domain, offset) {
-  // Aspirational search terms that reliably return motivational images on Pexels
   var domainTerms = {
     all:      ['mountain summit victory','luxury lifestyle success','ocean sunrise freedom','city skyline ambition','achievement celebration'],
     finance:  ['luxury penthouse city','wealth success money','investment growth finance','elegant lifestyle rich','financial freedom travel'],
@@ -4755,17 +4767,21 @@ function buildInspireKeywords(domain, offset) {
 
   var terms = (domainTerms[domain] || domainTerms.all).slice();
 
-  // Add user-goal specific term at the front
+  // Pull from live goals cache + quiz
   try {
+    // First try cached goals from localStorage
+    var cachedGoals = JSON.parse(localStorage.getItem('luhv_goals_cache') || '[]');
     var onb = JSON.parse(localStorage.getItem('luhv_onboarding') || '{}');
-    var goal = (onb.goal_90days || '').toLowerCase();
-    var goalTerm = null;
-    if (goal.match(/client|revenue|sale|business|launch/)) goalTerm = 'business success achievement';
-    else if (goal.match(/fit|weight|run|gym|health|muscle|body/)) goalTerm = 'fitness transformation athlete';
-    else if (goal.match(/money|income|invest|financ|wealth|save/)) goalTerm = 'wealth financial freedom luxury';
-    else if (goal.match(/mind|focus|habit|routine|discipline/)) goalTerm = 'discipline focus mindset success';
-    else if (goal.match(/travel|freedom|lifestyle/)) goalTerm = 'travel freedom adventure lifestyle';
-    if (goalTerm) terms.unshift(goalTerm);
+    
+    var allGoalTexts = cachedGoals.map(function(g) { return g.title || ''; });
+    if (onb.goal_90days) allGoalTexts.unshift(onb.goal_90days);
+
+    // Add top 2 goal-specific terms at front
+    allGoalTexts.slice(0, 2).forEach(function(goalText) {
+      if (!goalText) return;
+      var term = goalTextToSearchTerm(goalText);
+      if (term && !terms.includes(term)) terms.unshift(term);
+    });
   } catch(e) {}
 
   // Rotate by offset for load more

@@ -112,7 +112,7 @@ const KNOWLEDGE_BASE = `
 
 --- ALIGNMENT (Ch.3) ---
 • Alignment: when thoughts, feelings, behaviors, and actions work in harmony.
-• Aligning intention → thoughts → action is the path to transformation.
+• Aligning intention → thoughts → assignment is the path to transformation.
 • Authentic alignment: own your strengths AND weaknesses; never deny who you are.
 • "Be the change you want to see in the world" — only possible through alignment.
 
@@ -304,13 +304,13 @@ const SESSION_PHASES = [
         processKey: 'vision_12months'
       },
       {
-        key: 'one_action',
-        coachPrompt: (name, prev) => `"${prev.vision_12months}" — THAT is why we do this work. That version of you already exists — you just have to become them. So here's your MVP challenge: What is ONE action you will take in the next 24 hours that the future version of you would be proud of? Not a list. ONE thing. Make it specific. ⚡`,
-        processKey: 'next_action'
+        key: 'one_assignment',
+        coachPrompt: (name, prev) => `"${prev.vision_12months}" — THAT is why we do this work. That version of you already exists — you just have to become them. So here's your MVP challenge: What is your ONE assignment for the next 24 hours that the future version of you would be proud of? Not a list. ONE assignment. Make it specific. ⚡`,
+        processKey: 'next_assignment'
       },
       {
         key: 'close',
-        coachPrompt: (name, prev) => `"${prev.next_action}" — lock it in. Screenshot this. Tell someone. Do it. ${name}, you are the MVP in your life and today you proved it. I don't remember a version of you that quit — and I never will. That's LUHV+ energy right there 🔥 I'll be here every step of the way. Lock in. Show up. Win. 🏆`,
+        coachPrompt: (name, prev) => `"${prev.next_assignment}" — lock it in. Screenshot this. Tell someone. Do it. ${name}, you are the MVP in your life and today you proved it. I don't remember a version of you that quit — and I never will. That's LUHV+ energy right there 🔥 I'll be here every step of the way. Lock in. Show up. Win. 🏆`,
         processKey: 'session_complete'
       }
     ]
@@ -545,7 +545,7 @@ Their identified lens: ${lens || 'not yet determined'}.
 Write a powerful 3-4 sentence closing message that:
 1. Celebrates what they discovered today.
 2. Reminds them of their transformation statement if they gave one.
-3. Challenges them to take the action they committed to.
+3. Challenges them to complete the assignment they committed to.
 Use the Luhv+ voice and energy. End with "Lock in. Show up. Win. 🏆"
 `;
       const aiRes = await anthropic.messages.create({
@@ -723,7 +723,7 @@ COACHING SESSION CONTEXT:
       system:     buildCoachSystem(userContext, sessionContext) + `\n\nIMPORTANT RULES:
 1. When a user shares a goal with a number (e.g. "3 clients", "lose 5kg", "save $500"), ALWAYS calculate the daily/weekly breakdown needed to hit it. Show the math. Use realistic conversion rates (e.g. 10-20% for sales outreach, specific calorie deficits for weight loss, etc.).
 2. Apply the Luhv+ KB frameworks directly — Renovate/Innovate/Collaborate, FOCUS acronym, Power Hours, the four monetisation lenses — when relevant to the user's situation.
-3. Give ONE specific daily non-negotiable action. Not a list — one thing.
+3. Give ONE specific daily non-negotiable assignment. Not a list — one thing.
 4. End with ONE natural follow-up question.
 5. Never give generic advice. Every recommendation must be grounded in the user's actual goal, their stated obstacle, and real numbers.`,
       messages: [
@@ -1987,7 +1987,7 @@ Use realistic conversion rates and daily minimums. Examples:
 
 Return ONLY a valid JSON array, no markdown, no explanation:
 [
-  { "name": "Short action verb + what (max 50 chars)", "icon": "single emoji", "target": null_or_number, "time": null_or_"9:00 AM" }
+  { "name": "Clear assignment verb + what (max 50 chars)", "icon": "single emoji", "target": null_or_number, "time": null_or_"9:00 AM" }
 ]`;
 
   try {

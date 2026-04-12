@@ -1747,7 +1747,7 @@ app.post('/api/onboarding/complete', auth, async (req, res) => {
         }
       }
     }
-    const name = data.name || 'Champion';
+    const name = data.name || 'MVP';
     const stuck = data.stuck_area || 'your goals';
     const obstacle = data.obstacle || 'staying focused';
     const peak = data.peak_hour || '';

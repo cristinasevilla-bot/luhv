@@ -2561,11 +2561,42 @@ async function obNext() {
           hideTyping();
           if (result && result.welcomeMessage) addMsg(result.welcomeMessage, 'a');
         }
-        // Suggest tasks in background after coach responds
+        // Auto-create tasks after coach responds — no banner needed
         if (obAnswers.goal_90days && obAnswers.goal_90days.trim().length > 2) {
           setTimeout(async function() {
-            try { await suggestTasksForGoal(obAnswers.goal_90days); } catch(se) {}
-          }, 1000);
+            try {
+              var taskData = await api('/api/goals/suggest-tasks', {
+                method: 'POST',
+                body: JSON.stringify({ goal: obAnswers.goal_90days })
+              });
+              if (taskData && taskData.tasks && taskData.tasks.length) {
+                var created = 0;
+                for (var ti = 0; ti < taskData.tasks.length; ti++) {
+                  var t = taskData.tasks[ti];
+                  var r2 = await api('/api/habits', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                      name: t.name,
+                      icon: t.icon || '⚡',
+                      target_type: t.target ? 'count' : 'check',
+                      daily_target: t.target || 1,
+                      time: t.time || null
+                    })
+                  });
+                  if (r2 && !r2.duplicate) created++;
+                }
+                if (created > 0) {
+                  // Show a follow-up message in coach listing the tasks
+                  var taskNames = taskData.tasks.slice(0, created).map(function(t){ return t.name; }).join(', ');
+                  var confirmMsg = 'Done! I added ' + created + ' daily tasks to your Roadmap: ' + taskNames + '. Check them off every day. Consistency is what separates those who hit their goals from those who do not. Ready?';
+                  addMsg(confirmMsg, 'a');
+                  chatHistory.push({ role: 'assistant', content: 'Tasks added to Roadmap.' });
+                  saveChatToStorage();
+                  await loadHabits();
+                }
+              }
+            } catch(se) { console.warn('Auto task creation failed:', se); }
+          }, 1500);
         }
       }, 300);
     } catch(e) {

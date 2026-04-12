@@ -835,9 +835,14 @@ app.get('/api/habits', auth, async (req, res) => {
 
 app.post('/api/habits', auth, async (req, res) => {
   const { name, time, icon, target_type, daily_target } = req.body;
-  // target_type: 'check' (binary) or 'count' (numeric)
-  // SQL: ALTER TABLE habits ADD COLUMN IF NOT EXISTS target_type TEXT DEFAULT 'check';
-  //      ALTER TABLE habits ADD COLUMN IF NOT EXISTS daily_target INTEGER DEFAULT 1;
+  // Check for duplicate — same name for same user
+  const { rows: existing } = await db.query(
+    'SELECT id FROM habits WHERE user_id=$1 AND LOWER(TRIM(name))=LOWER(TRIM($2))',
+    [req.user.id, name]
+  );
+  if (existing.length > 0) {
+    return res.json({ ...existing[0], duplicate: true });
+  }
   const { rows } = await db.query(
     'INSERT INTO habits (user_id, name, time, icon, target_type, daily_target) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *',
     [req.user.id, name, time || null, icon || '⚡', target_type || 'check', daily_target || 1]
@@ -1727,12 +1732,19 @@ app.post('/api/onboarding/complete', auth, async (req, res) => {
       [JSON.stringify(data), req.user.id]
     );
     if (data.goal_90days && data.goal_90days.trim().length > 3) {
-      const deadline = new Date();
-      deadline.setDate(deadline.getDate() + 90);
-      try {
-        await db.query("INSERT INTO goals (user_id, title, progress, target, deadline, category, status) VALUES ($1,$2,0,100,$3,'Business','active')", [req.user.id, data.goal_90days.trim(), deadline.toISOString().split('T')[0]]);
-      } catch(ge) {
-        await db.query('INSERT INTO goals (user_id, title, progress, target, deadline) VALUES ($1,$2,0,100,$3)', [req.user.id, data.goal_90days.trim(), deadline.toISOString().split('T')[0]]);
+      // Only insert goal if it doesn't already exist for this user
+      const { rows: existingGoal } = await db.query(
+        'SELECT id FROM goals WHERE user_id=$1 AND LOWER(TRIM(title))=LOWER(TRIM($2))',
+        [req.user.id, data.goal_90days.trim()]
+      );
+      if (existingGoal.length === 0) {
+        const deadline = new Date();
+        deadline.setDate(deadline.getDate() + 90);
+        try {
+          await db.query("INSERT INTO goals (user_id, title, progress, target, deadline, category, status) VALUES ($1,$2,0,100,$3,'Business','active')", [req.user.id, data.goal_90days.trim(), deadline.toISOString().split('T')[0]]);
+        } catch(ge) {
+          await db.query('INSERT INTO goals (user_id, title, progress, target, deadline) VALUES ($1,$2,0,100,$3)', [req.user.id, data.goal_90days.trim(), deadline.toISOString().split('T')[0]]);
+        }
       }
     }
     const name = data.name || 'Champion';

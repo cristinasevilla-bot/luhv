@@ -1777,6 +1777,7 @@ async function initApp() {
   document.getElementById('help-btn').style.display = 'flex';
   restoreTimerIfRunning();
   if (!localStorage.getItem('luhv_welcomed')) { setTimeout(showWelcome, 600); }
+  setTimeout(cleanupDuplicateTasks, 3000); // one-time dedup
 
   // ── Push notifications ──────────────────────────────────────
   var _onb = JSON.parse(localStorage.getItem('luhv_onboarding') || '{}');
@@ -5126,6 +5127,31 @@ function showPushPermissionBanner(userId, peakHour) {
     localStorage.setItem('luhv_push_dismissed', Date.now());
   };
 }
+
+// ── CLEANUP DUPLICATE TASKS (run once for existing users) ─────────────────────
+async function cleanupDuplicateTasks() {
+  var alreadyRun = localStorage.getItem('luhv_dedup_done');
+  if (alreadyRun) return;
+  try {
+    var habits = await api('/api/habits');
+    if (!habits || !habits.length) return;
+    var seen = {};
+    for (var i = 0; i < habits.length; i++) {
+      var key = habits[i].name.toLowerCase().trim();
+      if (seen[key]) {
+        // Delete the duplicate (keep the first one)
+        await api('/api/habits/' + habits[i].id, { method: 'DELETE' });
+      } else {
+        seen[key] = true;
+      }
+    }
+    localStorage.setItem('luhv_dedup_done', '1');
+    await loadHabitsPage();
+    await loadHabits();
+    showToast('Duplicate tasks cleaned up ✓');
+  } catch(e) {}
+}
+
 </script>
 </body>
 </html>

@@ -597,7 +597,7 @@ body{background:
           <div style="text-align:center;font-size:10px;color:rgba(255,255,255,.2)">↓ achieved by</div>
           <div style="padding:8px 10px;border-radius:10px;background:rgba(6,214,160,.08);border:1px solid rgba(6,214,160,.15)">
             <div style="font-size:11px;font-weight:700;color:var(--teal);margin-bottom:2px">✅ Tasks — check off every day</div>
-            <div style="font-size:11px;color:rgba(255,255,255,.45);line-height:1.5">Daily actions that move you toward your goals. These are your non-negotiables. Streak grows here.</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.45);line-height:1.5">Daily assignments that move you toward your goals. These are your non-negotiables. Streak grows here.</div>
           </div>
           <div style="font-size:10px;color:rgba(255,255,255,.3);padding-top:2px">Tap ✏️ to rename · 🗑 to delete any item</div>
         </div>
@@ -613,7 +613,7 @@ body{background:
           </div>
         </div>
         <div style="padding:12px 14px;background:rgba(99,102,241,.04)">
-          <div style="font-size:12px;color:rgba(255,255,255,.55);line-height:1.7">Link a goal, pick your mode and start. Timer runs even if you close the app. Do your most important task in your <span style="color:#fbbf24;font-weight:600">Peak Window</span>.</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.55);line-height:1.7">Link a goal, pick your mode and start. Timer runs even if you close the app. Complete your most important assignment in your <span style="color:#fbbf24;font-weight:600">Peak Window</span>.</div>
         </div>
       </div>
 
@@ -1196,7 +1196,7 @@ body{background:
           <div id="habit-form-msg" style="margin-top:8px;font-size:12px;color:var(--muted);min-height:16px"></div>
         </div>
       </div>
-      <div style="padding:0 20px;font-size:10px;color:var(--muted);margin-bottom:6px">Daily actions that move you toward your goals. Check them off every day.</div>
+      <div style="padding:0 20px;font-size:10px;color:var(--muted);margin-bottom:6px">Daily assignments that move you toward your goals. Check them off every day.</div>
       <div style="padding:0 20px;font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);font-weight:700;margin-bottom:10px">My Tasks</div>
       <div style="padding:0 20px;font-size:10px;color:var(--muted);margin-bottom:6px">Tap ✏️ to rename · 🗑 to delete</div>
       <div class="hlist" id="habits-page-list">
@@ -1238,7 +1238,7 @@ body{background:
       <div class="chip" onclick="sendSug('Help me plan my week ahead')">Weekly plan 🗓️</div>
       <div class="chip" onclick="sendSug('I am feeling stuck, what should I do?')">Feeling stuck 🧠</div>
       <div class="chip" onclick="sendSug('Review my progress this week')">My progress 📈</div>
-      <div class="chip" onclick="sendSug('I need a decision check — help me decide if my next action is aligned with my goals')">Decision check 🎯</div>
+      <div class="chip" onclick="sendSug('I need a decision check — help me decide if my next assignment is aligned with my goals')">Decision check 🎯</div>
     </div>
     <div class="cinrow">
       <textarea class="cin" id="cin" rows="1" placeholder="Ask Coach about your next step..."></textarea>
@@ -2382,7 +2382,7 @@ var obSteps = [
     sub: 'We will weight your Effectiveness Score around this.',
     key: 'growth_style',
     type: 'options',
-    options: ['Learning & knowledge', 'Taking action fast', 'Accountability & check-ins', 'Systems & structure']
+    options: ['Learning & knowledge', 'Acting on assignments fast', 'Accountability & check-ins', 'Systems & structure']
   },
   {
     label: 'Step 5 of 6 — Peak Performance',
@@ -2538,7 +2538,7 @@ async function obNext() {
             '- My biggest obstacle: ' + (obAnswers.obstacle || 'staying consistent') + '\n' +
             '- My 90-day goal: ' + goalText + '\n' +
             '- My peak performance hours: ' + (obAnswers.peak_hour || 'morning') + '\n' +
-            '- How I grow best: ' + (obAnswers.growth_style || 'taking action') + '\n\n' +
+            '- How I grow best: ' + (obAnswers.growth_style || 'acting on assignments') + '\n\n' +
             'Based on my goal and the Luhv+ frameworks, give me:\n' +
             '1. A specific breakdown of what I need to do DAILY to hit my 90-day goal. Use real numbers and conversion rates where relevant (e.g. if I want 3 clients, calculate outreach needed based on realistic conversion rates). Apply the Renovate/Innovate/Collaborate method if relevant.\n' +
             '2. My single most important daily non-negotiable task — the ONE thing that moves the needle most.\n' +
@@ -2619,7 +2619,7 @@ function showProfileResultCard(answers) {
   var el = document.getElementById('profile-result-card');
   if (!el) return;
   var stuckEmoji = {'Mindset & beliefs':'🧠','Confidence':'💪','Time & focus':'⏱️','Goals & direction':'🎯','Relationships':'🤝'};
-  var growthEmoji = {'Learning & knowledge':'📚','Taking action fast':'⚡','Accountability & check-ins':'✅','Systems & structure':'🗂️'};
+  var growthEmoji = {'Learning & knowledge':'📚','Acting on assignments fast':'⚡','Accountability & check-ins':'✅','Systems & structure':'🗂️'};
   var peakMap = {'Early morning (5–8am)':'🌅 5–8am','Morning (8–11am)':'☀️ 8–11am','Midday (11am–2pm)':'🌤️ 11am–2pm','Afternoon (2–5pm)':'🌆 2–5pm','Evening (5–9pm)':'🌙 5–9pm'};
   el.innerHTML =
     '<div style="font-size:9px;color:var(--teal);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:8px">Your Profile ✓</div>' +
@@ -2654,8 +2654,8 @@ async function initDemoNudges() {
     // ── MORNING NUDGE (5am-11am): task reminder based on real goal ──────────
     if (hour >= 5 && hour < 12) {
       var morningCopy = goalText
-        ? 'Your goal: "' + goalText.substring(0, 45) + (goalText.length > 45 ? '...' : '') + '". What is the ONE task you are doing today to move it forward?'
-        : 'What is the single most important thing you will do today?';
+        ? 'Your goal: "' + goalText.substring(0, 45) + (goalText.length > 45 ? '...' : '') + '". What is your ONE assignment today to move it forward?'
+        : 'What is your single most important assignment today?';
       nudges.push({
         id: 'morning-' + now.toDateString(),
         icon: '🌅',
@@ -2675,8 +2675,8 @@ async function initDemoNudges() {
         eyebrow: 'Midday check',
         title: 'How is your momentum?',
         copy: streak > 0
-          ? 'You are on a ' + streak + '-day streak. Make sure today counts — check off at least one task before 3pm.'
-          : 'No streak yet. One completed task today starts everything.',
+          ? 'You are on a ' + streak + '-day streak. Make sure today counts — complete at least one assignment before 3pm.'
+          : 'No streak yet. One completed assignment today starts everything.',
         primary: {label: 'Check tasks', action: "switchPage('roadmap');setTimeout(function(){switchRoadmapTab('habits')},50)"},
         secondary: {label: 'Dismiss', action: "dismissNudge('midday-" + now.toDateString() + "')"}
       });
@@ -2689,7 +2689,7 @@ async function initDemoNudges() {
         icon: '⏱️',
         eyebrow: 'Focus window',
         title: 'One deep work session',
-        copy: '25 minutes of focused work on your most important goal beats 2 hours of distracted effort. Start now.',
+        copy: '25 minutes focused on your most important assignment beats 2 hours of distracted effort. Start now.',
         primary: {label: 'Start Focus', action: "switchPage('focus')"},
         secondary: {label: 'Later', action: "dismissNudge('afternoon-" + now.toDateString() + "')"}
       });
@@ -2958,7 +2958,7 @@ async function loadGoals() {
 
 var HABIT_TIPS = [
   { words: ['soda','junk','sugar','less','stop','avoid','no ','quit','dont'],
-    tip: '💡 Phrase as a positive action — try "Limit soda to 1 per day" instead.' },
+    tip: '💡 Phrase as a clear assignment — try "Limit soda to 1 per day" instead.' },
   { words: ['water','drink'],
     tip: '💧 Use Daily target type to track glasses. Example: 8 glasses.' },
   { words: ['walk','run','exercise','gym','workout'],

@@ -4853,7 +4853,10 @@ async function addSuggestedTasks(tasks) {
   switchPage('roadmap');
   setTimeout(function() { switchRoadmapTab('habits'); }, 150);
 }
-
+// Expose to global scope so obNext() (in main script) can call it
+window.suggestTasksForGoal = suggestTasksForGoal;
+window.showTaskSuggestions = showTaskSuggestions;
+  
 // ── BILLING STUBS (Stripe disabled) ───────────────────────────────────────────
 var userTier = 'pro';
 var tokenBalance = 999999;

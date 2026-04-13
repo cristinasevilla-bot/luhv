@@ -2108,15 +2108,28 @@ app.post('/api/webhooks/square', express.raw({ type: 'application/json' }), asyn
                         event.data?.object?.order?.fulfillments?.[0]?.pickup_details?.recipient?.email_address;
 
       // Extract plan from note or reference_id
-      const note = (payment.note || payment.reference_id || '').toLowerCase();
+      // Read plan from payment title, note or reference_id
+      const rawTitle = (
+        payment.note || 
+        payment.reference_id || 
+        event.data?.object?.order?.line_items?.[0]?.name ||
+        ''
+      ).toLowerCase();
+      
       let tier = 'starter';
       let daysAccess = 30;
 
-      if (note.includes('trial')) { tier = 'mvp'; daysAccess = 7; }
-      else if (note.includes('mvp_annual')) { tier = 'mvp'; daysAccess = 365; }
-      else if (note.includes('mvp_monthly') || note.includes('mvp')) { tier = 'mvp'; daysAccess = 30; }
-      else if (note.includes('starter_annual')) { tier = 'starter'; daysAccess = 365; }
-      else if (note.includes('starter_monthly') || note.includes('starter')) { tier = 'starter'; daysAccess = 30; }
+      if (rawTitle.includes('trial') || rawTitle.includes('7 day')) { 
+        tier = 'mvp'; daysAccess = 7; 
+      } else if (rawTitle.includes('mvp') && (rawTitle.includes('annual') || rawTitle.includes('yearly'))) { 
+        tier = 'mvp'; daysAccess = 365; 
+      } else if (rawTitle.includes('mvp')) { 
+        tier = 'mvp'; daysAccess = 30; 
+      } else if (rawTitle.includes('starter') && (rawTitle.includes('annual') || rawTitle.includes('yearly'))) { 
+        tier = 'starter'; daysAccess = 365; 
+      } else if (rawTitle.includes('starter')) { 
+        tier = 'starter'; daysAccess = 30; 
+      }
 
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + daysAccess);

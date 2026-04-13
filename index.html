@@ -1816,7 +1816,6 @@ async function initApp() {
   document.getElementById('help-btn').style.display = 'flex';
   restoreTimerIfRunning();
   if (!localStorage.getItem('luhv_welcomed')) { setTimeout(showWelcome, 600); }
-  setTimeout(cleanupDuplicateTasks, 3000); // one-time dedup
 
   // ── Push notifications ──────────────────────────────────────
   var _onb = JSON.parse(localStorage.getItem('luhv_onboarding') || '{}');
@@ -2469,9 +2468,16 @@ async function loadEffectivenessScore() {
     if (trend) {
       var prevScore = parseInt(localStorage.getItem('luhv_prev_score') || '0');
       var diff = data.total - prevScore;
-      if (prevScore > 0 && diff !== 0) {
+      if (prevScore === 0) {
+        trend.textContent = 'Complete your assignments to raise your score';
+        trend.style.color = 'rgba(255,255,255,.4)';
+        trend.style.fontSize = '10px';
+      } else if (diff !== 0) {
         trend.textContent = diff > 0 ? '↑ +' + diff + ' vs yesterday' : '↓ ' + diff + ' vs yesterday';
         trend.style.color = diff > 0 ? 'var(--teal)' : '#f43f5e';
+      } else {
+        trend.textContent = '→ Same as yesterday';
+        trend.style.color = 'rgba(255,255,255,.4)';
       }
       localStorage.setItem('luhv_prev_score', data.total);
     }
@@ -2863,7 +2869,7 @@ async function initDemoNudges() {
     var lastGoalUpdate = localStorage.getItem('luhv_last_goal_update');
     var daysSinceGoal = lastGoalUpdate
       ? Math.floor((Date.now() - parseInt(lastGoalUpdate)) / (1000*60*60*24))
-      : 999;
+      : 0;
     if (daysSinceGoal >= 3 && goalText) {
       nudges.push({
         id: 'goal-stale',
@@ -3436,7 +3442,7 @@ async function loadJournal() {
   loadDecisionsLog();
   loadEnergyTracker();
   loadWeeklyReview();
-  loadPeakReport();
+  if (TOKEN) loadPeakReport();
 }
 
 async function loadPrompt() {
@@ -3526,7 +3532,7 @@ function switchPage(name) {
   document.querySelectorAll('.ni').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
   document.getElementById('ni-' + name).classList.add('active');
-  if (name === 'journal') { loadJournal(); loadGoals(); loadLineChart(); loadEnergyTracker(); loadPeakReport(); }
+  if (name === 'journal') { loadJournal(); loadGoals(); loadLineChart(); loadEnergyTracker(); if (TOKEN) loadPeakReport(); }
   if (name === 'roadmap') { switchRoadmapTab('habits'); refreshVisionStrips(); }
   if (name === 'home') {
     loadTodayWeeklyDashboard();
@@ -5327,6 +5333,7 @@ function showPushPermissionBanner(userId, peakHour) {
 }
 
 // ── CLEANUP DUPLICATE TASKS (run once for existing users) ─────────────────────
+// Called after definition to avoid ReferenceError
 async function cleanupDuplicateTasks() {
   var alreadyRun = localStorage.getItem('luhv_dedup_done');
   if (alreadyRun) return;
@@ -5348,6 +5355,41 @@ async function cleanupDuplicateTasks() {
     await loadHabits();
     showToast('Duplicate tasks cleaned up ✓');
   } catch(e) {}
+}
+
+// Also deduplicate domains
+async function cleanupDuplicateDomains() {
+  var alreadyRun = localStorage.getItem('luhv_domain_dedup_done');
+  if (alreadyRun) return;
+  try {
+    var domains = await api('/api/domains');
+    if (!domains || !domains.length) return;
+    var seen = {};
+    var deleted = 0;
+    for (var i = 0; i < domains.length; i++) {
+      var key = (domains[i].name || '').toLowerCase().trim();
+      if (seen[key]) {
+        await api('/api/domains/' + domains[i].id, { method: 'DELETE' });
+        deleted++;
+      } else {
+        seen[key] = true;
+      }
+    }
+    localStorage.setItem('luhv_domain_dedup_done', '1');
+    if (deleted > 0) {
+      await loadDomainsPage();
+      await loadTodayDomainsPreview();
+      showToast(deleted + ' duplicate domains removed ✓');
+    }
+  } catch(e) { console.warn('Domain dedup failed:', e); }
+}
+
+// Schedule both cleanups 3s after app loads
+if (typeof TOKEN !== 'undefined' && TOKEN) {
+  setTimeout(function() {
+    cleanupDuplicateTasks();
+    cleanupDuplicateDomains();
+  }, 3000);
 }
 
 </script>

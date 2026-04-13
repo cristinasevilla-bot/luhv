@@ -676,7 +676,7 @@ app.post('/api/coach/chat', auth, coachAuth, async (req, res) => {
 
   const today = new Date().toISOString().split('T')[0];
   const { rows: [user] }   = await db.query('SELECT name, streak FROM users WHERE id=$1', [req.user.id]);
-  const { rows: goals }    = await db.query("SELECT title, progress, target FROM goals WHERE user_id=$1 AND status='active'", [req.user.id]);
+  const { rows: goals }    = await db.query("SELECT title, progress, target, updated_at FROM goals WHERE user_id=$1 AND status='active'", [req.user.id]);
   const { rows: habits }   = await db.query(
     `SELECT h.name, h.target_type, h.daily_target,
       CASE WHEN h.target_type='check' THEN (hc.id IS NOT NULL)
@@ -1079,7 +1079,7 @@ app.post('/api/intention', auth, async (req, res) => {
   if (!intention?.trim()) return res.status(400).json({ error: 'Intention required' });
 
   const { rows: [user] }   = await db.query('SELECT name, streak FROM users WHERE id=$1', [req.user.id]);
-  const { rows: goals }    = await db.query("SELECT title, progress, target FROM goals WHERE user_id=$1 AND status='active'", [req.user.id]);
+  const { rows: goals }    = await db.query("SELECT title, progress, target, updated_at FROM goals WHERE user_id=$1 AND status='active'", [req.user.id]);
   const session            = await getActiveSession(req.user.id);
 
   const userContext = `
@@ -1161,7 +1161,7 @@ app.post('/api/decisions', auth, async (req, res) => {
   if (!decision?.trim()) return res.status(400).json({ error: 'Decision required' });
 
   const { rows: [user] }   = await db.query('SELECT name, streak FROM users WHERE id=$1', [req.user.id]);
-  const { rows: goals }    = await db.query("SELECT title, progress, target FROM goals WHERE user_id=$1 AND status='active'", [req.user.id]);
+  const { rows: goals }    = await db.query("SELECT title, progress, target, updated_at FROM goals WHERE user_id=$1 AND status='active'", [req.user.id]);
   const session            = await getActiveSession(req.user.id);
 
   const userContext = `
@@ -1393,7 +1393,7 @@ app.patch('/api/onboarding/peak-hour', auth, async (req, res) => {
 app.get('/api/weekly-review', auth, async (req, res) => {
   try {
     const { rows: [user] }   = await db.query('SELECT name, streak FROM users WHERE id=$1', [req.user.id]);
-    const { rows: goals }    = await db.query("SELECT title, progress, target FROM goals WHERE user_id=$1 AND status='active'", [req.user.id]);
+    const { rows: goals }    = await db.query("SELECT title, progress, target, updated_at FROM goals WHERE user_id=$1 AND status='active'", [req.user.id]);
     const { rows: habits }   = await db.query(
       `SELECT h.name, COUNT(hc.id) as completions
        FROM habits h LEFT JOIN habit_completions hc
@@ -1518,6 +1518,12 @@ app.post('/api/domains', auth, async (req, res) => {
 
 // Delete a domain
 app.delete('/api/domains/:id', auth, async (req, res) => {
+  try {
+    await db.query('DELETE FROM domain_metric_logs WHERE metric_id IN (SELECT id FROM domain_metrics WHERE domain_id=$1 AND user_id=$2)', [req.params.id, req.user.id]);
+    await db.query('DELETE FROM domain_metrics WHERE domain_id=$1 AND user_id=$2', [req.params.id, req.user.id]);
+    await db.query('DELETE FROM life_domains WHERE id=$1 AND user_id=$2', [req.params.id, req.user.id]);
+    res.json({ success: true }); return;
+  } catch(e) {}
   await db.query('DELETE FROM life_domains WHERE id=$1 AND user_id=$2', [req.params.id, req.user.id]);
   res.json({ success: true });
 });

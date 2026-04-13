@@ -692,6 +692,26 @@ body{background:
         </div>
       </div>
 
+      <div class="profile-section">
+        <div class="profile-section-label">Subscription</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div onclick="closeProfile();openPaywall('upgrade')" style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-radius:12px;background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(14,165,233,.08));border:1px solid rgba(99,102,241,.25);cursor:pointer">
+            <div>
+              <div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:2px">Plans &amp; Pricing</div>
+              <div style="font-size:11px;color:rgba(255,255,255,.45)">Starter · MVP · 7-day trial</div>
+            </div>
+            <div style="font-size:16px;color:var(--purple)">⚡</div>
+          </div>
+          <a href="https://square.link/u/Oj9nU0MG" target="_blank" style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-radius:12px;background:rgba(6,214,160,.08);border:1px solid rgba(6,214,160,.2);cursor:pointer;text-decoration:none">
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--teal);margin-bottom:2px">7-Day Free Trial</div>
+              <div style="font-size:11px;color:rgba(255,255,255,.45)">Full access — no commitment</div>
+            </div>
+            <div style="font-size:13px;color:var(--teal);font-weight:700">Free →</div>
+          </a>
+        </div>
+      </div>
+
       <button class="profile-logout" onclick="logout()">Sign Out</button>
     </div>
   </div>

@@ -671,7 +671,7 @@ app.post('/api/coach/session/reset', auth, coachAuth, async (req, res) => {
 });
 
 // ── FREE CHAT (enriched with session context) ─────────────────────────────────
-app.post('/api/coach/chat', auth, coachAuth, async (req, res) => {
+app.post('/api/coach/chat', auth, checkTier, coachAuth, async (req, res) => {
   const { message, history = [] } = req.body;
 
   const today = new Date().toISOString().split('T')[0];
@@ -2074,6 +2074,124 @@ async function runMigrations() {
   }
   console.log('Migrations complete');
 }
+
+
+// ── SQUARE WEBHOOK ────────────────────────────────────────────────────────────
+const crypto = require('crypto');
+
+app.post('/api/webhooks/square', express.raw({ type: 'application/json' }), async (req, res) => {
+  try {
+    // Verify signature
+    const signature = req.headers['x-square-hmacsha256-signature'];
+    const sigKey = process.env.SQUARE_WEBHOOK_SIGNATURE;
+    if (sigKey && signature) {
+      const hmac = crypto.createHmac('sha256', sigKey);
+      hmac.update(req.body);
+      const expected = hmac.digest('base64');
+      if (expected !== signature) {
+        console.warn('Square webhook signature mismatch');
+        return res.status(401).json({ error: 'Invalid signature' });
+      }
+    }
+
+    const event = JSON.parse(req.body.toString());
+    const eventType = event.type;
+    console.log('Square webhook received:', eventType);
+
+    if (eventType === 'payment.completed' || eventType === 'order.completed') {
+      const payment = event.data?.object?.payment || event.data?.object?.order;
+      if (!payment) return res.json({ ok: true });
+
+      // Extract buyer email
+      const buyerEmail = payment.buyer_email_address || 
+                        payment.receipt_email ||
+                        event.data?.object?.order?.fulfillments?.[0]?.pickup_details?.recipient?.email_address;
+
+      // Extract plan from note or reference_id
+      const note = (payment.note || payment.reference_id || '').toLowerCase();
+      let tier = 'starter';
+      let daysAccess = 30;
+
+      if (note.includes('trial')) { tier = 'mvp'; daysAccess = 7; }
+      else if (note.includes('mvp_annual')) { tier = 'mvp'; daysAccess = 365; }
+      else if (note.includes('mvp_monthly') || note.includes('mvp')) { tier = 'mvp'; daysAccess = 30; }
+      else if (note.includes('starter_annual')) { tier = 'starter'; daysAccess = 365; }
+      else if (note.includes('starter_monthly') || note.includes('starter')) { tier = 'starter'; daysAccess = 30; }
+
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + daysAccess);
+
+      if (buyerEmail) {
+        // Update user tier in DB
+        const { rows } = await db.query(
+          'UPDATE users SET tier=$1, billing_period_end=$2 WHERE LOWER(email)=LOWER($3) RETURNING id, name, email',
+          [tier, expiresAt.toISOString(), buyerEmail]
+        );
+
+        if (rows.length > 0) {
+          console.log(`Access granted: ${buyerEmail} → ${tier} until ${expiresAt.toDateString()}`);
+          
+          // Send confirmation email to admin
+          const adminEmail = 'meltosbyluhv@gmail.com';
+          const userName = rows[0].name || buyerEmail;
+          console.log(`PAYMENT CONFIRMED: ${userName} (${buyerEmail}) → ${tier} plan, expires ${expiresAt.toDateString()}`);
+          
+          // If you add nodemailer later, send email here
+        } else {
+          console.warn(`No user found for email: ${buyerEmail}`);
+        }
+      }
+    }
+
+    res.json({ ok: true });
+  } catch(e) {
+    console.error('Square webhook error:', e);
+    res.status(500).json({ error: 'Webhook processing failed' });
+  }
+});
+
+// ── CHECK ACCESS MIDDLEWARE ────────────────────────────────────────────────────
+async function checkTier(req, res, next) {
+  // Check if billing_period_end has expired
+  try {
+    const { rows: [user] } = await db.query(
+      'SELECT tier, billing_period_end FROM users WHERE id=$1',
+      [req.user.id]
+    );
+    if (user && user.billing_period_end && new Date(user.billing_period_end) < new Date()) {
+      // Expired — reset to basic
+      await db.query("UPDATE users SET tier='basic' WHERE id=$1", [req.user.id]);
+      return res.status(403).json({ error: 'subscription_expired', message: 'Your plan has expired. Please renew to continue.' });
+    }
+  } catch(e) {}
+  next();
+}
+
+// ── BILLING STATUS (now reads from DB) ────────────────────────────────────────
+app.get('/api/billing/status', auth, async (req, res) => {
+  try {
+    const { rows: [user] } = await db.query(
+      'SELECT tier, billing_period_end FROM users WHERE id=$1',
+      [req.user.id]
+    );
+    
+    // Check if expired
+    const expired = user?.billing_period_end && new Date(user.billing_period_end) < new Date();
+    if (expired) {
+      await db.query("UPDATE users SET tier='basic' WHERE id=$1", [req.user.id]);
+      return res.json({ tier: 'basic', expired: true, billing_period_end: null });
+    }
+
+    res.json({
+      tier: user?.tier || 'basic',
+      billing_period_end: user?.billing_period_end,
+      expired: false
+    });
+  } catch(e) {
+    res.json({ tier: 'basic', expired: false });
+  }
+});
+
 
 app.get('/health', (_, res) => res.json({ status: 'ok', service: 'Luhv+ API' }));
 

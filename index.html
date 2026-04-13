@@ -2255,50 +2255,162 @@ async function loadTodayWeeklyDashboard() {
   // 3. Re-dibuja con datos reales
   renderCircles(data.days, dayPcts);
 
-  // Habit matrix
+  // ── HABIT MATRIX — smart grouped version ─────────────────────────────────
   var matrixEl = document.getElementById('today-habit-matrix');
   if (!matrixEl) return;
   if (!data.habits.length) {
-    matrixEl.innerHTML = '<div style="font-size:11px;color:var(--muted)">No habits yet — add them in Roadmap.</div>';
+    matrixEl.innerHTML = '<div style="font-size:11px;color:var(--muted)">No assignments yet — add them in Roadmap.</div>';
     return;
   }
 
-  var grid = document.createElement('div');
-  grid.style.cssText = 'display:grid;grid-template-columns:minmax(70px,1fr) repeat(7,26px);gap:2px;align-items:center;min-width:0';
-
-  // Header
-  var hdr = document.createElement('div');
-  hdr.style.cssText = 'font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:700;padding-bottom:4px';
-  hdr.textContent = 'Habit';
-  grid.appendChild(hdr);
-  data.days.forEach(function(date, i) {
-    var isToday = date === today;
-    var d = document.createElement('div');
-    d.style.cssText = 'font-size:8px;text-align:center;font-weight:700;text-transform:uppercase;color:' + (isToday ? 'var(--blue)' : 'var(--muted)') + ';padding-bottom:4px';
-    d.textContent = DAY_NAMES[i];
-    grid.appendChild(d);
-  });
-
-  // Rows
-  data.habits.forEach(function(h) {
-    var nameEl = document.createElement('div');
-    nameEl.style.cssText = 'font-size:10px;color:var(--light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:3px;padding:2px 4px 2px 0';
-    nameEl.innerHTML = '<span style="font-size:11px">' + (h.icon||'⚡') + '</span><span>' + h.name + '</span>';
-    grid.appendChild(nameEl);
-    h.days.forEach(function(day) {
-      var isFuture = day.date > today;
-      var cell = document.createElement('div');
-      cell.style.cssText = 'width:22px;height:22px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:10px;margin:1px auto;' +
-        (isFuture ? 'background:rgba(255,255,255,.02);color:rgba(255,255,255,.08)' :
-         day.done ? 'background:rgba(6,214,160,.2);color:var(--teal)' :
-         'background:rgba(255,255,255,.05);color:rgba(255,255,255,.2)');
-      cell.textContent = isFuture ? '·' : day.done ? '✓' : '✗';
-      grid.appendChild(cell);
-    });
-  });
-
   matrixEl.innerHTML = '';
-  matrixEl.appendChild(grid);
+
+  // Score each habit by today completion rate (last 7 days)
+  var todayIdx = data.days.indexOf(today);
+  if (todayIdx < 0) todayIdx = data.days.length - 1;
+
+  // Smart categorisation based on keyword matching
+  function categoriseHabit(name) {
+    var n = (name || '').toLowerCase();
+    if (n.match(/water|drink|food|eat|meal|sleep|gym|workout|run|walk|exercise|fit|health|body|weight/)) return 'health';
+    if (n.match(/prospect|outreach|client|sale|follow.up|email|linkedin|call|meeting|pitch|revenue|business|social media|post|content|video|record/)) return 'business';
+    if (n.match(/read|book|learn|study|course|skill|meditat|journal|reflect|mind|focus|breath|phone|screen/)) return 'mindset';
+    return 'other';
+  }
+
+  var CAT = {
+    health:   { label: '💪 Health & Body',   color: '#06d6a0', bg: 'rgba(6,214,160,.08)',   border: 'rgba(6,214,160,.2)'   },
+    business: { label: '🚀 Business & Goals', color: '#0ea5e9', bg: 'rgba(14,165,233,.08)',  border: 'rgba(14,165,233,.2)'  },
+    mindset:  { label: '🧠 Mindset & Focus',  color: '#a78bfa', bg: 'rgba(167,139,250,.08)', border: 'rgba(167,139,250,.2)' },
+    other:    { label: '⚡ Daily Habits',      color: '#fbbf24', bg: 'rgba(251,191,36,.07)',  border: 'rgba(251,191,36,.18)' }
+  };
+
+  // Score habits by consistency (% days done this week)
+  data.habits.forEach(function(h) {
+    var doneDays = h.days.filter(function(d){ return d.done && d.date <= today; }).length;
+    var totalPast = h.days.filter(function(d){ return d.date <= today; }).length;
+    h._consistency = totalPast > 0 ? doneDays / totalPast : 0;
+    h._doneToday = todayIdx >= 0 && h.days[todayIdx] && h.days[todayIdx].done;
+    h._cat = categoriseHabit(h.name);
+  });
+
+  // Top 3: business-goal habits not done today, sorted by consistency descending
+  var top3 = data.habits
+    .filter(function(h){ return !h._doneToday; })
+    .sort(function(a,b){ return b._consistency - a._consistency; })
+    .slice(0, 3);
+
+  // ── TOP 3 BLOCK ───────────────────────────────────────────────────────────
+  if (top3.length > 0) {
+    var top3Wrap = document.createElement('div');
+    top3Wrap.style.cssText = 'margin-bottom:10px';
+    
+    var top3Header = document.createElement('div');
+    top3Header.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:6px';
+    top3Header.innerHTML = '<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#fbbf24">⚡ Focus on these today</div>';
+    top3Wrap.appendChild(top3Header);
+
+    top3.forEach(function(h, i) {
+      var cat = CAT[h._cat] || CAT.other;
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;margin-bottom:4px;background:' + cat.bg + ';border:1px solid ' + cat.border + ';cursor:pointer';
+      
+      var rank = document.createElement('div');
+      rank.style.cssText = 'width:18px;height:18px;border-radius:50%;background:' + cat.color + ';color:#040810;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0';
+      rank.textContent = i + 1;
+      
+      var name = document.createElement('div');
+      name.style.cssText = 'font-size:11px;font-weight:600;color:var(--light);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+      name.innerHTML = (h.icon || '⚡') + ' ' + h.name;
+
+      var pct = Math.round(h._consistency * 100);
+      var streak = document.createElement('div');
+      streak.style.cssText = 'font-size:9px;color:' + cat.color + ';font-weight:700;flex-shrink:0';
+      streak.textContent = pct + '% streak';
+
+      row.appendChild(rank);
+      row.appendChild(name);
+      row.appendChild(streak);
+      top3Wrap.appendChild(row);
+    });
+
+    matrixEl.appendChild(top3Wrap);
+  }
+
+  // ── DIVIDER ───────────────────────────────────────────────────────────────
+  var divider = document.createElement('div');
+  divider.style.cssText = 'border-top:1px solid rgba(255,255,255,.06);margin:8px 0 10px';
+  matrixEl.appendChild(divider);
+
+  // ── FULL MATRIX — grouped by category ─────────────────────────────────────
+  var matrixLabel = document.createElement('div');
+  matrixLabel.style.cssText = 'font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between';
+  matrixLabel.innerHTML = '<span>All Assignments</span><span style="font-size:8px;opacity:.5">Tap to expand</span>';
+  matrixEl.appendChild(matrixLabel);
+
+  // Group by category
+  var grouped = {};
+  data.habits.forEach(function(h) {
+    var c = h._cat;
+    if (!grouped[c]) grouped[c] = [];
+    grouped[c].push(h);
+  });
+
+  var catOrder = ['business', 'health', 'mindset', 'other'];
+  catOrder.forEach(function(catKey) {
+    var habits = grouped[catKey];
+    if (!habits || !habits.length) return;
+    var cat = CAT[catKey];
+
+    // Category header
+    var catHeader = document.createElement('div');
+    catHeader.style.cssText = 'font-size:9px;font-weight:700;color:' + cat.color + ';text-transform:uppercase;letter-spacing:1.5px;margin:8px 0 4px;padding:4px 6px;border-left:2px solid ' + cat.color + ';background:' + cat.bg + ';border-radius:0 6px 6px 0';
+    catHeader.textContent = cat.label;
+    matrixEl.appendChild(catHeader);
+
+    // Grid for this category
+    var grid = document.createElement('div');
+    grid.style.cssText = 'display:grid;grid-template-columns:minmax(70px,1fr) repeat(7,22px);gap:1px;align-items:center;margin-bottom:4px';
+
+    // Day headers (only first category)
+    if (catKey === catOrder.find(function(k){ return grouped[k] && grouped[k].length; })) {
+      var hdrSpacer = document.createElement('div');
+      grid.appendChild(hdrSpacer);
+      data.days.forEach(function(date, i) {
+        var isToday = date === today;
+        var d = document.createElement('div');
+        d.style.cssText = 'font-size:7px;text-align:center;font-weight:700;text-transform:uppercase;color:' + (isToday ? 'var(--blue)' : 'rgba(255,255,255,.3)') + ';padding-bottom:2px';
+        d.textContent = DAY_NAMES[i];
+        grid.appendChild(d);
+      });
+    }
+
+    habits.forEach(function(h) {
+      var isDoneToday = h._doneToday;
+      var nameEl = document.createElement('div');
+      nameEl.style.cssText = 'font-size:10px;color:' + (isDoneToday ? 'rgba(255,255,255,.35)' : 'rgba(255,255,255,.75)') + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:3px;padding:1px 4px 1px 0;' + (isDoneToday ? 'text-decoration:line-through' : '');
+      nameEl.innerHTML = '<span style="font-size:10px">' + (h.icon||'⚡') + '</span><span>' + h.name + '</span>';
+      grid.appendChild(nameEl);
+
+      h.days.forEach(function(day, di) {
+        var isFuture = day.date > today;
+        var isToday = day.date === today;
+        var cell = document.createElement('div');
+        var bg = isFuture ? 'rgba(255,255,255,.02)'
+          : day.done ? (cat.color + '33')
+          : isToday ? 'rgba(255,255,255,.06)'
+          : 'rgba(255,255,255,.03)';
+        var fg = isFuture ? 'rgba(255,255,255,.08)'
+          : day.done ? cat.color
+          : 'rgba(255,255,255,.15)';
+        cell.style.cssText = 'width:20px;height:20px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;margin:1px auto;background:' + bg + ';color:' + fg;
+        cell.textContent = isFuture ? '·' : day.done ? '✓' : '–';
+        grid.appendChild(cell);
+      });
+    });
+
+    matrixEl.appendChild(grid);
+  });
 }
 
 async function loadEffectivenessScore() {

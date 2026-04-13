@@ -1457,7 +1457,7 @@ app.get('/api/peak-report', auth, async (req, res) => {
   try {
     // Get habit completions by hour over last 30 days
     const { rows: byHour } = await db.query(
-      `SELECT EXTRACT(HOUR FROM COALESCE(completed_at, created_at)) as hour, COUNT(*) as count
+      `SELECT EXTRACT(HOUR FROM NOW()) as hour, COUNT(*) as count
        FROM habit_completions
        WHERE user_id=$1 AND date >= CURRENT_DATE - INTERVAL '30 days'
        GROUP BY hour ORDER BY hour`,
@@ -2057,6 +2057,7 @@ async function runMigrations() {
     `ALTER TABLE goals ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active'`,
     `ALTER TABLE habits ADD COLUMN IF NOT EXISTS target_type TEXT DEFAULT 'check'`,
     'ALTER TABLE habits ADD COLUMN IF NOT EXISTS daily_target INTEGER DEFAULT 1',
+    'ALTER TABLE habit_completions ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ DEFAULT NOW()',
     'ALTER TABLE journal_entries ADD COLUMN IF NOT EXISTS energy_level INTEGER',
     'ALTER TABLE habit_completions ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ DEFAULT NOW()',
     `CREATE TABLE IF NOT EXISTS energy_logs (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, level INTEGER NOT NULL CHECK (level BETWEEN 1 AND 5), note TEXT, logged_at TIMESTAMPTZ DEFAULT NOW())`,

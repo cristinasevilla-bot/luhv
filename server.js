@@ -2103,9 +2103,38 @@ app.post('/api/webhooks/square', express.raw({ type: 'application/json' }), asyn
       if (!payment) return res.json({ ok: true });
 
       // Extract buyer email
-      const buyerEmail = payment.buyer_email_address || 
-                        payment.receipt_email ||
-                        event.data?.object?.order?.fulfillments?.[0]?.pickup_details?.recipient?.email_address;
+      // Square sends email in multiple possible locations
+      const order = event.data?.object?.order || event.data?.object?.payment;
+      
+      // Check custom fields first (the "Email" required field we added)
+      let buyerEmail = null;
+      const customFields = order?.custom_fields || payment?.custom_fields || [];
+      if (Array.isArray(customFields)) {
+        const emailField = customFields.find(f => 
+          f.label?.toLowerCase().includes('email') || f.title?.toLowerCase().includes('email')
+        );
+        if (emailField) buyerEmail = emailField.string_value || emailField.value;
+      }
+      
+      // Fallback to other Square email fields
+      if (!buyerEmail) {
+        buyerEmail = payment.buyer_email_address || 
+                     payment.receipt_email ||
+                     order?.fulfillments?.[0]?.pickup_details?.recipient?.email_address ||
+                     event.data?.object?.order?.net_amounts?.customer_email;
+      }
+      
+      // Also try to find via Square customer API using access token
+      if (!buyerEmail && payment.customer_id && process.env.SQUARE_ACCESS_TOKEN) {
+        try {
+          const custResp = await fetch(
+            'https://connect.squareup.com/v2/customers/' + payment.customer_id,
+            { headers: { 'Authorization': 'Bearer ' + process.env.SQUARE_ACCESS_TOKEN, 'Content-Type': 'application/json' } }
+          );
+          const custData = await custResp.json();
+          buyerEmail = custData?.customer?.email_address;
+        } catch(ce) { console.warn('Could not fetch customer:', ce.message); }
+      }
 
       // Extract plan from note or reference_id
       // Read plan from payment title, note or reference_id

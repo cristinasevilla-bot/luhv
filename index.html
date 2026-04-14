@@ -75,8 +75,8 @@ body{background:var(--black);font-family:'DM Sans',sans-serif;color:#fff;min-hei
 .hico{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
 .hico.b{background:rgba(14,165,233,.15)}.hico.t{background:rgba(6,214,160,.12)}.hico.y{background:rgba(251,191,36,.12)}.hico.p{background:rgba(99,102,241,.15)}
 .hinfo{flex:1}.hn{font-size:14px;font-weight:500}.hs{font-size:12px;color:var(--muted);margin-top:1px}
-.hchk{width:36px;height:36px;border-radius:10px;border:2px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;transition:all .2s;background:rgba(255,255,255,.04);}
-.hitem.done .hchk{background:var(--teal);border-color:var(--teal);color:#000;font-size:18px;box-shadow:0 0 12px rgba(6,214,160,.35);}
+.hchk{width:52px;height:36px;border-radius:10px;border:2px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;transition:all .2s;background:rgba(255,255,255,.04);color:rgba(255,255,255,.3);letter-spacing:.5px;}
+.hitem.done .hchk{background:var(--teal);border-color:var(--teal);color:#07111b;font-size:16px;font-weight:900;box-shadow:0 0 14px rgba(6,214,160,.35);letter-spacing:0;}
 
 /* GOALS */
 .glist{padding:0 20px;flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
@@ -100,6 +100,7 @@ body{background:var(--black);font-family:'DM Sans',sans-serif;color:#fff;min-hei
 .dot{width:6px;height:6px;border-radius:50%;background:var(--blue);animation:bounce 1.2s infinite}
 .dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
 @keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-5px)}}
+@keyframes pulse{0%,100%{opacity:.5}50%{opacity:1}}
 .suggs{padding:0 20px 8px;display:flex;gap:7px;overflow-x:auto;scrollbar-width:none}
 .suggs::-webkit-scrollbar{display:none}
 .chip{flex-shrink:0;padding:6px 13px;border:0.5px solid var(--border);border-radius:20px;font-size:12px;color:var(--light);cursor:pointer;background:var(--card);white-space:nowrap}
@@ -1239,6 +1240,12 @@ body{background:
         <button onclick="switchPage('home')" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(14,165,233,.4);background:rgba(14,165,233,.15);color:var(--blue);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">✕</button>
       </div>
     </div>
+    <!-- AI THINKING NOTICE -->
+    <div id="ai-thinking-notice" style="margin:10px 16px 0;padding:9px 14px;background:rgba(99,102,241,.07);border:1px solid rgba(99,102,241,.18);border-radius:10px;display:flex;align-items:center;gap:10px;font-size:12px;color:rgba(255,255,255,.55)">
+      <span style="font-size:16px;flex-shrink:0;animation:spin 2s linear infinite;display:inline-block">🧠</span>
+      <span>This Coach uses <strong style="color:rgba(255,255,255,.75)">AI</strong> — responses may take 5–15 seconds while it thinks through your situation. Worth the wait! ✨</span>
+      <button onclick="this.parentElement.style.display='none';localStorage.setItem('luhv_ai_notice_seen','1')" style="margin-left:auto;background:none;border:none;color:rgba(255,255,255,.25);font-size:16px;cursor:pointer;flex-shrink:0;padding:0;line-height:1">×</button>
+    </div>
     <div id="coach-upgrade-gate" style="display:none;position:absolute;inset:0;z-index:10;flex-direction:column;align-items:center;justify-content:center;background:rgba(8,12,18,.95);padding:28px;text-align:center;backdrop-filter:blur(8px)">
     <div id="coach-gate-icon" style="font-size:40px;margin-bottom:14px">⭐</div>
     <div id="coach-gate-title" style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;margin-bottom:8px;color:#fff">UPGRADE TO MVP</div>
@@ -1272,57 +1279,130 @@ body{background:
     </div>
   </div>
 
-  <!-- JOURNAL -->
-  <div class="page" id="page-journal">
-  <div class="jpage">
-    <div style="position:relative;height:140px;overflow:hidden;flex-shrink:0">
-      <img src="https://ggfvluqiwcnhbmetxxao.supabase.co/storage/v1/object/public/coach/coach.png" alt="" style="width:100%;height:100%;object-fit:cover;object-position:center 35%">
-      <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.1) 0%,rgba(10,10,15,.97) 100%)"></div>
-      <div style="position:absolute;bottom:12px;left:20px;right:52px">
-        <div style="font-size:10px;color:var(--purple);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:2px">Inspire</div><div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;line-height:1">FUEL YOUR VISION.</div>
+  <!-- JOURNAL / VISION BOARD -->
+  <div class="page" id="page-journal" style="overflow-y:auto;padding-bottom:100px;background:var(--black)">
+
+    <!-- TABS: Vision Board / Find Images -->
+    <div style="position:sticky;top:0;z-index:20;background:rgba(8,12,18,.97);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.06)">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px 0">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px">✨ VISION BOARD</div>
+        <button onclick="switchPage('home')" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(14,165,233,.3);background:rgba(14,165,233,.08);color:var(--blue);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
       </div>
-      <button onclick="switchPage('home')" style="position:absolute;top:12px;right:16px;width:32px;height:32px;border-radius:50%;border:1px solid rgba(14,165,233,.4);background:rgba(14,165,233,.12);color:var(--blue);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
-    </div>
-    <!-- INSPIRE: Domain filter pills -->
-    <div style="padding:12px 20px 4px;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch" id="inspire-domain-filters">
-      <button onclick="filterInspirationDomain('all')" id="inspire-filter-all" style="flex-shrink:0;padding:6px 14px;border-radius:20px;border:1px solid rgba(99,102,241,.4);background:rgba(99,102,241,.15);color:var(--purple);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">All ✨</button>
-      <button onclick="filterInspirationDomain('finance')" id="inspire-filter-finance" style="flex-shrink:0;padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">💰 Finance</button>
-      <button onclick="filterInspirationDomain('fitness')" id="inspire-filter-fitness" style="flex-shrink:0;padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">💪 Fitness</button>
-      <button onclick="filterInspirationDomain('business')" id="inspire-filter-business" style="flex-shrink:0;padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">🚀 Business</button>
-      <button onclick="filterInspirationDomain('mindset')" id="inspire-filter-mindset" style="flex-shrink:0;padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">🧠 Mindset</button>
+      <div style="display:flex;gap:0;padding:10px 20px 0">
+        <button id="vbtab-board" onclick="switchVBTab('board')" style="flex:1;padding:9px 4px;border:none;background:none;color:var(--teal);font-size:12px;font-weight:700;cursor:pointer;border-bottom:2px solid var(--teal);font-family:'DM Sans',sans-serif">🏆 My Board</button>
+        <button id="vbtab-find" onclick="switchVBTab('find')" style="flex:1;padding:9px 4px;border:none;background:none;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;border-bottom:2px solid transparent;font-family:'DM Sans',sans-serif">🔍 Find Images</button>
+      </div>
     </div>
 
-    <!-- INSPIRE: 2-col layout — saved left, feed right -->
-    <!-- Like hint banner -->
-    <div id="inspire-like-hint" style="margin:8px 12px;padding:8px 14px;background:rgba(244,63,94,.08);border:1px solid rgba(244,63,94,.2);border-radius:10px;display:none;align-items:center;gap:8px;font-size:12px;color:rgba(255,255,255,.65)">
-      <span style="font-size:16px">♥</span>
-      <span>Tap the <strong style="color:#f43f5e">heart ♥</strong> on any image to add it to your Vision Board. Tap an image to enlarge it.</span>
-      <button onclick="document.getElementById('inspire-like-hint').style.display='none';localStorage.setItem('luhv_hint_liked','1')" style="margin-left:auto;background:none;border:none;color:rgba(255,255,255,.3);font-size:16px;cursor:pointer;flex-shrink:0;padding:0">×</button>
-    </div>
-    <div style="display:flex;gap:0;margin:4px 0 0">
-      <!-- SAVED panel — wider and scrollable -->
-      <div id="inspire-saved-panel" style="width:96px;flex-shrink:0;padding:0 0 0 10px;display:none">
-        <div style="font-size:9px;color:#f43f5e;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:6px">♥ Vision Board</div>
-        <div id="inspire-saved-list" style="display:flex;flex-direction:column;gap:5px;overflow-y:auto;max-height:72vh;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
+    <!-- ── TAB 1: THE REAL VISION BOARD ── -->
+    <div id="vb-board-tab" style="padding:16px 16px 8px">
+
+      <!-- Hint banner -->
+      <div id="inspire-like-hint" style="margin-bottom:14px;padding:10px 14px;background:rgba(244,63,94,.08);border:1px solid rgba(244,63,94,.2);border-radius:12px;display:none;align-items:center;gap:10px;font-size:12px;color:rgba(255,255,255,.65)">
+        <span style="font-size:18px;flex-shrink:0">💡</span>
+        <span>Go to <strong style="color:var(--teal)">Find Images</strong> tab, tap the <strong style="color:#f43f5e">♥ heart</strong> to add images to your board. Tap any image to enlarge.</span>
+        <button onclick="document.getElementById('inspire-like-hint').style.display='none';localStorage.setItem('luhv_hint_liked','1')" style="margin-left:auto;background:none;border:none;color:rgba(255,255,255,.3);font-size:18px;cursor:pointer;flex-shrink:0;padding:0;line-height:1">×</button>
       </div>
-      <!-- FEED -->
-      <div style="flex:1;padding:0 10px">
-        <div id="inspire-feed" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <div style="grid-column:1/-1;padding:20px;text-align:center;color:var(--muted);font-size:13px">
-            <div style="font-size:24px;margin-bottom:6px">✨</div>
-            <div style="font-weight:700;color:var(--light);margin-bottom:4px">Your Vision Board</div>
-            <div style="font-size:11px;line-height:1.6">Loading images for your goals...</div>
+
+      <!-- Empty state -->
+      <div id="vb-empty-state" style="display:none;text-align:center;padding:40px 20px">
+        <div style="font-size:52px;margin-bottom:12px">🎯</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;margin-bottom:8px">BUILD YOUR VISION</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:20px;max-width:280px;margin-left:auto;margin-right:auto">Your vision board shows your goals, habits and lifestyle images in one place. Go to <strong style="color:var(--teal)">Find Images</strong> to add photos.</div>
+        <button onclick="switchVBTab('find')" style="padding:13px 28px;border:none;border-radius:14px;background:linear-gradient(135deg,var(--purple),var(--blue));color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:'DM Sans',sans-serif">Find Images →</button>
+      </div>
+
+      <!-- THE BOARD ITSELF -->
+      <div id="vb-real-board" style="display:none">
+
+        <!-- HEADER TITLE BLOCK -->
+        <div style="text-align:center;padding:10px 0 18px;position:relative">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:rgba(255,255,255,.15);text-transform:uppercase" id="vb-year-label">2026</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:3px;line-height:1;color:#fff">MY VISION</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:3px;line-height:1;background:linear-gradient(135deg,var(--teal),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent">BOARD</div>
+        </div>
+
+        <!-- GOALS SECTION -->
+        <div class="vb-section" id="vb-goals-section" style="margin-bottom:20px;display:none">
+          <div class="vb-section-label" style="font-size:9px;text-transform:uppercase;letter-spacing:2.5px;font-weight:700;color:var(--blue);margin-bottom:10px;display:flex;align-items:center;gap:6px">
+            <span style="display:inline-block;width:20px;height:1px;background:var(--blue)"></span>🎯 Goals<span style="display:inline-block;width:20px;height:1px;background:var(--blue)"></span>
+          </div>
+          <div id="vb-goals-content" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center"></div>
+        </div>
+
+        <!-- GOALS IMAGES ROW -->
+        <div id="vb-goals-images" style="display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;margin-bottom:20px"></div>
+
+        <!-- LIFESTYLE / DOMAINS SECTION -->
+        <div class="vb-section" id="vb-lifestyle-section" style="margin-bottom:10px;display:none">
+          <div class="vb-section-label" style="font-size:9px;text-transform:uppercase;letter-spacing:2.5px;font-weight:700;color:var(--purple);margin-bottom:10px;display:flex;align-items:center;gap:6px">
+            <span style="display:inline-block;width:20px;height:1px;background:var(--purple)"></span>🌟 Lifestyle<span style="display:inline-block;width:20px;height:1px;background:var(--purple)"></span>
+          </div>
+          <div id="vb-lifestyle-content" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center"></div>
+        </div>
+
+        <!-- LIFESTYLE IMAGES -->
+        <div id="vb-lifestyle-images" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:20px"></div>
+
+        <!-- HABITS SECTION -->
+        <div class="vb-section" id="vb-habits-section" style="margin-bottom:10px;display:none">
+          <div class="vb-section-label" style="font-size:9px;text-transform:uppercase;letter-spacing:2.5px;font-weight:700;color:var(--teal);margin-bottom:10px;display:flex;align-items:center;gap:6px">
+            <span style="display:inline-block;width:20px;height:1px;background:var(--teal)"></span>⚡ Daily Habits<span style="display:inline-block;width:20px;height:1px;background:var(--teal)"></span>
+          </div>
+          <div id="vb-habits-content" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center"></div>
+        </div>
+
+        <!-- HABITS IMAGES ROW -->
+        <div id="vb-habits-images" style="display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;margin-bottom:20px"></div>
+
+        <!-- MOTIVATIONAL QUOTE -->
+        <div id="vb-quote-block" style="text-align:center;padding:16px 20px;margin-bottom:8px;display:none">
+          <div style="font-size:13px;font-style:italic;color:rgba(255,255,255,.5);line-height:1.7" id="vb-quote-text"></div>
+        </div>
+
+        <!-- CTA to add more images -->
+        <div style="text-align:center;padding:8px 0 16px">
+          <button onclick="switchVBTab('find')" style="padding:10px 22px;border:1px dashed rgba(255,255,255,.15);border-radius:20px;background:transparent;color:var(--muted);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif">+ Add more images</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB 2: FIND IMAGES FEED ── -->
+    <div id="vb-find-tab" style="display:none">
+      <!-- Domain filter pills -->
+      <div style="padding:12px 16px 8px;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch" id="inspire-domain-filters">
+        <button onclick="filterInspirationDomain('all')" id="inspire-filter-all" style="flex-shrink:0;padding:6px 14px;border-radius:20px;border:1px solid rgba(99,102,241,.4);background:rgba(99,102,241,.15);color:var(--purple);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">All ✨</button>
+        <button onclick="filterInspirationDomain('finance')" id="inspire-filter-finance" style="flex-shrink:0;padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">💰 Finance</button>
+        <button onclick="filterInspirationDomain('fitness')" id="inspire-filter-fitness" style="flex-shrink:0;padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">💪 Fitness</button>
+        <button onclick="filterInspirationDomain('business')" id="inspire-filter-business" style="flex-shrink:0;padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">🚀 Business</button>
+        <button onclick="filterInspirationDomain('mindset')" id="inspire-filter-mindset" style="flex-shrink:0;padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">🧠 Mindset</button>
+      </div>
+
+      <!-- Hint -->
+      <div style="margin:0 16px 10px;padding:8px 12px;background:rgba(244,63,94,.07);border:1px solid rgba(244,63,94,.18);border-radius:10px;font-size:12px;color:rgba(255,255,255,.55);display:flex;align-items:center;gap:8px">
+        <span style="font-size:16px;flex-shrink:0">♥</span>
+        <span>Tap the <strong style="color:#f43f5e">heart</strong> to save to your Vision Board · Tap image to enlarge</span>
+      </div>
+
+      <!-- Feed grid — full width, no sidebar -->
+      <div style="padding:0 16px">
+        <div id="inspire-feed" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div style="grid-column:1/-1;padding:24px;text-align:center;color:var(--muted);font-size:13px">
+            <div style="font-size:28px;margin-bottom:8px">✨</div>
+            <div style="font-weight:700;color:var(--light);margin-bottom:4px">Find Your Vision</div>
+            <div style="font-size:11px;line-height:1.6">Loading images...</div>
           </div>
         </div>
-        <!-- Load more -->
-        <div style="text-align:center;padding:12px 0">
-          <button id="inspire-load-more" onclick="loadMoreInspire()" style="display:none;padding:8px 20px;border:1px solid rgba(255,255,255,.15);border-radius:20px;background:transparent;color:var(--muted);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif">Load more ↓</button>
+        <div style="text-align:center;padding:14px 0">
+          <button id="inspire-load-more" onclick="loadMoreInspire()" style="display:none;padding:9px 22px;border:1px solid rgba(255,255,255,.15);border-radius:20px;background:transparent;color:var(--muted);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif">Load more ↓</button>
         </div>
       </div>
+
+      <!-- Hidden: keep old saved panel for strip compatibility -->
+      <div id="inspire-saved-panel" style="display:none"><div id="inspire-saved-list"></div></div>
     </div>
 
   </div>
-</div>
 
   <div class="page" id="page-focus" style="overflow-y:auto;padding-bottom:100px">
     <div style="position:relative;height:140px;overflow:hidden;flex-shrink:0">
@@ -3114,7 +3194,7 @@ async function loadHabits() {
         '<div style="background:rgba(255,255,255,.07);border-radius:99px;height:4px;overflow:hidden">' +
         '<div style="height:100%;border-radius:99px;width:'+pct+'%;background:'+(h.done?'var(--teal)':'var(--blue)')+';transition:width .3s"></div></div>';
     } else {
-      inner += '<div class="hchk">' + (h.done?'✓':'') + '</div>';
+      inner += '<div class="hchk">' + (h.done?'✓ DONE':'TAP') + '</div>';
       div.onclick = () => toggleHabit(div, h.id);
     }
     div.innerHTML = inner;
@@ -3136,12 +3216,13 @@ async function toggleHabit(el, id) {
   el.classList.toggle('done');
   var isDone = el.classList.contains('done');
   var chk = el.querySelector('.hchk');
-  chk.textContent = isDone ? '✓' : '';
-  if (isDone) {
-    // Bounce animation feedback
-    chk.style.transform = 'scale(1.25)';
-    setTimeout(function(){ chk.style.transform = ''; }, 200);
-    showToast('✓ Done!', 1200);
+  if (chk) {
+    chk.textContent = isDone ? '✓ DONE' : 'TAP';
+    if (isDone) {
+      chk.style.transform = 'scale(1.15)';
+      setTimeout(function(){ chk.style.transform = ''; }, 220);
+      showToast('✓ Done! Keep it up 🔥', 1500);
+    }
   }
   await api('/api/habits/' + id + '/check', { method: 'PATCH' });
 }
@@ -3347,7 +3428,7 @@ async function loadHabitsPage() {
     incrBtn.onclick = function(e) { incrementHabit(e, h.id); };
     var chk = document.createElement('div');
     chk.className = 'hchk';
-    chk.textContent = h.done ? '\u2713' : '';
+    chk.textContent = h.done ? '✓ DONE' : 'TAP';
     var closureId = h.id;
     chk.onclick = function() { toggleHabit(div, closureId); };
     var topDiv = document.createElement('div');
@@ -3566,7 +3647,27 @@ async function sendMsg() {
   if (!msg) return;
   addMsg(msg, 'u'); input.value = ''; showTyping();
   chatHistory.push({ role: 'user', content: msg });
+
+  // Show thinking status bar
+  var sbtn = document.querySelector('.sbtn');
+  if (sbtn) { sbtn.disabled = true; sbtn.style.opacity = '.5'; }
+  var thinkBar = document.getElementById('coach-thinking-bar');
+  if (!thinkBar) {
+    thinkBar = document.createElement('div');
+    thinkBar.id = 'coach-thinking-bar';
+    thinkBar.style.cssText = 'padding:6px 20px;font-size:11px;color:var(--purple);display:flex;align-items:center;gap:7px;animation:pulse 1.5s ease-in-out infinite;';
+    thinkBar.innerHTML = '<span style="font-size:14px">🧠</span><span>Coach is thinking… this may take a few seconds</span>';
+    var cinrow = document.querySelector('.cinrow');
+    if (cinrow && cinrow.parentNode) cinrow.parentNode.insertBefore(thinkBar, cinrow);
+  }
+  thinkBar.style.display = 'flex';
+
   const data = await api('/api/coach/chat', { method: 'POST', body: JSON.stringify({ message: msg, history: chatHistory.slice(-10) }) });
+
+  // Hide thinking bar
+  if (thinkBar) thinkBar.style.display = 'none';
+  if (sbtn) { sbtn.disabled = false; sbtn.style.opacity = '1'; }
+
   removeTyping();
   const reply = data?.reply || "Let's get this TRIUMPH 🏆 — I'm right here with you!";
   addMsg(reply, 'a');
@@ -3670,13 +3771,12 @@ function switchPage(name) {
   }
   if (name === 'journal') {
     setTimeout(function() {
-      var feed = document.getElementById('inspire-feed');
-      if (!feed) { console.warn('inspire-feed not found'); return; }
-      // Always reload when opening Inspire
+      // Default to board tab
+      switchVBTab('board');
+      // Preload feed in background
       var quizDoms = getQuizDomains();
       if (quizDoms.length > 0 && currentInspireDomain === 'all') {
         currentInspireDomain = quizDoms[0];
-        // Update active pill
         document.querySelectorAll('[id^="inspire-filter-"]').forEach(function(btn) {
           var isActive = btn.id === 'inspire-filter-' + currentInspireDomain;
           btn.style.background = isActive ? 'rgba(99,102,241,.15)' : 'rgba(255,255,255,.04)';
@@ -3684,9 +3784,7 @@ function switchPage(name) {
           btn.style.color      = isActive ? 'var(--purple)' : 'var(--muted)';
         });
       }
-      loadInspireFeed(currentInspireDomain, 0);
-      refreshInspireSavedPanel();
-    }, 300);
+    }, 100);
   }
 }
 
@@ -3697,6 +3795,12 @@ document.addEventListener('DOMContentLoaded', () => {
   if (loginPass) loginPass.addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
   const regPass = document.getElementById('reg-pass');
   if (regPass) regPass.addEventListener('keydown', e => { if (e.key === 'Enter') register(); });
+
+  // Hide AI notice if already dismissed
+  if (localStorage.getItem('luhv_ai_notice_seen')) {
+    var notice = document.getElementById('ai-thinking-notice');
+    if (notice) notice.style.display = 'none';
+  }
 });
 
 function getGoalIcon(title) {
@@ -3910,7 +4014,7 @@ async function loadFocusPage() {
   if (!habits||!habits.length) { list.innerHTML = '<div style="padding:12px;text-align:center;color:var(--muted);font-size:13px">No habits yet.</div>'; }
   else {
     var colors = ['b','t','y','p'];
-    list.innerHTML = habits.map((h,i) => '<div class="hitem '+(h.done?'done':'')+'" onclick="toggleHabit(this,\''+h.id+'\')" style="margin-bottom:8px"><div class="hico '+colors[i%4]+'">'+(h.icon||'⚡')+'</div><div class="hinfo"><div class="hn">'+h.name+'</div><div class="hs">'+(h.time||'')+'</div></div><div class="hchk">'+(h.done?'✓':'')+'</div></div>').join('');
+    list.innerHTML = habits.map((h,i) => '<div class="hitem '+(h.done?'done':'')+'" onclick="toggleHabit(this,\''+h.id+'\')" style="margin-bottom:8px"><div class="hico '+colors[i%4]+'">'+(h.icon||'⚡')+'</div><div class="hinfo"><div class="hn">'+h.name+'</div><div class="hs">'+(h.time||'')+'</div></div><div class="hchk">'+(h.done?'✓ DONE':'TAP')+'</div></div>').join('');
   }
   loadFocusGoalSelect();
   var qi = Math.floor(Date.now()/3600000)%focusQuotes.length;
@@ -5120,6 +5224,9 @@ function saveToVisionBoard(btn, item) {
   localStorage.setItem('luhv_vision_board', JSON.stringify(visionBoard));
   if (typeof refreshVisionStrips === 'function') refreshVisionStrips();
   if (typeof refreshInspireSavedPanel === 'function') refreshInspireSavedPanel();
+  // Also refresh the real board if it's visible
+  var boardTab = document.getElementById('vb-board-tab');
+  if (boardTab && boardTab.style.display !== 'none') { renderVisionBoardReal(); }
 }
 
 function refreshVisionStrips() {
@@ -5716,6 +5823,215 @@ switchPage = function(name) {
   _rankingOrigSwitch(name);
   if (name === 'ranking') { setTimeout(renderRanking, 50); }
 };
+
+// ── VISION BOARD — TAB SWITCH ────────────────────────────────────────────────
+function switchVBTab(tab) {
+  var boardTab = document.getElementById('vb-board-tab');
+  var findTab  = document.getElementById('vb-find-tab');
+  var btnBoard = document.getElementById('vbtab-board');
+  var btnFind  = document.getElementById('vbtab-find');
+  if (!boardTab || !findTab) return;
+
+  var isBoard = tab === 'board';
+  boardTab.style.display = isBoard ? 'block' : 'none';
+  findTab.style.display  = isBoard ? 'none'  : 'block';
+
+  if (btnBoard) {
+    btnBoard.style.color = isBoard ? 'var(--teal)' : 'var(--muted)';
+    btnBoard.style.borderBottom = isBoard ? '2px solid var(--teal)' : '2px solid transparent';
+  }
+  if (btnFind) {
+    btnFind.style.color = !isBoard ? 'var(--blue)' : 'var(--muted)';
+    btnFind.style.borderBottom = !isBoard ? '2px solid var(--blue)' : '2px solid transparent';
+  }
+
+  if (isBoard) {
+    renderVisionBoardReal();
+  } else {
+    loadInspireFeed(currentInspireDomain, 0);
+  }
+}
+
+// ── VISION BOARD — REAL BOARD RENDERER ───────────────────────────────────────
+var VB_QUOTES = [
+  'You are one decision away from a completely different life.',
+  'The vision you hold of yourself determines the life you create.',
+  'Success is the sum of small efforts, repeated day in and day out.',
+  'Every day is a chance to get better. Use it.',
+  'Your habits shape your future. Build them with intention.',
+  'Dream big. Plan smart. Work hard. Stay focused.'
+];
+
+async function renderVisionBoardReal() {
+  var yearLabel = document.getElementById('vb-year-label');
+  if (yearLabel) yearLabel.textContent = new Date().getFullYear();
+
+  var emptyState = document.getElementById('vb-empty-state');
+  var realBoard  = document.getElementById('vb-real-board');
+  var hint       = document.getElementById('inspire-like-hint');
+
+  // Load data
+  var goals   = [];
+  var habits  = [];
+  var domains = [];
+  try { goals   = JSON.parse(localStorage.getItem('luhv_goals_cache')  || '[]'); } catch(e) {}
+  try {
+    var hData = await api('/api/habits');
+    habits = Array.isArray(hData) ? hData : [];
+    localStorage.setItem('luhv_habits_cache', JSON.stringify(habits));
+  } catch(e) {
+    try { habits = JSON.parse(localStorage.getItem('luhv_habits_cache') || '[]'); } catch(e2) {}
+  }
+  try {
+    var dData = await api('/api/domains');
+    domains = Array.isArray(dData) ? dData : [];
+  } catch(e) {}
+
+  var hasContent = visionBoard.length > 0 || goals.length > 0 || habits.length > 0 || domains.length > 0;
+
+  // Show hint if first time
+  if (hint && !localStorage.getItem('luhv_hint_liked')) {
+    hint.style.display = 'flex';
+  }
+
+  if (!hasContent) {
+    if (emptyState) emptyState.style.display = 'block';
+    if (realBoard)  realBoard.style.display  = 'none';
+    return;
+  }
+  if (emptyState) emptyState.style.display = 'none';
+  if (realBoard)  realBoard.style.display  = 'block';
+
+  // ── GOALS SECTION ──
+  var goalsSection  = document.getElementById('vb-goals-section');
+  var goalsContent  = document.getElementById('vb-goals-content');
+  var goalsImages   = document.getElementById('vb-goals-images');
+  if (goals.length > 0 && goalsSection && goalsContent) {
+    goalsSection.style.display = 'block';
+    goalsContent.innerHTML = goals.slice(0,4).map(function(g) {
+      var title = (g.title || '').replace(/^\[.*?\]\s*/, '');
+      var pct   = Math.round((g.progress / g.target) * 100);
+      var col   = pct >= 100 ? 'var(--teal)' : 'var(--blue)';
+      return '<div style="background:rgba(14,165,233,.08);border:1px solid rgba(14,165,233,.2);border-radius:14px;padding:12px 16px;min-width:140px;max-width:200px;text-align:center">' +
+        '<div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:8px;line-height:1.4">' + title + '</div>' +
+        '<div style="height:4px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden;margin-bottom:5px"><div style="height:100%;width:' + pct + '%;background:' + col + ';border-radius:99px;transition:width .5s"></div></div>' +
+        '<div style="font-size:11px;font-weight:700;color:' + col + '">' + pct + '%</div>' +
+        '</div>';
+    }).join('');
+  } else if (goalsSection) {
+    goalsSection.style.display = 'none';
+  }
+
+  // Goals images from vision board tagged 'business' or 'goal'
+  if (goalsImages) {
+    var goalImgs = visionBoard.filter(function(v) {
+      var kw = (v.kw || v.label || '').toLowerCase();
+      return kw.match(/business|goal|success|entrepreneur|leader|client|launch|revenue|office/);
+    }).slice(0, 4);
+    if (goalImgs.length > 0) {
+      goalsImages.innerHTML = '';
+      goalImgs.forEach(function(item) {
+        var img = document.createElement('img');
+        img.src = item.url;
+        img.style.cssText = 'width:120px;height:160px;object-fit:cover;border-radius:12px;flex-shrink:0;cursor:pointer;border:2px solid rgba(14,165,233,.25);';
+        img.onclick = function() { openImageLightbox(item.url, item.label || item.kw); };
+        goalsImages.appendChild(img);
+      });
+    } else {
+      goalsImages.innerHTML = '';
+    }
+  }
+
+  // ── LIFESTYLE / DOMAINS SECTION ──
+  var lifestyleSection = document.getElementById('vb-lifestyle-section');
+  var lifestyleContent = document.getElementById('vb-lifestyle-content');
+  var lifestyleImages  = document.getElementById('vb-lifestyle-images');
+  if (domains.length > 0 && lifestyleSection && lifestyleContent) {
+    lifestyleSection.style.display = 'block';
+    var domainColors = { Finance:'var(--yellow)', Fitness:'var(--teal)', Business:'var(--blue)', Mindset:'var(--purple)' };
+    lifestyleContent.innerHTML = domains.slice(0,6).map(function(d) {
+      var col = domainColors[d.name] || 'var(--muted)';
+      return '<div style="padding:8px 14px;border-radius:20px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);font-size:12px;font-weight:700;color:' + col + '">' + (d.icon||'✦') + ' ' + d.name + '</div>';
+    }).join('');
+  } else {
+    lifestyleSection.style.display = domains.length > 0 ? 'block' : 'none';
+  }
+
+  // Lifestyle images — those not matching goal/habit keywords
+  if (lifestyleImages) {
+    var lifeImgs = visionBoard.filter(function(v) {
+      var kw = (v.kw || v.label || '').toLowerCase();
+      return kw.match(/travel|beach|nature|city|food|home|life|balance|happiness|freedom|peace|calm|relax|meditation|yoga|sunrise|mountain|sea|ocean|forest/);
+    }).slice(0, 6);
+    if (lifeImgs.length > 0) {
+      lifestyleImages.innerHTML = '';
+      lifeImgs.forEach(function(item) {
+        var img = document.createElement('img');
+        img.src = item.url;
+        img.style.cssText = 'width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:10px;cursor:pointer;border:1px solid rgba(255,255,255,.08);';
+        img.onclick = function() { openImageLightbox(item.url, item.label || item.kw); };
+        lifestyleImages.appendChild(img);
+      });
+    } else {
+      // Use remaining board images
+      var remaining = visionBoard.slice(0, 6);
+      if (remaining.length > 0) {
+        lifestyleImages.innerHTML = '';
+        remaining.forEach(function(item) {
+          var img = document.createElement('img');
+          img.src = item.url;
+          img.style.cssText = 'width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:10px;cursor:pointer;border:1px solid rgba(255,255,255,.08);';
+          img.onclick = function() { openImageLightbox(item.url, item.label || item.kw); };
+          lifestyleImages.appendChild(img);
+        });
+      }
+    }
+  }
+
+  // ── HABITS SECTION ──
+  var habitsSection = document.getElementById('vb-habits-section');
+  var habitsContent = document.getElementById('vb-habits-content');
+  var habitsImages  = document.getElementById('vb-habits-images');
+  if (habits.length > 0 && habitsSection && habitsContent) {
+    habitsSection.style.display = 'block';
+    habitsContent.innerHTML = habits.slice(0,8).map(function(h) {
+      var done = h.done;
+      return '<div style="padding:7px 12px;border-radius:20px;background:' + (done ? 'rgba(6,214,160,.12)' : 'rgba(255,255,255,.04)') + ';border:1px solid ' + (done ? 'rgba(6,214,160,.3)' : 'rgba(255,255,255,.1)') + ';font-size:12px;font-weight:600;color:' + (done ? 'var(--teal)' : 'rgba(255,255,255,.6)') + ';display:flex;align-items:center;gap:5px">' +
+        (h.icon||'⚡') + ' ' + h.name + (done ? ' ✓' : '') + '</div>';
+    }).join('');
+  } else if (habitsSection) {
+    habitsSection.style.display = 'none';
+  }
+
+  // Habits images — health/fitness/mindset themed
+  if (habitsImages) {
+    var habitImgs = visionBoard.filter(function(v) {
+      var kw = (v.kw || v.label || '').toLowerCase();
+      return kw.match(/fitness|workout|gym|water|run|discipline|focus|morning|habit|health|strong|athlete|training/);
+    }).slice(0, 4);
+    if (habitImgs.length > 0) {
+      habitsImages.innerHTML = '';
+      habitImgs.forEach(function(item) {
+        var img = document.createElement('img');
+        img.src = item.url;
+        img.style.cssText = 'width:110px;height:145px;object-fit:cover;border-radius:12px;flex-shrink:0;cursor:pointer;border:2px solid rgba(6,214,160,.2);';
+        img.onclick = function() { openImageLightbox(item.url, item.label || item.kw); };
+        habitsImages.appendChild(img);
+      });
+    } else {
+      habitsImages.innerHTML = '';
+    }
+  }
+
+  // ── QUOTE ──
+  var quoteBlock = document.getElementById('vb-quote-block');
+  var quoteText  = document.getElementById('vb-quote-text');
+  if (quoteBlock && quoteText) {
+    quoteBlock.style.display = 'block';
+    var qi = Math.floor(Date.now() / 86400000) % VB_QUOTES.length;
+    quoteText.textContent = '" ' + VB_QUOTES[qi] + ' "';
+  }
+}
 
 </script>
 </body>

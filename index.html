@@ -5174,7 +5174,7 @@ async function loadInspireFeed(domain, offset) {
 
     var img = document.createElement('img');
     img.src = item.thumb || item.url;
-    img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s;';
+    img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
     img.loading = 'lazy';
     img.onerror = function() { card.style.display = 'none'; };
     // Click image area = enlarge lightbox
@@ -6132,20 +6132,39 @@ async function renderVisionBoardReal() {
     photoArea.style.cssText = 'flex:1;display:flex;gap:2px;overflow:hidden;min-height:100px;position:relative;';
 
     if (src && src2) {
-      // Both images available — show side by side
+      // Both unique images — show side by side
       photoArea.innerHTML =
         '<img src="'+src+'" loading="lazy" '+onclick(imgN)+' style="flex:1;object-fit:cover;cursor:pointer;">' +
         '<img src="'+src2+'" loading="lazy" '+onclick(imgN+1)+' style="flex:1;object-fit:cover;cursor:pointer;">';
     } else if (src) {
-      // One image — full width
+      // One unique image — full width
       photoArea.innerHTML = '<img src="'+src+'" loading="lazy" '+onclick(imgN)+' style="flex:1;object-fit:cover;cursor:pointer;width:100%;">';
+    } else if (imgs.length > 0) {
+      // No unique image — reuse an existing image but with a strong color overlay
+      // so it looks intentionally styled, not just repeated
+      var fallbackImg = imgs[i % imgs.length];
+      var overlayColors = [
+        'rgba(14,165,233,.55)',   // blue
+        'rgba(6,214,160,.55)',    // teal
+        'rgba(167,139,250,.55)',  // purple
+        'rgba(251,191,36,.55)'   // yellow
+      ];
+      var overlayC = overlayColors[i];
+      photoArea.style.position = 'relative';
+      photoArea.style.overflow = 'hidden';
+      photoArea.innerHTML =
+        '<img src="'+fallbackImg.url+'" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(0.3) brightness(0.6);">' +
+        '<div style="position:absolute;inset:0;background:'+overlayC+';mix-blend-mode:multiply;"></div>' +
+        '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;" onclick="switchVBTab(\'find\')">' +
+          '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:16px;letter-spacing:3px;color:rgba(255,255,255,.7);">+</div>' +
+          '<div style="font-size:9px;color:rgba(255,255,255,.55);padding:4px 10px;border:1px solid rgba(255,255,255,.25);border-radius:20px;cursor:pointer;">Add photo</div>' +
+        '</div>';
     } else {
-      // No unique image — show stylised placeholder unique to this goal
+      // No images at all — gradient placeholder
       photoArea.style.background = goalPlaceholderBgs[i];
       photoArea.innerHTML =
-        '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:12px;">' +
-          '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:22px;letter-spacing:3px;color:'+col+';opacity:.35;">'+goalPlaceholderWords[i]+'</div>' +
-          '<div onclick="switchVBTab(\'find\')" style="font-size:9px;color:'+col+';opacity:.6;cursor:pointer;padding:4px 10px;border:1px dashed '+col+'44;border-radius:20px;">+ Add image</div>' +
+        '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;" onclick="switchVBTab(\'find\')">' +
+          '<div style="font-size:9px;color:rgba(255,255,255,.4);padding:5px 12px;border:1px dashed rgba(255,255,255,.2);border-radius:20px;">+ Find images in Inspire</div>' +
         '</div>';
     }
 
@@ -6161,15 +6180,15 @@ async function renderVisionBoardReal() {
     s2.appendChild(card);
   });
 
-  // If fewer than 8 images, show a gentle nudge to add more
+  inner.appendChild(s2);
+
+  // Subtle nudge below the grid if fewer than 8 images
   if (imgs.length < 8) {
     var nudgeRow = document.createElement('div');
-    nudgeRow.style.cssText = 'text-align:center;padding:4px 0 2px;';
-    nudgeRow.innerHTML = '<span onclick="switchVBTab(\'find\')" style="font-size:10px;color:rgba(255,255,255,.25);cursor:pointer;border-bottom:1px solid rgba(255,255,255,.1);">Add more images from Find Images to fill your board →</span>';
-    s2.appendChild(nudgeRow);
+    nudgeRow.style.cssText = 'text-align:center;padding:6px 0;';
+    nudgeRow.innerHTML = '<span onclick="switchVBTab(\'find\')" style="font-size:10px;color:rgba(255,255,255,.2);cursor:pointer;">♥ Go to Find Images to add more photos →</span>';
+    inner.appendChild(nudgeRow);
   }
-
-  inner.appendChild(s2);
 
   // ── STRIP 3: Domains + side image ────────────────────────────────────────
   var s3 = document.createElement('div');

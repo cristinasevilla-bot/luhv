@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+https://meet.google.com/uve-djsu-yoi<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -5894,20 +5894,58 @@ async function renderVisionBoardReal() {
     : VB_ASPIRE_WORDS[today % VB_ASPIRE_WORDS.length];
 
   // ── HELPER: goal card — image bg + aspirational text ──────────────────────
+  // ── goalCard: mini photo collage inside each goal ─────────────────────────
+  // Each card shows 2-3 images in a split layout + affirmation text overlay
   function goalCard(goalText, imgN, accentColor) {
-    var it = getImg(imgN);
     var col = accentColor || '#0ea5e9';
-    var bg = it
-      ? 'position:relative;overflow:hidden;border-radius:12px;cursor:pointer;background:#111827;'
-      : 'position:relative;overflow:hidden;border-radius:12px;background:linear-gradient(135deg,rgba(14,165,233,.12),rgba(99,102,241,.08));border:1px solid rgba(255,255,255,.08);';
-    var imgHtml = it
-      ? '<img src="'+it.url+'" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;" ' + (function(){ var s=(it.label||it.kw||'').replace(/'/g,''); return 'onclick="openImageLightbox(\''+it.url+'\',\''+s+'\')"'; })() + '>'
-        + '<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.1) 0%,rgba(0,0,0,.72) 100%);"></div>'
-      : '';
-    return '<div style="'+bg+'">' + imgHtml +
-      '<div style="position:relative;z-index:2;padding:12px 12px 10px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;">' +
-        '<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:'+col+';font-weight:700;margin-bottom:4px;opacity:.9;">I WILL</div>' +
-        '<div style="font-size:12px;font-weight:700;color:#fff;line-height:1.4;text-shadow:0 1px 6px rgba(0,0,0,.9);">'+goalText+'</div>' +
+    var it1 = getImg(imgN);
+    var it2 = getImg(imgN + 1);
+    var it3 = getImg(imgN + 2);
+
+    function safeClick(it) {
+      if (!it) return '';
+      var s = (it.label||it.kw||'').replace(/'/g,'').replace(/"/g,'');
+      return 'onclick="openImageLightbox(\''+it.url+'\',\''+s+'\')" style="cursor:pointer;"';
+    }
+
+    // Build the photo collage area (top 60% of card)
+    var collageHtml = '';
+    if (it1 && it2 && it3) {
+      // 3-photo split: 1 big left, 2 stacked right
+      collageHtml =
+        '<div style="display:grid;grid-template-columns:1.4fr 1fr;gap:2px;height:100%;">' +
+          '<img src="'+it1.url+'" loading="lazy" ' + safeClick(it1) + ' style="width:100%;height:100%;object-fit:cover;display:block;">' +
+          '<div style="display:flex;flex-direction:column;gap:2px;">' +
+            '<img src="'+it2.url+'" loading="lazy" ' + safeClick(it2) + ' style="width:100%;height:50%;object-fit:cover;flex:1;display:block;">' +
+            '<img src="'+it3.url+'" loading="lazy" ' + safeClick(it3) + ' style="width:100%;height:50%;object-fit:cover;flex:1;display:block;">' +
+          '</div>' +
+        '</div>';
+    } else if (it1 && it2) {
+      // 2-photo split side by side
+      collageHtml =
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;height:100%;">' +
+          '<img src="'+it1.url+'" loading="lazy" ' + safeClick(it1) + ' style="width:100%;height:100%;object-fit:cover;display:block;">' +
+          '<img src="'+it2.url+'" loading="lazy" ' + safeClick(it2) + ' style="width:100%;height:100%;object-fit:cover;display:block;">' +
+        '</div>';
+    } else if (it1) {
+      // Single full image
+      collageHtml = '<img src="'+it1.url+'" loading="lazy" ' + safeClick(it1) + ' style="width:100%;height:100%;object-fit:cover;display:block;">';
+    } else {
+      // No images — gradient placeholder
+      collageHtml = '<div style="width:100%;height:100%;background:linear-gradient(135deg,'+col+'22,'+col+'08);display:flex;align-items:center;justify-content:center;"><span style="font-size:28px;opacity:.3;">✦</span></div>';
+    }
+
+    return '<div style="position:relative;overflow:hidden;border-radius:12px;background:#111827;height:100%;display:flex;flex-direction:column;">' +
+      // Photo collage — top portion
+      '<div style="flex:1;overflow:hidden;position:relative;">' +
+        collageHtml +
+        // subtle darkening gradient at bottom of image area
+        '<div style="position:absolute;bottom:0;left:0;right:0;height:40px;background:linear-gradient(transparent,rgba(0,0,0,.5));pointer-events:none;"></div>' +
+      '</div>' +
+      // Affirmation text — bottom strip
+      '<div style="padding:9px 10px 8px;background:rgba(0,0,0,.85);border-top:1px solid '+col+'33;flex-shrink:0;">' +
+        '<div style="font-size:8px;letter-spacing:2.5px;text-transform:uppercase;color:'+col+';font-weight:700;margin-bottom:2px;opacity:.9;">I WILL</div>' +
+        '<div style="font-size:11px;font-weight:700;color:#fff;line-height:1.35;">'+goalText+'</div>' +
       '</div>' +
     '</div>';
   }
@@ -5926,35 +5964,36 @@ async function renderVisionBoardReal() {
   // ── BUILD THE BOARD ────────────────────────────────────────────────────────
   inner.innerHTML =
 
-  // ── HERO HEADER — Big aspirational image + title overlay ──────────────────
+  // ── HERO HEADER ───────────────────────────────────────────────────────────
   (function(){
     var it = getImg(0);
     if (it) {
       var safe = (it.label||it.kw||'').replace(/'/g,'');
-      return '<div style="position:relative;height:180px;overflow:hidden;border-radius:14px 14px 0 0;cursor:pointer;" onclick="openImageLightbox(\''+it.url+'\',\''+safe+'\')">' +
+      return '<div style="position:relative;height:160px;overflow:hidden;border-radius:14px 14px 0 0;cursor:pointer;" onclick="openImageLightbox(\''+it.url+'\',\''+safe+'\')">' +
         '<img src="'+it.url+'" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;">' +
-        '<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.15) 0%,rgba(0,0,0,.6) 100%);"></div>' +
-        '<div style="position:absolute;bottom:0;left:0;right:0;padding:18px 16px;">' +
-          '<div style="font-size:9px;letter-spacing:3px;color:rgba(255,255,255,.5);text-transform:uppercase;margin-bottom:3px;">'+new Date().getFullYear()+' · MY VISION</div>' +
-          '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:38px;letter-spacing:3px;color:#fff;line-height:1;text-shadow:0 2px 12px rgba(0,0,0,.6);">'+heroWord+'</div>' +
-          '<div style="font-size:11px;font-style:italic;color:rgba(255,255,255,.6);margin-top:4px;">'+quote+'</div>' +
+        '<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.1) 0%,rgba(0,0,0,.65) 100%);"></div>' +
+        '<div style="position:absolute;bottom:0;left:0;right:0;padding:16px;">' +
+          '<div style="font-size:9px;letter-spacing:3px;color:rgba(255,255,255,.45);text-transform:uppercase;margin-bottom:3px;">'+new Date().getFullYear()+' · MY VISION</div>' +
+          '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:36px;letter-spacing:3px;color:#fff;line-height:1;text-shadow:0 2px 12px rgba(0,0,0,.6);">'+heroWord+'</div>' +
+          '<div style="font-size:11px;font-style:italic;color:rgba(255,255,255,.55);margin-top:4px;">'+quote+'</div>' +
         '</div>' +
       '</div>';
     } else {
-      return '<div style="border-radius:14px 14px 0 0;background:linear-gradient(135deg,#0d1520,#0a0f1a);padding:22px 18px 18px;">' +
-        '<div style="font-size:9px;letter-spacing:3px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-bottom:6px;">'+new Date().getFullYear()+' · MY VISION BOARD</div>' +
-        '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:42px;letter-spacing:3px;background:linear-gradient(90deg,#06d6a0,#0ea5e9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;">'+heroWord+'</div>' +
-        '<div style="font-size:11px;font-style:italic;color:rgba(255,255,255,.4);margin-top:6px;line-height:1.5;">'+quote+'</div>' +
+      return '<div style="border-radius:14px 14px 0 0;background:linear-gradient(135deg,#0d1520,#0a0f1a);padding:20px 16px 16px;">' +
+        '<div style="font-size:9px;letter-spacing:3px;color:rgba(255,255,255,.25);text-transform:uppercase;margin-bottom:5px;">'+new Date().getFullYear()+' · MY VISION BOARD</div>' +
+        '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:40px;letter-spacing:3px;background:linear-gradient(90deg,#06d6a0,#0ea5e9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;">'+heroWord+'</div>' +
+        '<div style="font-size:11px;font-style:italic;color:rgba(255,255,255,.35);margin-top:6px;line-height:1.5;">'+quote+'</div>' +
       '</div>';
     }
   })() +
 
-  // ── GOALS GRID — 2×2, each with image bg + "I will..." text ──────────────
-  '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:4px;height:260px;">' +
-    '<div style="height:128px;">'+goalCard(goalTexts[0], 1, '#0ea5e9')+'</div>' +
-    '<div style="height:128px;">'+goalCard(goalTexts[1], 2, '#06d6a0')+'</div>' +
-    '<div style="height:128px;">'+goalCard(goalTexts[2], 3, '#a78bfa')+'</div>' +
-    '<div style="height:128px;">'+goalCard(goalTexts[3], 4, '#fbbf24')+'</div>' +
+  // ── GOALS GRID — 2×2, each card = photo collage + "I will" text ───────────
+  // Images cycle: each goal uses 3 consecutive images from the board
+  '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:4px;height:340px;">' +
+    '<div style="height:168px;">'+goalCard(goalTexts[0], 1, '#0ea5e9')+'</div>' +
+    '<div style="height:168px;">'+goalCard(goalTexts[1], 4, '#06d6a0')+'</div>' +
+    '<div style="height:168px;">'+goalCard(goalTexts[2], 7, '#a78bfa')+'</div>' +
+    '<div style="height:168px;">'+goalCard(goalTexts[3], 10, '#fbbf24')+'</div>' +
   '</div>' +
 
   // ── LIFESTYLE STRIP — domains as coloured tags + one image ────────────────

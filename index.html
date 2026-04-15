@@ -5808,14 +5808,15 @@ function switchVBTab(tab) {
 
 // ── VISION BOARD — REAL BOARD RENDERER ───────────────────────────────────────
 var VB_QUOTES = [
-  'You are one decision away from a completely different life.',
-  'Success is the sum of small efforts, repeated day in and day out.',
-  'Your habits shape your future. Build them with intention.',
-  'Dream big. Plan smart. Work hard. Stay focused.',
-  'Be so good they cannot ignore you.',
-  'The vision you hold determines the life you create.'
+  'The life you want is on the other side of consistent action.',
+  'Success is built one habit at a time.',
+  'You are closer than you think.',
+  'Your future self is watching. Make them proud.',
+  'Dream it. Plan it. Live it.',
+  'Every day is a step toward the life you are building.'
 ];
-var VB_WORDS = ['FOCUS','SUCCESS','BALANCE','FREEDOM','GROWTH','STRENGTH','CLARITY','DISCIPLINE'];
+
+var VB_ASPIRE_WORDS = ['CLIENTS','HEALTH','BALANCE','SUCCESS','FREEDOM','GROWTH','STRENGTH','CLARITY','FOCUS','WEALTH'];
 
 async function renderVisionBoardReal() {
   var emptyState = document.getElementById('vb-empty-state');
@@ -5824,6 +5825,7 @@ async function renderVisionBoardReal() {
   var inner      = document.getElementById('vb-collage-inner');
   if (!inner) return;
 
+  // ── Load data ──────────────────────────────────────────────────────────────
   var goals = [], habits = [], domains = [];
   try { goals = JSON.parse(localStorage.getItem('luhv_goals_cache') || '[]'); } catch(e) {}
   try {
@@ -5835,123 +5837,162 @@ async function renderVisionBoardReal() {
   }
   try { var dData = await api('/api/domains'); domains = Array.isArray(dData) ? dData : []; } catch(e) {}
 
-  var hasContent = visionBoard.length > 0 || goals.length > 0 || habits.length > 0 || domains.length > 0;
+  // ── Always show board (even with no images — text content alone is valuable) ──
   if (hint && !localStorage.getItem('luhv_hint_liked')) hint.style.display = 'flex';
-  if (!hasContent) {
-    if (emptyState) emptyState.style.display = 'block';
-    if (realBoard) realBoard.style.display = 'none';
-    return;
-  }
   if (emptyState) emptyState.style.display = 'none';
   if (realBoard) realBoard.style.display = 'block';
 
-  var yr = new Date().getFullYear();
-  var qi = Math.floor(Date.now() / 86400000) % VB_QUOTES.length;
-  var wi = Math.floor(Date.now() / 86400000) % VB_WORDS.length;
+  // ── Image helpers ──────────────────────────────────────────────────────────
   var imgs = visionBoard.slice();
-  var iI = 0;
-  function nextImg() { return imgs.length ? imgs[iI++ % imgs.length] : null; }
-  function imgUrl(n) { var it = imgs[n % Math.max(imgs.length,1)]; return it ? it.url : ''; }
-  function imgLabel(n) { var it = imgs[n % Math.max(imgs.length,1)]; return it ? ((it.label||it.kw||'').split(' ').slice(0,3).join(' ').toUpperCase()) : ''; }
+  function getImg(n) {
+    if (!imgs.length) return null;
+    return imgs[n % imgs.length];
+  }
 
-  var domColors = {Finance:'#fbbf24',Fitness:'#06d6a0',Business:'#0ea5e9',Mindset:'#6366f1',Health:'#06d6a0'};
-  var defaultDoms = [{name:'Finance',icon:'💰'},{name:'Fitness',icon:'💪'},{name:'Business',icon:'🚀'},{name:'Mindset',icon:'🧠'}];
-  var activeDoms = domains.length > 0 ? domains : defaultDoms;
+  // Build a bg-image style string from saved image
+  function bgStyle(n, opacity) {
+    var it = getImg(n);
+    if (!it) return '';
+    return 'background-image:url(' + it.url + ');background-size:cover;background-position:center;';
+  }
 
-  // ── Goals HTML ──────────────────────────────────────────────────────────────
-  function goalCard(g, imgN) {
-    if (!g) return '<div style="background:rgba(255,255,255,.03);border-radius:10px;"></div>';
-    var title = (g.title||'').replace(/^\[.*?\]\s*/,'');
-    var pct = Math.min(100, Math.round((g.progress/g.target)*100));
-    var col = pct>=100?'#06d6a0':pct>=50?'#0ea5e9':'#a78bfa';
-    var bg = imgUrl(imgN);
-    return '<div style="border-radius:10px;overflow:hidden;position:relative;display:flex;flex-direction:column;justify-content:flex-end;background:#111827;">' +
-      (bg ? '<img src="'+bg+'" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.25;">' : '') +
-      '<div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 20%,rgba(0,0,0,.85));"></div>' +
-      '<div style="position:relative;z-index:2;padding:10px;">' +
-        '<div style="font-size:10px;font-weight:700;color:#fff;line-height:1.35;margin-bottom:6px;text-shadow:0 1px 6px rgba(0,0,0,.9);">'+title+'</div>'+
-        '<div style="height:3px;background:rgba(255,255,255,.15);border-radius:99px;overflow:hidden;margin-bottom:4px;"><div style="height:100%;width:'+pct+'%;background:'+col+';"></div></div>'+
-        '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:20px;color:'+col+';line-height:1;">'+pct+'%</div>'+
-      '</div>'+
+  function onclickLightbox(n) {
+    var it = getImg(n);
+    if (!it) return '';
+    var safe = (it.label||it.kw||'').replace(/'/g,'').replace(/"/g,'');
+    return 'onclick="openImageLightbox(\'' + it.url + '\',\'' + safe + '\')"';
+  }
+
+  // ── Extract goals text (aspirational, not % based) ─────────────────────────
+  var goalTexts = goals.slice(0,4).map(function(g){
+    return (g.title||'').replace(/^\[.*?\]\s*/,'').replace(/"/g,'&quot;');
+  });
+  // Fill with placeholder aspirational text if fewer than needed
+  var aspirations = [
+    'Build your dream client base',
+    'Live with energy and vitality',
+    'Create perfect balance in life',
+    'Grow your business with purpose'
+  ];
+  while (goalTexts.length < 4) goalTexts.push(aspirations[goalTexts.length]);
+
+  // ── Daily habits — just the names, friendly ────────────────────────────────
+  var habNames = habits.slice(0,6).map(function(h){ return (h.icon||'⚡')+' '+(h.name||''); });
+  var habDoneMap = {};
+  habits.forEach(function(h){ habDoneMap[h.name] = h.done; });
+
+  // ── Domain colours ─────────────────────────────────────────────────────────
+  var DC = {Finance:'#fbbf24',Fitness:'#06d6a0',Business:'#0ea5e9',Mindset:'#a78bfa',Health:'#06d6a0',Dating:'#f43f5e'};
+  var activeDoms = domains.length ? domains : [{name:'Clients',icon:'🤝'},{name:'Health',icon:'💪'},{name:'Balance',icon:'☯️'}];
+
+  // ── Pick quote & word ──────────────────────────────────────────────────────
+  var today = Math.floor(Date.now()/86400000);
+  var quote = VB_QUOTES[today % VB_QUOTES.length];
+  // Use first goal word or aspire word as big hero word
+  var heroWord = goalTexts[0]
+    ? goalTexts[0].split(' ').slice(0,1)[0].toUpperCase()
+    : VB_ASPIRE_WORDS[today % VB_ASPIRE_WORDS.length];
+
+  // ── HELPER: goal card — image bg + aspirational text ──────────────────────
+  function goalCard(goalText, imgN, accentColor) {
+    var it = getImg(imgN);
+    var col = accentColor || '#0ea5e9';
+    var bg = it
+      ? 'position:relative;overflow:hidden;border-radius:12px;cursor:pointer;background:#111827;'
+      : 'position:relative;overflow:hidden;border-radius:12px;background:linear-gradient(135deg,rgba(14,165,233,.12),rgba(99,102,241,.08));border:1px solid rgba(255,255,255,.08);';
+    var imgHtml = it
+      ? '<img src="'+it.url+'" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;" ' + (function(){ var s=(it.label||it.kw||'').replace(/'/g,''); return 'onclick="openImageLightbox(\''+it.url+'\',\''+s+'\')"'; })() + '>'
+        + '<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.1) 0%,rgba(0,0,0,.72) 100%);"></div>'
+      : '';
+    return '<div style="'+bg+'">' + imgHtml +
+      '<div style="position:relative;z-index:2;padding:12px 12px 10px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;">' +
+        '<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:'+col+';font-weight:700;margin-bottom:4px;opacity:.9;">I WILL</div>' +
+        '<div style="font-size:12px;font-weight:700;color:#fff;line-height:1.4;text-shadow:0 1px 6px rgba(0,0,0,.9);">'+goalText+'</div>' +
+      '</div>' +
     '</div>';
   }
 
-  // ── Habit pills HTML ────────────────────────────────────────────────────────
-  var habPills = (habits.length > 0 ? habits.slice(0,10) : [{name:'Add habits in Roadmap',icon:'⚡',done:false}]).map(function(h){
-    var done = h.done;
-    return '<span style="display:inline-flex;align-items:center;gap:3px;padding:4px 9px;border-radius:20px;background:'+(done?'rgba(6,214,160,.18)':'rgba(255,255,255,.07)')+';border:1px solid '+(done?'#06d6a044':'rgba(255,255,255,.12)')+';font-size:9px;font-weight:600;color:'+(done?'#06d6a0':'rgba(255,255,255,.75)')+';">'+
-      (h.icon||'⚡')+' '+h.name+(done?' ✓':'')+'</span>';
-  }).join('');
-
-  // ── Domain pills HTML ───────────────────────────────────────────────────────
-  var domPills = activeDoms.slice(0,6).map(function(d){
-    var col = domColors[d.name]||'rgba(255,255,255,.6)';
-    return '<span style="padding:4px 10px;border-radius:20px;background:rgba(255,255,255,.05);border:1px solid '+col+'44;font-size:9px;font-weight:700;color:'+col+';">'+(d.icon||'✦')+' '+d.name+'</span>';
-  }).join('');
-
-  // ── Image tile helper ───────────────────────────────────────────────────────
-  function imgTile(n, extraStyle) {
-    var url = imgUrl(n); var lbl = imgLabel(n);
-    if (!url) return '<div style="background:rgba(255,255,255,.03);border-radius:8px;'+extraStyle+'"></div>';
-    return '<div style="border-radius:8px;overflow:hidden;position:relative;cursor:pointer;'+extraStyle+'" onclick="openImageLightbox(\''+url+'\',\''+lbl+'\')">'+
-      '<img src="'+url+'" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;">'+
-      (lbl?'<div style="position:absolute;bottom:0;left:0;right:0;padding:4px 6px 3px;background:linear-gradient(transparent,rgba(0,0,0,.8));font-size:7px;font-weight:700;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.7px;">'+lbl+'</div>':'') +
+  // ── HELPER: image tile ────────────────────────────────────────────────────
+  function imgTile(n, style) {
+    var it = getImg(n);
+    if (!it) return '<div style="background:rgba(255,255,255,.03);border-radius:10px;'+style+'"></div>';
+    var safe = (it.label||it.kw||'').replace(/'/g,'');
+    return '<div style="border-radius:10px;overflow:hidden;position:relative;cursor:pointer;'+style+'" onclick="openImageLightbox(\''+it.url+'\',\''+safe+'\')">' +
+      '<img src="'+it.url+'" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;">' +
+      (safe ? '<div style="position:absolute;bottom:0;left:0;right:0;padding:4px 7px 3px;background:linear-gradient(transparent,rgba(0,0,0,.8));font-size:7px;font-weight:700;color:rgba(255,255,255,.8);text-transform:uppercase;letter-spacing:.7px;">'+safe.split(' ').slice(0,4).join(' ')+'</div>' : '') +
     '</div>';
   }
 
-  // ── BUILD THE BOARD ─────────────────────────────────────────────────────────
-  // Pure CSS grid — no rowspan complexity. 2 columns of blocks side by side.
-  var g0 = goals[0]||null, g1 = goals[1]||null, g2 = goals[2]||null;
-
+  // ── BUILD THE BOARD ────────────────────────────────────────────────────────
   inner.innerHTML =
-  // ── HEADER ──────────────────────────────────────────────────────────────────
-  '<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;">'+
 
-    // Header left: title
-    '<div style="background:rgba(255,255,255,.02);padding:14px 12px;display:flex;flex-direction:column;justify-content:center;align-items:center;border-radius:10px 0 0 0;">'+
-      '<div style="font-size:9px;letter-spacing:3px;color:rgba(255,255,255,.2);margin-bottom:2px;">'+yr+'</div>'+
-      '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:24px;letter-spacing:2px;color:#fff;line-height:1;">MY VISION</div>'+
-      '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:24px;letter-spacing:2px;background:linear-gradient(90deg,#06d6a0,#0ea5e9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;">BOARD</div>'+
-    '</div>'+
+  // ── HERO HEADER — Big aspirational image + title overlay ──────────────────
+  (function(){
+    var it = getImg(0);
+    if (it) {
+      var safe = (it.label||it.kw||'').replace(/'/g,'');
+      return '<div style="position:relative;height:180px;overflow:hidden;border-radius:14px 14px 0 0;cursor:pointer;" onclick="openImageLightbox(\''+it.url+'\',\''+safe+'\')">' +
+        '<img src="'+it.url+'" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;">' +
+        '<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.15) 0%,rgba(0,0,0,.6) 100%);"></div>' +
+        '<div style="position:absolute;bottom:0;left:0;right:0;padding:18px 16px;">' +
+          '<div style="font-size:9px;letter-spacing:3px;color:rgba(255,255,255,.5);text-transform:uppercase;margin-bottom:3px;">'+new Date().getFullYear()+' · MY VISION</div>' +
+          '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:38px;letter-spacing:3px;color:#fff;line-height:1;text-shadow:0 2px 12px rgba(0,0,0,.6);">'+heroWord+'</div>' +
+          '<div style="font-size:11px;font-style:italic;color:rgba(255,255,255,.6);margin-top:4px;">'+quote+'</div>' +
+        '</div>' +
+      '</div>';
+    } else {
+      return '<div style="border-radius:14px 14px 0 0;background:linear-gradient(135deg,#0d1520,#0a0f1a);padding:22px 18px 18px;">' +
+        '<div style="font-size:9px;letter-spacing:3px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-bottom:6px;">'+new Date().getFullYear()+' · MY VISION BOARD</div>' +
+        '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:42px;letter-spacing:3px;background:linear-gradient(90deg,#06d6a0,#0ea5e9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;">'+heroWord+'</div>' +
+        '<div style="font-size:11px;font-style:italic;color:rgba(255,255,255,.4);margin-top:6px;line-height:1.5;">'+quote+'</div>' +
+      '</div>';
+    }
+  })() +
 
-    // Header right: word + quote
-    '<div style="background:rgba(6,214,160,.05);border:1px solid rgba(6,214,160,.1);padding:12px;display:flex;flex-direction:column;justify-content:center;border-radius:0 10px 0 0;">'+
-      '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:28px;letter-spacing:3px;background:linear-gradient(135deg,#06d6a0,#0ea5e9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;margin-bottom:6px;">'+VB_WORDS[wi]+'</div>'+
-      '<div style="font-size:9px;font-style:italic;color:rgba(255,255,255,.4);line-height:1.5;">"'+VB_QUOTES[qi]+'"</div>'+
-    '</div>'+
-  '</div>'+
+  // ── GOALS GRID — 2×2, each with image bg + "I will..." text ──────────────
+  '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:4px;height:260px;">' +
+    '<div style="height:128px;">'+goalCard(goalTexts[0], 1, '#0ea5e9')+'</div>' +
+    '<div style="height:128px;">'+goalCard(goalTexts[1], 2, '#06d6a0')+'</div>' +
+    '<div style="height:128px;">'+goalCard(goalTexts[2], 3, '#a78bfa')+'</div>' +
+    '<div style="height:128px;">'+goalCard(goalTexts[3], 4, '#fbbf24')+'</div>' +
+  '</div>' +
 
-  // ── ROW: GOALS ──────────────────────────────────────────────────────────────
-  '<div style="margin-top:3px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;height:130px;">'+
-    '<div style="height:130px;">'+goalCard(g0||{title:'Add a goal',progress:0,target:100}, 0)+'</div>'+
-    '<div style="height:130px;">'+goalCard(g1||{title:'Add a goal',progress:0,target:100}, 1)+'</div>'+
-    '<div style="height:130px;">'+goalCard(g2||{title:'Add a goal',progress:0,target:100}, 2)+'</div>'+
-  '</div>'+
+  // ── LIFESTYLE STRIP — domains as coloured tags + one image ────────────────
+  '<div style="display:flex;gap:4px;margin-top:4px;align-items:stretch;height:56px;">' +
+    '<div style="flex:1;background:rgba(255,255,255,.02);border-radius:10px;padding:8px 10px;display:flex;flex-wrap:wrap;gap:5px;align-content:center;">' +
+      activeDoms.slice(0,6).map(function(d){
+        var col = DC[d.name]||'rgba(255,255,255,.6)';
+        return '<span style="padding:3px 9px;border-radius:20px;background:rgba(255,255,255,.05);border:1px solid '+col+'55;font-size:9px;font-weight:700;color:'+col+';">'+(d.icon||'✦')+' '+d.name+'</span>';
+      }).join('') +
+    '</div>' +
+    imgTile(5,'height:56px;width:80px;flex-shrink:0;') +
+  '</div>' +
 
-  // ── ROW: DOMAINS + LIFESTYLE IMAGE ──────────────────────────────────────────
-  '<div style="margin-top:3px;display:grid;grid-template-columns:3fr 1fr;gap:3px;height:64px;">'+
-    '<div style="background:rgba(255,255,255,.02);border-radius:8px;padding:8px;display:flex;flex-wrap:wrap;gap:4px;align-content:center;">'+domPills+'</div>'+
-    imgTile(3,'height:64px;')+
-  '</div>'+
+  // ── HABITS — image bg + pill list ─────────────────────────────────────────
+  '<div style="position:relative;margin-top:4px;border-radius:10px;overflow:hidden;min-height:90px;">' +
+    (getImg(6) ? '<img src="'+getImg(6).url+'" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.2;">' : '') +
+    '<div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(6,214,160,.15),rgba(0,0,0,.1));"></div>' +
+    '<div style="position:relative;z-index:2;padding:10px 12px;">' +
+      '<div style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:#06d6a0;font-weight:700;margin-bottom:7px;">⚡ Daily non-negotiables</div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:5px;">' +
+        (habNames.length
+          ? habNames.map(function(n, i){
+              var done = habits[i] && habits[i].done;
+              return '<span style="padding:4px 10px;border-radius:20px;background:'+(done?'rgba(6,214,160,.2)':'rgba(255,255,255,.08)')+';border:1px solid '+(done?'rgba(6,214,160,.4)':'rgba(255,255,255,.12)')+';font-size:9px;font-weight:600;color:'+(done?'#06d6a0':'rgba(255,255,255,.8)')+';">'+n+(done?' ✓':'')+'</span>';
+            }).join('')
+          : '<span style="font-size:11px;color:rgba(255,255,255,.3);">Add habits in Roadmap → Tasks</span>'
+        ) +
+      '</div>' +
+    '</div>' +
+  '</div>' +
 
-  // ── ROW: BIG IMAGE + HABITS ──────────────────────────────────────────────────
-  '<div style="margin-top:3px;display:grid;grid-template-columns:1fr 2fr;gap:3px;height:160px;">'+
-    imgTile(4,'height:160px;')+
-    '<div style="background:rgba(6,214,160,.04);border:1px solid rgba(6,214,160,.08);border-radius:8px;padding:8px;display:flex;flex-direction:column;justify-content:center;">'+
-      '<div style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:#06d6a0;font-weight:700;margin-bottom:7px;">⚡ Daily Habits</div>'+
-      '<div style="display:flex;flex-wrap:wrap;gap:4px;">'+habPills+'</div>'+
-    '</div>'+
-  '</div>'+
-
-  // ── ROW: 4 IMAGES STRIP ──────────────────────────────────────────────────────
-  '<div style="margin-top:3px;display:grid;grid-template-columns:repeat(4,1fr);gap:3px;height:90px;">'+
-    imgTile(5,'height:90px;')+
-    imgTile(6,'height:90px;')+
-    imgTile(7,'height:90px;')+
-    imgTile(8,'height:90px;border-radius:0 0 10px 0;')+
-  '</div>';
-
-  // Re-attach click handlers (innerHTML wipes them — use event delegation via onclick attr above)
+  // ── BOTTOM IMAGE STRIP ────────────────────────────────────────────────────
+  (imgs.length > 1 ?
+  '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:4px;">' +
+    imgTile(7,'height:80px;border-radius:0 0 0 10px;') +
+    imgTile(8,'height:80px;') +
+    imgTile(9,'height:80px;border-radius:0 0 10px 0;') +
+  '</div>' : '');
 }
 
 </script>

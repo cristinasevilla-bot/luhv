@@ -110,6 +110,14 @@ body{background:var(--black);font-family:'DM Sans',sans-serif;color:#fff;min-hei
 .cin::placeholder{color:var(--muted)}
 .sbtn{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--purple));border:none;color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 
+
+/* ── Module hint banners ── */
+.mod-hint{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-radius:12px;margin:0 16px 12px;font-size:12px;line-height:1.6;}
+.mod-hint-icon{font-size:18px;flex-shrink:0;margin-top:1px;}
+.mod-hint-text{flex:1;color:rgba(255,255,255,.6);}
+.mod-hint-text strong{color:rgba(255,255,255,.85);}
+.mod-hint-close{background:none;border:none;color:rgba(255,255,255,.25);font-size:16px;cursor:pointer;flex-shrink:0;padding:0;line-height:1;align-self:flex-start;}
+
 /* JOURNAL */
 .jlist{padding:0 20px;flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
 .jentry{background:var(--card);border:0.5px solid var(--border);border-radius:14px;padding:16px;cursor:pointer}
@@ -892,6 +900,16 @@ body{background:
     </div>
 
 
+
+    <!-- MODULE HINT: Dashboard -->
+    <div id="hint-dashboard" class="mod-hint" style="background:rgba(14,165,233,.07);border:1px solid rgba(14,165,233,.15);">
+      <span class="mod-hint-icon">📊</span>
+      <div class="mod-hint-text">
+        <strong>This is your daily command centre.</strong> Your score shows how consistent you are. Check off your tasks every day to build your streak — the Coach adapts to your progress automatically.
+      </div>
+      <button class="mod-hint-close" onclick="dismissHint('dashboard')">×</button>
+    </div>
+
     <!-- FOLD 1: QUICK ACTIONS — always visible -->
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;padding:8px 16px 14px">
       <button onclick="switchPage('focus')" style="padding:11px 6px;border:1px solid rgba(99,102,241,.25);border-radius:12px;background:rgba(99,102,241,.08);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">&#x23F1;&#xFE0F; Focus</button>
@@ -1188,6 +1206,15 @@ body{background:
 
     <!-- GOALS TAB -->
     <div id="rsection-goals" style="display:none;padding:12px 20px">
+
+      <!-- MODULE HINT: Goals -->
+      <div id="hint-goals" class="mod-hint" style="background:rgba(14,165,233,.06);border:1px solid rgba(14,165,233,.15);">
+        <span class="mod-hint-icon">🎯</span>
+        <div class="mod-hint-text">
+          <strong>Your 90-day targets.</strong> Set a clear goal with a deadline — then update the % as you progress. The Coach tracks your goals and adjusts your daily tasks to keep you moving toward them.
+        </div>
+        <button class="mod-hint-close" onclick="dismissHint('goals')">×</button>
+      </div>
       <div style="background:linear-gradient(180deg,rgba(17,24,39,.92),rgba(12,18,28,.96));border:0.5px solid var(--border);border-radius:16px;padding:14px;margin-bottom:14px">
         <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--blue);font-weight:700;margin-bottom:10px">Add Goal</div>
         <input id="goal-title-input" type="text" placeholder="Example: Close 10 clients this month"
@@ -1253,7 +1280,16 @@ body{background:
           <div id="habit-form-msg" style="margin-top:8px;font-size:12px;color:var(--muted);min-height:16px"></div>
         </div>
       </div>
-      <div style="padding:0 20px;font-size:10px;color:var(--muted);margin-bottom:6px">Daily assignments that move you toward your goals. Check them off every day.</div>
+
+      <!-- MODULE HINT: Tasks -->
+      <div id="hint-tasks" class="mod-hint" style="background:rgba(6,214,160,.06);border:1px solid rgba(6,214,160,.15);margin:8px 0 0;">
+        <span class="mod-hint-icon">✅</span>
+        <div class="mod-hint-text">
+          <strong>Your daily non-negotiables.</strong> These are the actions that build your goals. Add them here, then <strong>tap to mark done</strong> every day on your Dashboard. The AI Coach adds them for you after the quiz.
+        </div>
+        <button class="mod-hint-close" onclick="dismissHint('tasks')">×</button>
+      </div>
+      <div style="padding:0 20px;font-size:10px;color:var(--muted);margin-bottom:4px">Daily assignments that move you toward your goals. Check them off every day.</div>
       <div style="padding:0 20px;font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);font-weight:700;margin-bottom:10px">My Tasks</div>
       <div style="padding:0 20px;font-size:10px;color:var(--muted);margin-bottom:6px">Tap ✏️ to rename · 🗑 to delete</div>
       <div class="hlist" id="habits-page-list">
@@ -1274,6 +1310,15 @@ body{background:
         </div>
         <button onclick="switchPage('home')" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(14,165,233,.4);background:rgba(14,165,233,.15);color:var(--blue);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">✕</button>
       </div>
+    </div>
+
+    <!-- MODULE HINT: Coach -->
+    <div id="hint-coach" class="mod-hint" style="background:rgba(6,214,160,.06);border:1px solid rgba(6,214,160,.15);margin:10px 16px 0;">
+      <span class="mod-hint-icon">🧠</span>
+      <div class="mod-hint-text">
+        <strong>Your personal AI coach.</strong> Ask anything — what to do today, how to deal with obstacles, a weekly plan, or a mindset reset. The Coach knows your goals and habits. <em>Responses take 5–15 seconds while it thinks.</em>
+      </div>
+      <button class="mod-hint-close" onclick="dismissHint('coach')">×</button>
     </div>
     <!-- AI THINKING NOTICE -->
     <div id="ai-thinking-notice" style="margin:10px 16px 0;padding:9px 14px;background:rgba(99,102,241,.07);border:1px solid rgba(99,102,241,.18);border-radius:10px;display:flex;align-items:center;gap:10px;font-size:12px;color:rgba(255,255,255,.55)">
@@ -1408,6 +1453,15 @@ body{background:
       <div style="flex-shrink:0;display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);font-size:11px;font-weight:700;color:var(--muted)">2. Start timer</div>
     </div>
 
+
+    <!-- MODULE HINT: Focus -->
+    <div id="hint-focus" class="mod-hint" style="background:rgba(99,102,241,.07);border:1px solid rgba(99,102,241,.18);margin-top:8px;">
+      <span class="mod-hint-icon">⏱️</span>
+      <div class="mod-hint-text">
+        <strong>One thing at a time.</strong> Pick a goal, set a timer and go. 25 minutes of deep focus beats 2 hours of distracted work. Link a goal so your progress gets tracked automatically.
+      </div>
+      <button class="mod-hint-close" onclick="dismissHint('focus')">×</button>
+    </div>
     <!-- VISION BOARD STRIP -->
     <div id="focus-vision-strip" style="display:none;padding:8px 16px 0">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
@@ -1492,6 +1546,15 @@ body{background:
     <div style="font-size:12px;color:var(--muted)">Optional · Anonymous · Real streaks, no real names</div>
   </div>
 
+
+  <!-- MODULE HINT: Ranking -->
+  <div id="hint-ranking" class="mod-hint" style="background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.15);margin:8px 16px;">
+    <span class="mod-hint-icon">🏆</span>
+    <div class="mod-hint-text">
+      <strong>Optional community ranking.</strong> See how your streak compares to the Meltos community. Join with a nickname — only your streak is visible, no personal data. Great for motivation!
+    </div>
+    <button class="mod-hint-close" onclick="dismissHint('ranking')">×</button>
+  </div>
   <!-- OPT-IN PANEL -->
   <div id="ranking-optin-panel" style="margin:16px 20px;background:linear-gradient(135deg,rgba(251,191,36,.08),rgba(99,102,241,.06));border:1px solid rgba(251,191,36,.2);border-radius:18px;padding:18px">
     <div style="font-size:18px;margin-bottom:6px">🏅 Join the leaderboard?</div>
@@ -5853,6 +5916,22 @@ function switchVBTab(tab) {
     loadInspireFeed(currentInspireDomain, 0);
   }
 }
+
+// ── MODULE HINTS ──────────────────────────────────────────────────────────────
+function dismissHint(key) {
+  localStorage.setItem('luhv_hint_' + key, '1');
+  var el = document.getElementById('hint-' + key);
+  if (el) { el.style.maxHeight = el.scrollHeight + 'px'; el.style.overflow = 'hidden'; el.style.transition = 'max-height .3s,opacity .3s,margin .3s'; setTimeout(function(){ el.style.maxHeight = '0'; el.style.opacity = '0'; el.style.margin = '0'; setTimeout(function(){ el.style.display = 'none'; }, 320); }, 10); }
+}
+function initHints() {
+  ['dashboard','roadmap','tasks','goals','focus','coach','inspire','ranking'].forEach(function(key) {
+    var el = document.getElementById('hint-' + key);
+    if (!el) return;
+    if (localStorage.getItem('luhv_hint_' + key)) { el.style.display = 'none'; }
+    else { el.style.display = 'flex'; }
+  });
+}
+document.addEventListener('DOMContentLoaded', initHints);
 
 // ── VISION BOARD — REAL BOARD RENDERER ───────────────────────────────────────
 

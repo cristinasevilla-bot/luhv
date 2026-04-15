@@ -1,4 +1,4 @@
-https://meet.google.com/uve-djsu-yoi<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -5807,16 +5807,14 @@ function switchVBTab(tab) {
 }
 
 // ── VISION BOARD — REAL BOARD RENDERER ───────────────────────────────────────
+
 var VB_QUOTES = [
   'The life you want is on the other side of consistent action.',
-  'Success is built one habit at a time.',
   'You are closer than you think.',
-  'Your future self is watching. Make them proud.',
   'Dream it. Plan it. Live it.',
-  'Every day is a step toward the life you are building.'
+  'Your future self is watching. Make them proud.'
 ];
-
-var VB_ASPIRE_WORDS = ['CLIENTS','HEALTH','BALANCE','SUCCESS','FREEDOM','GROWTH','STRENGTH','CLARITY','FOCUS','WEALTH'];
+var VB_ASPIRE_WORDS = ['CLIENTS','HEALTH','BALANCE','SUCCESS','FREEDOM','GROWTH','CLARITY','FOCUS'];
 
 async function renderVisionBoardReal() {
   var emptyState = document.getElementById('vb-empty-state');
@@ -5825,7 +5823,6 @@ async function renderVisionBoardReal() {
   var inner      = document.getElementById('vb-collage-inner');
   if (!inner) return;
 
-  // ── Load data ──────────────────────────────────────────────────────────────
   var goals = [], habits = [], domains = [];
   try { goals = JSON.parse(localStorage.getItem('luhv_goals_cache') || '[]'); } catch(e) {}
   try {
@@ -5837,202 +5834,166 @@ async function renderVisionBoardReal() {
   }
   try { var dData = await api('/api/domains'); domains = Array.isArray(dData) ? dData : []; } catch(e) {}
 
-  // ── Always show board (even with no images — text content alone is valuable) ──
   if (hint && !localStorage.getItem('luhv_hint_liked')) hint.style.display = 'flex';
   if (emptyState) emptyState.style.display = 'none';
   if (realBoard) realBoard.style.display = 'block';
 
-  // ── Image helpers ──────────────────────────────────────────────────────────
   var imgs = visionBoard.slice();
-  function getImg(n) {
-    if (!imgs.length) return null;
-    return imgs[n % imgs.length];
-  }
-
-  // Build a bg-image style string from saved image
-  function bgStyle(n, opacity) {
-    var it = getImg(n);
-    if (!it) return '';
-    return 'background-image:url(' + it.url + ');background-size:cover;background-position:center;';
-  }
-
-  function onclickLightbox(n) {
-    var it = getImg(n);
-    if (!it) return '';
-    var safe = (it.label||it.kw||'').replace(/'/g,'').replace(/"/g,'');
-    return 'onclick="openImageLightbox(\'' + it.url + '\',\'' + safe + '\')"';
-  }
-
-  // ── Extract goals text (aspirational, not % based) ─────────────────────────
-  var goalTexts = goals.slice(0,4).map(function(g){
-    return (g.title||'').replace(/^\[.*?\]\s*/,'').replace(/"/g,'&quot;');
-  });
-  // Fill with placeholder aspirational text if fewer than needed
-  var aspirations = [
-    'Build your dream client base',
-    'Live with energy and vitality',
-    'Create perfect balance in life',
-    'Grow your business with purpose'
-  ];
-  while (goalTexts.length < 4) goalTexts.push(aspirations[goalTexts.length]);
-
-  // ── Daily habits — just the names, friendly ────────────────────────────────
-  var habNames = habits.slice(0,6).map(function(h){ return (h.icon||'⚡')+' '+(h.name||''); });
-  var habDoneMap = {};
-  habits.forEach(function(h){ habDoneMap[h.name] = h.done; });
-
-  // ── Domain colours ─────────────────────────────────────────────────────────
-  var DC = {Finance:'#fbbf24',Fitness:'#06d6a0',Business:'#0ea5e9',Mindset:'#a78bfa',Health:'#06d6a0',Dating:'#f43f5e'};
-  var activeDoms = domains.length ? domains : [{name:'Clients',icon:'🤝'},{name:'Health',icon:'💪'},{name:'Balance',icon:'☯️'}];
-
-  // ── Pick quote & word ──────────────────────────────────────────────────────
   var today = Math.floor(Date.now()/86400000);
   var quote = VB_QUOTES[today % VB_QUOTES.length];
-  // Use first goal word or aspire word as big hero word
-  var heroWord = goalTexts[0]
-    ? goalTexts[0].split(' ').slice(0,1)[0].toUpperCase()
-    : VB_ASPIRE_WORDS[today % VB_ASPIRE_WORDS.length];
+  var heroWord = goals.length ? (goals[0].title||'').replace(/^\[.*?\]\s*/,'').split(' ')[0].toUpperCase() : VB_ASPIRE_WORDS[today % VB_ASPIRE_WORDS.length];
 
-  // ── HELPER: goal card — image bg + aspirational text ──────────────────────
-  // ── goalCard: mini photo collage inside each goal ─────────────────────────
-  // Each card shows 2-3 images in a split layout + affirmation text overlay
-  function goalCard(goalText, imgN, accentColor) {
-    var col = accentColor || '#0ea5e9';
-    var it1 = getImg(imgN);
-    var it2 = getImg(imgN + 1);
-    var it3 = getImg(imgN + 2);
+  var DC = {Finance:'#fbbf24',Fitness:'#06d6a0',Business:'#0ea5e9',Mindset:'#a78bfa',Health:'#06d6a0'};
+  var activeDoms = domains.length ? domains.slice(0,5) : [{name:'Clients',icon:'\uD83E\uDD1D'},{name:'Health',icon:'\uD83D\uDCAA'},{name:'Balance',icon:'\u2638\uFE0F'}];
 
-    function safeClick(it) {
-      if (!it) return '';
-      var s = (it.label||it.kw||'').replace(/'/g,'').replace(/"/g,'');
-      return 'onclick="openImageLightbox(\''+it.url+'\',\''+s+'\')" style="cursor:pointer;"';
-    }
+  var goalTexts = goals.slice(0,4).map(function(g){ return (g.title||'').replace(/^\[.*?\]\s*/,''); });
+  var fallbacks = ['Build your dream client base','Live with energy and vitality','Create perfect work-life balance','Grow your business with purpose'];
+  while (goalTexts.length < 4) goalTexts.push(fallbacks[goalTexts.length]);
 
-    // Build the photo collage area (top 60% of card)
-    var collageHtml = '';
-    if (it1 && it2 && it3) {
-      // 3-photo split: 1 big left, 2 stacked right
-      collageHtml =
-        '<div style="display:grid;grid-template-columns:1.4fr 1fr;gap:2px;height:100%;">' +
-          '<img src="'+it1.url+'" loading="lazy" ' + safeClick(it1) + ' style="width:100%;height:100%;object-fit:cover;display:block;">' +
-          '<div style="display:flex;flex-direction:column;gap:2px;">' +
-            '<img src="'+it2.url+'" loading="lazy" ' + safeClick(it2) + ' style="width:100%;height:50%;object-fit:cover;flex:1;display:block;">' +
-            '<img src="'+it3.url+'" loading="lazy" ' + safeClick(it3) + ' style="width:100%;height:50%;object-fit:cover;flex:1;display:block;">' +
+  // ── Image helpers ──────────────────────────────────────────────────────
+  function G(n) { return imgs.length ? imgs[n % imgs.length] : null; }
+  function imgSrc(n) { var i=G(n); return i ? i.url : ''; }
+  function imgSafe(n) { var i=G(n); return i ? (i.label||i.kw||'').replace(/['"]/g,'') : ''; }
+  function lightboxAttr(n) {
+    var i=G(n); if(!i) return '';
+    return "onclick=\"openImageLightbox(\'"+i.url+"\',\'"+imgSafe(n)+"\')\""
+  }
+
+  // Render a single photo — full cover, clickable
+  function photo(n, style) {
+    var src = imgSrc(n);
+    if (!src) return '<div style="background:rgba(255,255,255,.04);'+style+'"></div>';
+    return '<img src="'+src+'" loading="lazy" '+lightboxAttr(n)+' style="object-fit:cover;display:block;cursor:pointer;'+style+'">';
+  }
+
+  // ── Each goal card = genuine photo collage ─────────────────────────────
+  // Layout alternates between 3 patterns for variety
+  function goalCard(text, baseImgIdx, col, pattern) {
+    var src0=imgSrc(baseImgIdx), src1=imgSrc(baseImgIdx+1), src2=imgSrc(baseImgIdx+2);
+    var la=lightboxAttr(baseImgIdx), lb=lightboxAttr(baseImgIdx+1), lc=lightboxAttr(baseImgIdx+2);
+    var collage = '';
+
+    if (!src0 && !src1 && !src2) {
+      // No images — stylish text card
+      collage = '<div style="flex:1;background:linear-gradient(135deg,'+col+'18,'+col+'06);display:flex;align-items:center;justify-content:center;font-size:28px;opacity:.25;">\u2728</div>';
+    } else if (pattern === 0 && src0 && src1 && src2) {
+      // Pattern A: big left, 2 stacked right
+      collage =
+        '<div style="flex:1;display:flex;gap:2px;overflow:hidden;">' +
+          '<img src="'+src0+'" '+la+' loading="lazy" style="flex:1.4;object-fit:cover;cursor:pointer;">' +
+          '<div style="flex:1;display:flex;flex-direction:column;gap:2px;">' +
+            '<img src="'+src1+'" '+lb+' loading="lazy" style="flex:1;object-fit:cover;cursor:pointer;width:100%;">' +
+            '<img src="'+src2+'" '+lc+' loading="lazy" style="flex:1;object-fit:cover;cursor:pointer;width:100%;">' +
           '</div>' +
         '</div>';
-    } else if (it1 && it2) {
-      // 2-photo split side by side
-      collageHtml =
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;height:100%;">' +
-          '<img src="'+it1.url+'" loading="lazy" ' + safeClick(it1) + ' style="width:100%;height:100%;object-fit:cover;display:block;">' +
-          '<img src="'+it2.url+'" loading="lazy" ' + safeClick(it2) + ' style="width:100%;height:100%;object-fit:cover;display:block;">' +
+    } else if (pattern === 1 && src0 && src1) {
+      // Pattern B: 2 side by side top, 1 full bottom
+      collage =
+        '<div style="flex:1;display:flex;flex-direction:column;gap:2px;overflow:hidden;">' +
+          '<div style="flex:1;display:flex;gap:2px;">' +
+            '<img src="'+src0+'" '+la+' loading="lazy" style="flex:1;object-fit:cover;cursor:pointer;">' +
+            (src1 ? '<img src="'+src1+'" '+lb+' loading="lazy" style="flex:1;object-fit:cover;cursor:pointer;">' : '') +
+          '</div>' +
+          (src2 ? '<img src="'+src2+'" '+lc+' loading="lazy" style="flex:.6;object-fit:cover;cursor:pointer;width:100%;">' : '') +
         '</div>';
-    } else if (it1) {
-      // Single full image
-      collageHtml = '<img src="'+it1.url+'" loading="lazy" ' + safeClick(it1) + ' style="width:100%;height:100%;object-fit:cover;display:block;">';
+    } else if (pattern === 2 && src0 && src1 && src2) {
+      // Pattern C: top full, 2 side by side bottom
+      collage =
+        '<div style="flex:1;display:flex;flex-direction:column;gap:2px;overflow:hidden;">' +
+          '<img src="'+src0+'" '+la+' loading="lazy" style="flex:1.4;object-fit:cover;cursor:pointer;width:100%;">' +
+          '<div style="flex:1;display:flex;gap:2px;">' +
+            '<img src="'+src1+'" '+lb+' loading="lazy" style="flex:1;object-fit:cover;cursor:pointer;">' +
+            '<img src="'+src2+'" '+lc+' loading="lazy" style="flex:1;object-fit:cover;cursor:pointer;">' +
+          '</div>' +
+        '</div>';
     } else {
-      // No images — gradient placeholder
-      collageHtml = '<div style="width:100%;height:100%;background:linear-gradient(135deg,'+col+'22,'+col+'08);display:flex;align-items:center;justify-content:center;"><span style="font-size:28px;opacity:.3;">✦</span></div>';
+      // Fallback: single image full cover
+      collage = '<img src="'+(src0||src1||src2)+'" '+la+' loading="lazy" style="flex:1;object-fit:cover;cursor:pointer;width:100%;">';
     }
 
-    return '<div style="position:relative;overflow:hidden;border-radius:12px;background:#111827;height:100%;display:flex;flex-direction:column;">' +
-      // Photo collage — top portion
-      '<div style="flex:1;overflow:hidden;position:relative;">' +
-        collageHtml +
-        // subtle darkening gradient at bottom of image area
-        '<div style="position:absolute;bottom:0;left:0;right:0;height:40px;background:linear-gradient(transparent,rgba(0,0,0,.5));pointer-events:none;"></div>' +
-      '</div>' +
-      // Affirmation text — bottom strip
-      '<div style="padding:9px 10px 8px;background:rgba(0,0,0,.85);border-top:1px solid '+col+'33;flex-shrink:0;">' +
-        '<div style="font-size:8px;letter-spacing:2.5px;text-transform:uppercase;color:'+col+';font-weight:700;margin-bottom:2px;opacity:.9;">I WILL</div>' +
-        '<div style="font-size:11px;font-weight:700;color:#fff;line-height:1.35;">'+goalText+'</div>' +
+    return '<div style="border-radius:12px;overflow:hidden;background:#111827;display:flex;flex-direction:column;height:100%;">' +
+      collage +
+      '<div style="padding:8px 10px 7px;background:#0d1015;border-top:2px solid '+col+';flex-shrink:0;">' +
+        '<div style="font-size:7px;letter-spacing:2.5px;text-transform:uppercase;color:'+col+';font-weight:700;margin-bottom:2px;">I WILL</div>' +
+        '<div style="font-size:11px;font-weight:700;color:#fff;line-height:1.3;">'+text+'</div>' +
       '</div>' +
     '</div>';
   }
 
-  // ── HELPER: image tile ────────────────────────────────────────────────────
-  function imgTile(n, style) {
-    var it = getImg(n);
-    if (!it) return '<div style="background:rgba(255,255,255,.03);border-radius:10px;'+style+'"></div>';
-    var safe = (it.label||it.kw||'').replace(/'/g,'');
-    return '<div style="border-radius:10px;overflow:hidden;position:relative;cursor:pointer;'+style+'" onclick="openImageLightbox(\''+it.url+'\',\''+safe+'\')">' +
-      '<img src="'+it.url+'" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;">' +
-      (safe ? '<div style="position:absolute;bottom:0;left:0;right:0;padding:4px 7px 3px;background:linear-gradient(transparent,rgba(0,0,0,.8));font-size:7px;font-weight:700;color:rgba(255,255,255,.8);text-transform:uppercase;letter-spacing:.7px;">'+safe.split(' ').slice(0,4).join(' ')+'</div>' : '') +
-    '</div>';
-  }
+  // ── Habit pills ────────────────────────────────────────────────────────
+  var habPills = (habits.length ? habits.slice(0,8) : [{name:'Add habits in Roadmap',icon:'\u26A1',done:false}]).map(function(h,i){
+    var done = h.done;
+    return '<span style="display:inline-flex;align-items:center;gap:3px;padding:4px 9px;border-radius:20px;white-space:nowrap;'+
+      'background:'+(done?'rgba(6,214,160,.18)':'rgba(255,255,255,.07)')+';'+
+      'border:1px solid '+(done?'rgba(6,214,160,.4)':'rgba(255,255,255,.12)')+';'+
+      'font-size:9px;font-weight:600;color:'+(done?'#06d6a0':'rgba(255,255,255,.75)')+';">'+
+      (h.icon||'\u26A1')+' '+h.name+(done?' \u2713':'')+'</span>';
+  }).join('');
 
-  // ── BUILD THE BOARD ────────────────────────────────────────────────────────
-  inner.innerHTML =
+  // ── Domain pills ───────────────────────────────────────────────────────
+  var domPills = activeDoms.map(function(d){
+    var col = DC[d.name]||'rgba(255,255,255,.55)';
+    return '<span style="padding:4px 10px;border-radius:20px;background:rgba(255,255,255,.05);border:1px solid '+col+'44;font-size:9px;font-weight:700;color:'+col+';">'+(d.icon||'\u2726')+' '+d.name+'</span>';
+  }).join('');
 
-  // ── HERO HEADER ───────────────────────────────────────────────────────────
-  (function(){
-    var it = getImg(0);
-    if (it) {
-      var safe = (it.label||it.kw||'').replace(/'/g,'');
-      return '<div style="position:relative;height:160px;overflow:hidden;border-radius:14px 14px 0 0;cursor:pointer;" onclick="openImageLightbox(\''+it.url+'\',\''+safe+'\')">' +
-        '<img src="'+it.url+'" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;">' +
-        '<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.1) 0%,rgba(0,0,0,.65) 100%);"></div>' +
-        '<div style="position:absolute;bottom:0;left:0;right:0;padding:16px;">' +
-          '<div style="font-size:9px;letter-spacing:3px;color:rgba(255,255,255,.45);text-transform:uppercase;margin-bottom:3px;">'+new Date().getFullYear()+' · MY VISION</div>' +
-          '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:36px;letter-spacing:3px;color:#fff;line-height:1;text-shadow:0 2px 12px rgba(0,0,0,.6);">'+heroWord+'</div>' +
-          '<div style="font-size:11px;font-style:italic;color:rgba(255,255,255,.55);margin-top:4px;">'+quote+'</div>' +
+  // ── HERO ───────────────────────────────────────────────────────────────
+  var heroSrc = imgSrc(0);
+  var heroHtml = heroSrc
+    ? '<div style="position:relative;height:155px;overflow:hidden;border-radius:14px 14px 0 0;cursor:pointer;" '+lightboxAttr(0)+'>' +
+        '<img src="'+heroSrc+'" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;">' +
+        '<div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.05),rgba(0,0,0,.65));"></div>' +
+        '<div style="position:absolute;bottom:0;left:0;right:0;padding:14px 14px 12px;">' +
+          '<div style="font-size:8px;letter-spacing:3px;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:2px;">'+new Date().getFullYear()+' \u00B7 MY VISION</div>' +
+          '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:34px;letter-spacing:2px;color:#fff;line-height:1;text-shadow:0 2px 10px rgba(0,0,0,.7);">'+heroWord+'</div>' +
+          '<div style="font-size:10px;font-style:italic;color:rgba(255,255,255,.5);margin-top:3px;">'+quote+'</div>' +
         '</div>' +
+      '</div>'
+    : '<div style="border-radius:14px 14px 0 0;background:linear-gradient(135deg,#0d1520,#0a0f1a);padding:18px 14px 14px;">' +
+        '<div style="font-size:8px;letter-spacing:3px;color:rgba(255,255,255,.25);text-transform:uppercase;margin-bottom:4px;">'+new Date().getFullYear()+' \u00B7 MY VISION BOARD</div>' +
+        '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:38px;letter-spacing:2px;background:linear-gradient(90deg,#06d6a0,#0ea5e9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;">'+heroWord+'</div>' +
+        '<div style="font-size:10px;font-style:italic;color:rgba(255,255,255,.3);margin-top:5px;line-height:1.5;">'+quote+'</div>' +
       '</div>';
-    } else {
-      return '<div style="border-radius:14px 14px 0 0;background:linear-gradient(135deg,#0d1520,#0a0f1a);padding:20px 16px 16px;">' +
-        '<div style="font-size:9px;letter-spacing:3px;color:rgba(255,255,255,.25);text-transform:uppercase;margin-bottom:5px;">'+new Date().getFullYear()+' · MY VISION BOARD</div>' +
-        '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:40px;letter-spacing:3px;background:linear-gradient(90deg,#06d6a0,#0ea5e9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;">'+heroWord+'</div>' +
-        '<div style="font-size:11px;font-style:italic;color:rgba(255,255,255,.35);margin-top:6px;line-height:1.5;">'+quote+'</div>' +
-      '</div>';
-    }
-  })() +
 
-  // ── GOALS GRID — 2×2, each card = photo collage + "I will" text ───────────
-  // Images cycle: each goal uses 3 consecutive images from the board
-  '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:4px;height:340px;">' +
-    '<div style="height:168px;">'+goalCard(goalTexts[0], 1, '#0ea5e9')+'</div>' +
-    '<div style="height:168px;">'+goalCard(goalTexts[1], 4, '#06d6a0')+'</div>' +
-    '<div style="height:168px;">'+goalCard(goalTexts[2], 7, '#a78bfa')+'</div>' +
-    '<div style="height:168px;">'+goalCard(goalTexts[3], 10, '#fbbf24')+'</div>' +
-  '</div>' +
+  // ── ASSEMBLE ───────────────────────────────────────────────────────────
+  // Goals use images starting at index 1 (0 is hero)
+  // Each goal gets 3 images, rotating through the saved list
+  inner.innerHTML =
+    heroHtml +
 
-  // ── LIFESTYLE STRIP — domains as coloured tags + one image ────────────────
-  '<div style="display:flex;gap:4px;margin-top:4px;align-items:stretch;height:56px;">' +
-    '<div style="flex:1;background:rgba(255,255,255,.02);border-radius:10px;padding:8px 10px;display:flex;flex-wrap:wrap;gap:5px;align-content:center;">' +
-      activeDoms.slice(0,6).map(function(d){
-        var col = DC[d.name]||'rgba(255,255,255,.6)';
-        return '<span style="padding:3px 9px;border-radius:20px;background:rgba(255,255,255,.05);border:1px solid '+col+'55;font-size:9px;font-weight:700;color:'+col+';">'+(d.icon||'✦')+' '+d.name+'</span>';
-      }).join('') +
+    // GOALS — 2x2 grid, each card has photo collage
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:4px;height:320px;">' +
+      '<div style="height:158px;">'+goalCard(goalTexts[0], 1,  '#0ea5e9', 0)+'</div>' +
+      '<div style="height:158px;">'+goalCard(goalTexts[1], 4,  '#06d6a0', 2)+'</div>' +
+      '<div style="height:158px;">'+goalCard(goalTexts[2], 7,  '#a78bfa', 1)+'</div>' +
+      '<div style="height:158px;">'+goalCard(goalTexts[3], 10, '#fbbf24', 2)+'</div>' +
     '</div>' +
-    imgTile(5,'height:56px;width:80px;flex-shrink:0;') +
-  '</div>' +
 
-  // ── HABITS — image bg + pill list ─────────────────────────────────────────
-  '<div style="position:relative;margin-top:4px;border-radius:10px;overflow:hidden;min-height:90px;">' +
-    (getImg(6) ? '<img src="'+getImg(6).url+'" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.2;">' : '') +
-    '<div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(6,214,160,.15),rgba(0,0,0,.1));"></div>' +
-    '<div style="position:relative;z-index:2;padding:10px 12px;">' +
-      '<div style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:#06d6a0;font-weight:700;margin-bottom:7px;">⚡ Daily non-negotiables</div>' +
-      '<div style="display:flex;flex-wrap:wrap;gap:5px;">' +
-        (habNames.length
-          ? habNames.map(function(n, i){
-              var done = habits[i] && habits[i].done;
-              return '<span style="padding:4px 10px;border-radius:20px;background:'+(done?'rgba(6,214,160,.2)':'rgba(255,255,255,.08)')+';border:1px solid '+(done?'rgba(6,214,160,.4)':'rgba(255,255,255,.12)')+';font-size:9px;font-weight:600;color:'+(done?'#06d6a0':'rgba(255,255,255,.8)')+';">'+n+(done?' ✓':'')+'</span>';
-            }).join('')
-          : '<span style="font-size:11px;color:rgba(255,255,255,.3);">Add habits in Roadmap → Tasks</span>'
-        ) +
+    // LIFESTYLE DOMAINS strip
+    '<div style="display:flex;gap:4px;margin-top:4px;height:50px;align-items:center;">' +
+      '<div style="flex:1;display:flex;flex-wrap:wrap;gap:5px;padding:6px 8px;background:rgba(255,255,255,.025);border-radius:10px;align-content:center;">'+domPills+'</div>' +
+      (imgSrc(13) ? '<img src="'+imgSrc(13)+'" '+lightboxAttr(13)+' loading="lazy" style="width:60px;height:50px;object-fit:cover;border-radius:10px;cursor:pointer;flex-shrink:0;">' : '') +
+    '</div>' +
+
+    // HABITS section
+    '<div style="position:relative;margin-top:4px;border-radius:10px;overflow:hidden;">' +
+      (imgSrc(14) ? '<img src="'+imgSrc(14)+'" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.15;">' : '') +
+      '<div style="position:relative;z-index:2;padding:9px 11px;background:rgba(6,214,160,.05);border:1px solid rgba(6,214,160,.1);">' +
+        '<div style="font-size:7px;letter-spacing:2px;text-transform:uppercase;color:#06d6a0;font-weight:700;margin-bottom:6px;">\u26A1 Daily non-negotiables</div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:4px;">'+habPills+'</div>' +
       '</div>' +
     '</div>' +
-  '</div>' +
 
-  // ── BOTTOM IMAGE STRIP ────────────────────────────────────────────────────
-  (imgs.length > 1 ?
-  '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:4px;">' +
-    imgTile(7,'height:80px;border-radius:0 0 0 10px;') +
-    imgTile(8,'height:80px;') +
-    imgTile(9,'height:80px;border-radius:0 0 10px 0;') +
-  '</div>' : '');
+    // BOTTOM PHOTO STRIP — any remaining images
+    (imgs.length > 2 ?
+      '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:4px;">' +
+        [15,16,17,18].map(function(n,i){
+          var src=imgSrc(n); if(!src) return '';
+          var r = i===0?'0 0 0 10px':i===3?'0 0 10px 0':'0';
+          return '<img src="'+src+'" '+lightboxAttr(n)+' loading="lazy" style="height:75px;width:100%;object-fit:cover;cursor:pointer;border-radius:'+r+';">';
+        }).join('') +
+      '</div>' : '');
 }
+
 
 </script>
 </body>

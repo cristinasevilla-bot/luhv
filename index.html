@@ -5389,11 +5389,9 @@ function refreshInspireSavedPanel() {
     wrap.style.cssText = 'position:relative;';
     var img = document.createElement('img');
     img.src = item.url;
-    img.style.cssText = 'width:80px;height:108px;border-radius:10px;object-fit:cover;display:block;cursor:pointer;border:2px solid rgba(244,63,94,.35);transition:transform .15s;';
+    img.style.cssText = 'width:80px;height:108px;border-radius:10px;object-fit:cover;display:block;cursor:pointer;border:2px solid rgba(244,63,94,.35);';
     img.title = (item.kw || item.label || '') + ' — tap to enlarge';
     img.onclick = function() { openImageLightbox(item.url, item.label || item.kw); };
-    img.onmouseover = function() { img.style.transform = 'scale(1.03)'; };
-    img.onmouseout = function() { img.style.transform = ''; };
     // Remove button
     var rmBtn = document.createElement('button');
     rmBtn.textContent = '×';
@@ -6007,10 +6005,25 @@ async function renderVisionBoardReal() {
   var DC = {Finance:'#fbbf24',Fitness:'#06d6a0',Business:'#0ea5e9',Mindset:'#a78bfa',Health:'#06d6a0'};
   var activeDoms = (domains.length ? domains : [{name:'Clients',icon:'🤝'},{name:'Health',icon:'💪'},{name:'Balance',icon:'☯️'}]).slice(0,4);
 
-  function imgAt(n) { return imgs.length ? imgs[n % imgs.length] : null; }
+  // ── Image helpers — never repeat the same image in the same board ──────────
+  // Each position gets a UNIQUE image, or null if not enough images
+  function imgAt(n) {
+    if (!imgs.length) return null;
+    // Only use each image once — if n >= imgs.length, no image (show placeholder)
+    return n < imgs.length ? imgs[n] : null;
+  }
   function safeUrl(n) { var i=imgAt(n); return i ? i.url : ''; }
   function safeLabel(n) { var i=imgAt(n); return i ? (i.label||i.kw||'').replace(/['"\\]/g,'').split(' ').slice(0,3).join(' ').toUpperCase() : ''; }
   function onclick(n) { var i=imgAt(n); if(!i) return ''; var s=safeLabel(n); return "onclick=\"openImageLightbox('"+i.url+"','"+s+"')\""; }
+
+  // Goal card placeholder gradients when no image available
+  var goalGradients = [
+    'linear-gradient(135deg,#0d1a2e,#0a2010)',  // blue-green
+    'linear-gradient(135deg,#0a1a0a,#0d2010)',  // green
+    'linear-gradient(135deg,#1a0d1a,#0a0d1a)',  // purple
+    'linear-gradient(135deg,#1a1200,#0d0d00)'   // yellow
+  ];
+  var goalEmojis = ['🎯','💪','☯️','🚀'];
 
   // ── Photo tile — a self-contained image box ──────────────────────────────
   function tile(n, w, h, rot, border) {
@@ -6096,29 +6109,44 @@ async function renderVisionBoardReal() {
   s2.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:8px;';
 
   var goalColors = ['#0ea5e9','#06d6a0','#a78bfa','#fbbf24'];
+  // Unique placeholder styles per goal slot
+  var goalPlaceholderBgs = [
+    'linear-gradient(135deg,rgba(14,165,233,.18),rgba(14,165,233,.04))',
+    'linear-gradient(135deg,rgba(6,214,160,.18),rgba(6,214,160,.04))',
+    'linear-gradient(135deg,rgba(167,139,250,.18),rgba(167,139,250,.04))',
+    'linear-gradient(135deg,rgba(251,191,36,.18),rgba(251,191,36,.04))'
+  ];
+  var goalPlaceholderWords = ['CLIENTS','HEALTH','BALANCE','SUCCESS'];
+
   goalTexts.slice(0,4).forEach(function(text, i) {
-    var imgN = i*2 + 2; // images 2,4,6,8
+    var imgN = i*2 + 2; // images 2,4,6,8 — each goal gets 2 unique slots
     var col = goalColors[i];
     var src = safeUrl(imgN);
     var src2 = safeUrl(imgN+1);
-    var rot = ['-1','1','-0.5','1.5'][i];
 
     var card = document.createElement('div');
     card.style.cssText = 'border-radius:12px;overflow:hidden;background:#111827;display:flex;flex-direction:column;min-height:140px;';
 
-    // Photo area — 2 images side by side OR 1 full
+    // Photo area — 2 unique images OR 1 unique image OR unique styled placeholder
     var photoArea = document.createElement('div');
-    photoArea.style.cssText = 'flex:1;display:flex;gap:2px;overflow:hidden;min-height:100px;';
+    photoArea.style.cssText = 'flex:1;display:flex;gap:2px;overflow:hidden;min-height:100px;position:relative;';
 
     if (src && src2) {
+      // Both images available — show side by side
       photoArea.innerHTML =
         '<img src="'+src+'" loading="lazy" '+onclick(imgN)+' style="flex:1;object-fit:cover;cursor:pointer;">' +
         '<img src="'+src2+'" loading="lazy" '+onclick(imgN+1)+' style="flex:1;object-fit:cover;cursor:pointer;">';
     } else if (src) {
+      // One image — full width
       photoArea.innerHTML = '<img src="'+src+'" loading="lazy" '+onclick(imgN)+' style="flex:1;object-fit:cover;cursor:pointer;width:100%;">';
     } else {
-      photoArea.style.background = 'linear-gradient(135deg,'+col+'18,'+col+'06)';
-      photoArea.innerHTML = '<div style="flex:1;display:flex;align-items:center;justify-content:center;font-size:24px;opacity:.2;">✦</div>';
+      // No unique image — show stylised placeholder unique to this goal
+      photoArea.style.background = goalPlaceholderBgs[i];
+      photoArea.innerHTML =
+        '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:12px;">' +
+          '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:22px;letter-spacing:3px;color:'+col+';opacity:.35;">'+goalPlaceholderWords[i]+'</div>' +
+          '<div onclick="switchVBTab(\'find\')" style="font-size:9px;color:'+col+';opacity:.6;cursor:pointer;padding:4px 10px;border:1px dashed '+col+'44;border-radius:20px;">+ Add image</div>' +
+        '</div>';
     }
 
     // Text strip at bottom
@@ -6132,6 +6160,15 @@ async function renderVisionBoardReal() {
     card.appendChild(textStrip);
     s2.appendChild(card);
   });
+
+  // If fewer than 8 images, show a gentle nudge to add more
+  if (imgs.length < 8) {
+    var nudgeRow = document.createElement('div');
+    nudgeRow.style.cssText = 'text-align:center;padding:4px 0 2px;';
+    nudgeRow.innerHTML = '<span onclick="switchVBTab(\'find\')" style="font-size:10px;color:rgba(255,255,255,.25);cursor:pointer;border-bottom:1px solid rgba(255,255,255,.1);">Add more images from Find Images to fill your board →</span>';
+    s2.appendChild(nudgeRow);
+  }
+
   inner.appendChild(s2);
 
   // ── STRIP 3: Domains + side image ────────────────────────────────────────

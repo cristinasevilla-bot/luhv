@@ -5971,8 +5971,13 @@ var VB_QUOTES = [
   'The life you want is on the other side of consistent action.',
   'You are closer than you think.',
   'Dream it. Plan it. Live it.',
-  'Your future self is watching. Make them proud.'
+  'Your future self is watching. Make them proud.',
+  'Mindset is everything.',
+  'YES YOU CAN.',
+  'Positive energy only.',
+  'Be so good they cannot ignore you.'
 ];
+var VB_ASPIRE = ['CLIENTS','HEALTH','BALANCE','SUCCESS','FREEDOM','GROWTH','CLARITY','FOCUS'];
 
 async function renderVisionBoardReal() {
   var emptyState = document.getElementById('vb-empty-state');
@@ -5987,10 +5992,8 @@ async function renderVisionBoardReal() {
     var hData = await api('/api/habits');
     habits = Array.isArray(hData) ? hData : [];
     localStorage.setItem('luhv_habits_cache', JSON.stringify(habits));
-  } catch(e) {
-    try { habits = JSON.parse(localStorage.getItem('luhv_habits_cache') || '[]'); } catch(e2) {}
-  }
-  try { var dData = await api('/api/domains'); domains = Array.isArray(dData) ? dData : []; } catch(e) {}
+  } catch(e) { try { habits = JSON.parse(localStorage.getItem('luhv_habits_cache')||'[]'); } catch(e2){} }
+  try { var dData = await api('/api/domains'); domains = Array.isArray(dData)?dData:[]; } catch(e){}
 
   if (hint && !localStorage.getItem('luhv_hint_liked')) hint.style.display = 'flex';
   if (emptyState) emptyState.style.display = 'none';
@@ -5998,237 +6001,167 @@ async function renderVisionBoardReal() {
 
   var imgs = visionBoard.slice();
   var today = Math.floor(Date.now()/86400000);
+
   var goalTexts = goals.slice(0,4).map(function(g){ return (g.title||'').replace(/^\[.*?\]\s*/,''); });
   var fallbacks = ['Build my dream client base','Live with energy & health','Create perfect balance','Grow my business'];
   while (goalTexts.length < 4) goalTexts.push(fallbacks[goalTexts.length]);
 
   var DC = {Finance:'#fbbf24',Fitness:'#06d6a0',Business:'#0ea5e9',Mindset:'#a78bfa',Health:'#06d6a0'};
-  var activeDoms = (domains.length ? domains : [{name:'Clients',icon:'🤝'},{name:'Health',icon:'💪'},{name:'Balance',icon:'☯️'}]).slice(0,4);
 
-  // ── Image helpers — never repeat the same image in the same board ──────────
-  // Each position gets a UNIQUE image, or null if not enough images
-  function imgAt(n) {
-    if (!imgs.length) return null;
-    // Only use each image once — if n >= imgs.length, no image (show placeholder)
-    return n < imgs.length ? imgs[n] : null;
-  }
-  function safeUrl(n) { var i=imgAt(n); return i ? i.url : ''; }
-  function safeLabel(n) { var i=imgAt(n); return i ? (i.label||i.kw||'').replace(/['"\\]/g,'').split(' ').slice(0,3).join(' ').toUpperCase() : ''; }
-  function onclick(n) { var i=imgAt(n); if(!i) return ''; var s=safeLabel(n); return "onclick=\"openImageLightbox('"+i.url+"','"+s+"')\""; }
+  // ── Get image (cycling if needed, but with slight visual variation per slot) ──
+  function img(n) { return imgs.length ? imgs[n % imgs.length] : null; }
+  function imgUrl(n) { var i=img(n); return i?i.url:''; }
+  function imgLabel(n) { var i=img(n); return i?(i.label||i.kw||'').replace(/['"]/g,'').toUpperCase():''; }
+  function imgClick(n) { var u=imgUrl(n); if(!u) return ''; var l=imgLabel(n); return 'onclick="openImageLightbox(\''+u+'\',\''+l+'\')" style="cursor:pointer;"'; }
 
-  // Goal card placeholder gradients when no image available
-  var goalGradients = [
-    'linear-gradient(135deg,#0d1a2e,#0a2010)',  // blue-green
-    'linear-gradient(135deg,#0a1a0a,#0d2010)',  // green
-    'linear-gradient(135deg,#1a0d1a,#0a0d1a)',  // purple
-    'linear-gradient(135deg,#1a1200,#0d0d00)'   // yellow
-  ];
-  var goalEmojis = ['🎯','💪','☯️','🚀'];
-
-  // ── Photo tile — a self-contained image box ──────────────────────────────
-  function tile(n, w, h, rot, border) {
-    var src = safeUrl(n);
-    var lbl = safeLabel(n);
-    var bdr = border ? 'border:3px solid #fff;' : '';
-    var shadow = 'box-shadow:0 6px 20px rgba(0,0,0,.55);';
-    if (!src) return '<div style="width:'+w+';height:'+h+';background:rgba(255,255,255,.05);border-radius:8px;'+shadow+'"></div>';
-    return '<div style="width:'+w+';height:'+h+';border-radius:8px;overflow:hidden;position:relative;cursor:pointer;flex-shrink:0;transform:rotate('+rot+'deg);'+bdr+shadow+'" '+onclick(n)+'>' +
-      '<img src="'+src+'" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;">' +
-      (lbl ? '<div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.75));padding:4px 6px 4px;font-size:7px;font-weight:700;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.8px;pointer-events:none;">'+lbl+'</div>' : '') +
-    '</div>';
-  }
-
-  // ── Text label block — big word like "SUCCESS" ────────────────────────────
-  function word(text, color, size, bg) {
-    return '<div style="padding:8px 14px;background:'+(bg||'rgba(255,255,255,.06)')+';border-radius:8px;flex-shrink:0;">' +
-      '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:'+(size||'28px')+';letter-spacing:2px;color:'+(color||'#fff')+';line-height:1;">'+text+'</div>' +
-    '</div>';
-  }
-
-  // ── Goal sticker — "I WILL..." card ──────────────────────────────────────
-  function goalSticker(text, color, rot) {
-    return '<div style="padding:10px 12px;background:#fff;border-radius:6px;max-width:150px;flex-shrink:0;transform:rotate('+(rot||0)+'deg);box-shadow:0 4px 14px rgba(0,0,0,.4);">' +
-      '<div style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:'+color+';font-weight:700;margin-bottom:3px;">I WILL</div>' +
-      '<div style="font-size:11px;font-weight:800;color:#111;line-height:1.35;">'+text+'</div>' +
-    '</div>';
-  }
-
-  // ── Small quote badge ─────────────────────────────────────────────────────
-  function quoteBadge(text) {
-    return '<div style="padding:8px 12px;background:rgba(0,0,0,.6);border-radius:8px;max-width:180px;flex-shrink:0;border:1px solid rgba(255,255,255,.1);">' +
-      '<div style="font-size:9px;font-style:italic;color:rgba(255,255,255,.55);line-height:1.5;">'+text+'</div>' +
-    '</div>';
-  }
-
-  // ── ROW helper — horizontal flex strip ────────────────────────────────────
-  function row(items, opts) {
-    var o = opts || {};
-    return '<div style="display:flex;gap:'+(o.gap||'8px')+';align-items:'+(o.align||'center')+';flex-wrap:nowrap;padding:'+(o.pad||'0')+';">'+items.join('')+'</div>';
-  }
-
-  // ── Build the board ───────────────────────────────────────────────────────
-  // Dark background canvas — everything layered in rows that feel organic
-  var heroWord = goalTexts[0].split(' ')[0].toUpperCase();
-  var quote = VB_QUOTES[today % VB_QUOTES.length];
-
-  var habPills = (habits.length ? habits.slice(0,7) : [{name:'Add habits',icon:'⚡',done:false}]).map(function(h){
-    var done = h.done;
-    return '<span style="padding:4px 9px;border-radius:20px;white-space:nowrap;background:'+(done?'rgba(6,214,160,.2)':'rgba(255,255,255,.1)')+';border:1px solid '+(done?'#06d6a055':'rgba(255,255,255,.2)')+';font-size:9px;font-weight:600;color:'+(done?'#06d6a0':'rgba(255,255,255,.8)')+';">'+(h.icon||'⚡')+' '+h.name+(done?' ✓':'')+'</span>';
-  }).join('');
-
-  inner.innerHTML = '';
-  inner.style.cssText = 'background:#0b0f14;border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px;';
-
-  // ── STRIP 1: Hero image + year title + big word ───────────────────────────
-  var s1 = document.createElement('div');
-  s1.style.cssText = 'display:flex;gap:8px;align-items:stretch;';
-  s1.innerHTML =
-    (safeUrl(0) ?
-      '<div style="flex:1.8;border-radius:12px;overflow:hidden;position:relative;min-height:130px;cursor:pointer;" '+onclick(0)+'>' +
-        '<img src="'+safeUrl(0)+'" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;">' +
-        '<div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 40%,rgba(0,0,0,.7))"></div>' +
-        '<div style="position:absolute;bottom:10px;left:12px;">' +
-          '<div style="font-size:8px;letter-spacing:2px;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:2px;">'+new Date().getFullYear()+' · MY VISION</div>' +
-          '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:32px;letter-spacing:2px;color:#fff;line-height:1;text-shadow:0 2px 8px rgba(0,0,0,.8)">'+heroWord+'</div>' +
-        '</div>' +
-      '</div>'
-    : '<div style="flex:1.8;border-radius:12px;background:linear-gradient(135deg,#0d1a2a,#0a1018);padding:16px;display:flex;flex-direction:column;justify-content:flex-end;">' +
-        '<div style="font-size:8px;letter-spacing:2px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-bottom:4px;">'+new Date().getFullYear()+' · MY VISION</div>' +
-        '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:36px;letter-spacing:2px;background:linear-gradient(90deg,#06d6a0,#0ea5e9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;">'+heroWord+'</div>' +
-      '</div>') +
-    '<div style="flex:1;display:flex;flex-direction:column;gap:8px;">' +
-      (safeUrl(1) ? '<div style="flex:1;border-radius:10px;overflow:hidden;cursor:pointer;" '+onclick(1)+'><img src="'+safeUrl(1)+'" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;"></div>' : '') +
-      '<div style="padding:8px 10px;background:rgba(6,214,160,.08);border:1px solid rgba(6,214,160,.2);border-radius:10px;flex-shrink:0;">' +
-        '<div style="font-size:8px;font-style:italic;color:rgba(255,255,255,.45);line-height:1.5;">"'+quote+'"</div>' +
-      '</div>' +
-    '</div>';
-  inner.appendChild(s1);
-
-  // ── STRIP 2: Goals row — goal stickers over images ────────────────────────
-  var s2 = document.createElement('div');
-  s2.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:8px;';
-
-  var goalColors = ['#0ea5e9','#06d6a0','#a78bfa','#fbbf24'];
-  // Unique placeholder styles per goal slot
-  var goalPlaceholderBgs = [
-    'linear-gradient(135deg,rgba(14,165,233,.18),rgba(14,165,233,.04))',
-    'linear-gradient(135deg,rgba(6,214,160,.18),rgba(6,214,160,.04))',
-    'linear-gradient(135deg,rgba(167,139,250,.18),rgba(167,139,250,.04))',
-    'linear-gradient(135deg,rgba(251,191,36,.18),rgba(251,191,36,.04))'
-  ];
-  var goalPlaceholderWords = ['CLIENTS','HEALTH','BALANCE','SUCCESS'];
-
-  goalTexts.slice(0,4).forEach(function(text, i) {
-    var imgN = i*2 + 2; // images 2,4,6,8 — each goal gets 2 unique slots
-    var col = goalColors[i];
-    var src = safeUrl(imgN);
-    var src2 = safeUrl(imgN+1);
-
-    var card = document.createElement('div');
-    card.style.cssText = 'border-radius:12px;overflow:hidden;background:#111827;display:flex;flex-direction:column;min-height:140px;';
-
-    // Photo area — 2 unique images OR 1 unique image OR unique styled placeholder
-    var photoArea = document.createElement('div');
-    photoArea.style.cssText = 'flex:1;display:flex;gap:2px;overflow:hidden;min-height:100px;position:relative;';
-
-    if (src && src2) {
-      // Both unique images — show side by side
-      photoArea.innerHTML =
-        '<img src="'+src+'" loading="lazy" '+onclick(imgN)+' style="flex:1;object-fit:cover;cursor:pointer;">' +
-        '<img src="'+src2+'" loading="lazy" '+onclick(imgN+1)+' style="flex:1;object-fit:cover;cursor:pointer;">';
-    } else if (src) {
-      // One unique image — full width
-      photoArea.innerHTML = '<img src="'+src+'" loading="lazy" '+onclick(imgN)+' style="flex:1;object-fit:cover;cursor:pointer;width:100%;">';
-    } else if (imgs.length > 0) {
-      // No unique image — reuse an existing image but with a strong color overlay
-      // so it looks intentionally styled, not just repeated
-      var fallbackImg = imgs[i % imgs.length];
-      var overlayColors = [
-        'rgba(14,165,233,.55)',   // blue
-        'rgba(6,214,160,.55)',    // teal
-        'rgba(167,139,250,.55)',  // purple
-        'rgba(251,191,36,.55)'   // yellow
-      ];
-      var overlayC = overlayColors[i];
-      photoArea.style.position = 'relative';
-      photoArea.style.overflow = 'hidden';
-      photoArea.innerHTML =
-        '<img src="'+fallbackImg.url+'" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(0.3) brightness(0.6);">' +
-        '<div style="position:absolute;inset:0;background:'+overlayC+';mix-blend-mode:multiply;"></div>' +
-        '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;" onclick="switchVBTab(\'find\')">' +
-          '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:16px;letter-spacing:3px;color:rgba(255,255,255,.7);">+</div>' +
-          '<div style="font-size:9px;color:rgba(255,255,255,.55);padding:4px 10px;border:1px solid rgba(255,255,255,.25);border-radius:20px;cursor:pointer;">Add photo</div>' +
-        '</div>';
-    } else {
-      // No images at all — gradient placeholder
-      photoArea.style.background = goalPlaceholderBgs[i];
-      photoArea.innerHTML =
-        '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;" onclick="switchVBTab(\'find\')">' +
-          '<div style="font-size:9px;color:rgba(255,255,255,.4);padding:5px 12px;border:1px dashed rgba(255,255,255,.2);border-radius:20px;">+ Find images in Inspire</div>' +
-        '</div>';
+  // ── Photo cell ─────────────────────────────────────────────────────────────
+  // Returns HTML string for an image with optional color overlay + text overlay
+  function photoCell(n, w, h, opts) {
+    opts = opts || {};
+    var u = imgUrl(n);
+    var lbl = opts.label || imgLabel(n);
+    var click = imgClick(n);
+    var radius = opts.radius || '6px';
+    var colorOverlay = opts.colorOverlay ? '<div style="position:absolute;inset:0;background:'+opts.colorOverlay+';mix-blend-mode:multiply;pointer-events:none;"></div>' : '';
+    var textOverlay = '';
+    if (opts.bigText) {
+      textOverlay = '<div style="position:absolute;bottom:0;left:0;right:0;padding:6px 8px;background:linear-gradient(transparent,rgba(0,0,0,.75));font-size:8px;font-weight:700;color:rgba(255,255,255,.9);text-transform:uppercase;letter-spacing:.8px;pointer-events:none;">'+lbl+'</div>';
     }
-
-    // Text strip at bottom
-    var textStrip = document.createElement('div');
-    textStrip.style.cssText = 'padding:8px 10px 7px;background:#0a0e14;border-top:2px solid '+col+';flex-shrink:0;';
-    textStrip.innerHTML =
-      '<div style="font-size:7px;letter-spacing:2.5px;text-transform:uppercase;color:'+col+';font-weight:700;margin-bottom:2px;">I WILL</div>' +
-      '<div style="font-size:11px;font-weight:700;color:#fff;line-height:1.3;">'+text+'</div>';
-
-    card.appendChild(photoArea);
-    card.appendChild(textStrip);
-    s2.appendChild(card);
-  });
-
-  inner.appendChild(s2);
-
-  // Subtle nudge below the grid if fewer than 8 images
-  if (imgs.length < 8) {
-    var nudgeRow = document.createElement('div');
-    nudgeRow.style.cssText = 'text-align:center;padding:6px 0;';
-    nudgeRow.innerHTML = '<span onclick="switchVBTab(\'find\')" style="font-size:10px;color:rgba(255,255,255,.2);cursor:pointer;">♥ Go to Find Images to add more photos →</span>';
-    inner.appendChild(nudgeRow);
+    if (!u) {
+      return '<div style="width:'+w+';height:'+h+';background:rgba(255,255,255,.04);border-radius:'+radius+';flex-shrink:0;"></div>';
+    }
+    return '<div '+click+' style="width:'+w+';height:'+h+';border-radius:'+radius+';overflow:hidden;position:relative;flex-shrink:0;"><img src="'+u+'" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;">'+colorOverlay+textOverlay+'</div>';
   }
 
-  // ── STRIP 3: Domains + side image ────────────────────────────────────────
-  var s3 = document.createElement('div');
-  s3.style.cssText = 'display:flex;gap:8px;align-items:center;';
-  var domPills = activeDoms.map(function(d){
-    var col = DC[d.name]||'rgba(255,255,255,.55)';
-    return '<span style="padding:5px 11px;border-radius:20px;background:rgba(255,255,255,.05);border:1px solid '+col+'55;font-size:9px;font-weight:700;color:'+col+';white-space:nowrap;">'+(d.icon||'✦')+' '+d.name+'</span>';
-  }).join('');
-  s3.innerHTML =
-    '<div style="flex:1;display:flex;flex-wrap:wrap;gap:6px;padding:8px;background:rgba(255,255,255,.025);border-radius:10px;">'+domPills+'</div>' +
-    (safeUrl(10) ? '<img src="'+safeUrl(10)+'" loading="lazy" '+onclick(10)+' style="width:65px;height:50px;object-fit:cover;border-radius:10px;cursor:pointer;flex-shrink:0;">' : '');
-  inner.appendChild(s3);
-
-  // ── STRIP 4: Habits ───────────────────────────────────────────────────────
-  var s4 = document.createElement('div');
-  s4.style.cssText = 'border-radius:10px;overflow:hidden;position:relative;';
-  s4.innerHTML =
-    (safeUrl(11) ? '<img src="'+safeUrl(11)+'" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.12;">' : '') +
-    '<div style="position:relative;z-index:2;padding:9px 12px;background:rgba(6,214,160,.05);border:1px solid rgba(6,214,160,.12);">' +
-      '<div style="font-size:7px;letter-spacing:2px;text-transform:uppercase;color:#06d6a0;font-weight:700;margin-bottom:6px;">⚡ Daily non-negotiables</div>' +
-      '<div style="display:flex;flex-wrap:wrap;gap:5px;">'+habPills+'</div>' +
+  // ── Text sticker (white card with goal text) ───────────────────────────────
+  function sticker(text, opts) {
+    opts = opts || {};
+    var bg = opts.bg || '#fff';
+    var col = opts.col || '#111';
+    var accent = opts.accent || '#0ea5e9';
+    var rotate = opts.rot ? 'transform:rotate('+opts.rot+'deg);' : '';
+    var size = opts.size || '11px';
+    return '<div style="padding:10px 12px;background:'+bg+';border-radius:6px;flex-shrink:0;'+rotate+'box-shadow:0 3px 12px rgba(0,0,0,.4);max-width:'+( opts.maxW||'160px')+';">' +
+      (opts.label ? '<div style="font-size:7px;letter-spacing:2px;text-transform:uppercase;color:'+accent+';font-weight:700;margin-bottom:3px;">'+opts.label+'</div>' : '') +
+      '<div style="font-size:'+size+';font-weight:800;color:'+col+';line-height:1.3;">'+text+'</div>' +
     '</div>';
-  inner.appendChild(s4);
+  }
 
-  // ── STRIP 5: Bottom photo strip ───────────────────────────────────────────
-  if (imgs.length > 3) {
-    var s5 = document.createElement('div');
-    s5.style.cssText = 'display:grid;grid-template-columns:repeat(4,1fr);gap:4px;';
-    [12,13,14,15].forEach(function(n,i){
-      var src = safeUrl(n); if (!src) return;
-      var r = i===0?'0 0 0 10px':i===3?'0 0 10px 0':'4px';
-      var img = document.createElement('img');
-      img.src = src; img.loading = 'lazy';
-      img.setAttribute('onclick', "openImageLightbox('"+src+"','"+safeLabel(n)+"')");
-      img.style.cssText = 'height:72px;width:100%;object-fit:cover;cursor:pointer;border-radius:'+r+';display:block;';
-      s5.appendChild(img);
-    });
-    if (s5.children.length > 0) inner.appendChild(s5);
+  // ── Word block ─────────────────────────────────────────────────────────────
+  function wordBlock(text, opts) {
+    opts = opts || {};
+    var bg = opts.bg || 'rgba(255,255,255,.06)';
+    var col = opts.col || '#fff';
+    var size = opts.size || '28px';
+    var rotate = opts.rot ? 'transform:rotate('+opts.rot+'deg);' : '';
+    return '<div style="padding:'+( opts.pad||'8px 14px')+';background:'+bg+';border-radius:6px;flex-shrink:0;'+rotate+'">' +
+      '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:'+size+';letter-spacing:2px;color:'+col+';line-height:1;">'+text+'</div>' +
+    '</div>';
+  }
+
+  // ── Quote text ─────────────────────────────────────────────────────────────
+  function quoteText(text, opts) {
+    opts = opts || {};
+    return '<div style="padding:8px 12px;flex-shrink:0;max-width:'+(opts.maxW||'180px')+';"><div style="font-size:'+(opts.size||'10px')+';font-style:italic;color:rgba(255,255,255,'+(opts.opacity||'.5')+');line-height:1.6;">' + text + '</div></div>';
+  }
+
+  // ── Habit pill ─────────────────────────────────────────────────────────────
+  function habPill(h) {
+    var done = h.done;
+    return '<span style="display:inline-flex;align-items:center;gap:3px;padding:4px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0;background:'+(done?'rgba(6,214,160,.2)':'rgba(255,255,255,.1)')+';border:1px solid '+(done?'#06d6a055':'rgba(255,255,255,.18)')+';font-size:9px;font-weight:600;color:'+(done?'#06d6a0':'rgba(255,255,255,.8)')+';">'+(h.icon||'⚡')+' '+h.name+(done?' ✓':'')+'</span>';
+  }
+
+  // ── Layout: pure CSS masonry-style using columns ───────────────────────────
+  inner.innerHTML = '';
+  inner.style.cssText = 'background:#0b0e13;border-radius:16px;padding:10px;';
+
+  // We build a 3-column masonry layout using absolute positioning simulation
+  // Actually: use CSS columns for true masonry
+  var board = document.createElement('div');
+  board.style.cssText = 'columns:3;column-gap:6px;';
+
+  // Each item is a block that breaks into the column layout naturally
+  function addBlock(html, opts) {
+    opts = opts || {};
+    var d = document.createElement('div');
+    d.style.cssText = 'break-inside:avoid;margin-bottom:6px;' + (opts.style||'');
+    d.innerHTML = html;
+    board.appendChild(d);
+    return d;
+  }
+
+  // Helper: image block for masonry
+  function masonryImg(n, h, opts) {
+    opts = opts || {};
+    var u = imgUrl(n); var lbl = opts.lbl !== undefined ? opts.lbl : imgLabel(n);
+    var radius = opts.r || '8px';
+    var ov = opts.ov ? '<div style="position:absolute;inset:0;background:'+opts.ov+';pointer-events:none;"></div>' : '';
+    var cap = lbl ? '<div style="position:absolute;bottom:0;left:0;right:0;padding:5px 7px 4px;background:linear-gradient(transparent,rgba(0,0,0,.75));font-size:7px;font-weight:700;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.7px;pointer-events:none;">'+lbl+'</div>' : '';
+    if (!u) return '<div style="height:'+h+';background:rgba(255,255,255,.03);border-radius:'+radius+';"></div>';
+    return '<div onclick="openImageLightbox(\''+u+'\',\''+imgLabel(n)+'\')" style="position:relative;overflow:hidden;border-radius:'+radius+';cursor:pointer;height:'+h+';">' +
+      '<img src="'+u+'" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;">' + ov + cap + '</div>';
+  }
+
+  // ── COLUMN 1 ────────────────────────────────────────────────────────────────
+  // Big title block
+  addBlock(
+    wordBlock('MY VISION', {bg:'rgba(255,255,255,.04)', col:'rgba(255,255,255,.5)', size:'14px', pad:'6px 10px'}) +
+    wordBlock(new Date().getFullYear()+' BOARD', {bg:'transparent', col:'rgba(255,255,255,.15)', size:'11px', pad:'2px 10px 6px'})
+  );
+
+  addBlock(masonryImg(0, '140px', {r:'8px'}));
+  addBlock(sticker(goalTexts[0], {label:'I WILL', accent:'#0ea5e9', rot:'-1'}));
+  addBlock(masonryImg(3, '100px', {ov:'rgba(6,214,160,.35)', r:'8px'}));
+  addBlock(sticker(goalTexts[2], {label:'I WILL', accent:'#a78bfa', bg:'#f8f4ff', rot:'0.5'}));
+  addBlock(masonryImg(6, '90px', {r:'8px'}));
+  addBlock('<div style="padding:8px;background:rgba(6,214,160,.08);border:1px solid rgba(6,214,160,.18);border-radius:8px;font-size:9px;font-style:italic;color:rgba(255,255,255,.5);line-height:1.5;">"' + VB_QUOTES[today%VB_QUOTES.length] + '"</div>');
+  addBlock(masonryImg(9, '80px', {ov:'rgba(99,102,241,.4)', r:'8px', lbl:''}));
+
+  // ── COLUMN 2 ────────────────────────────────────────────────────────────────
+  addBlock(masonryImg(1, '180px', {r:'8px'}));
+  addBlock(wordBlock(VB_ASPIRE[today%VB_ASPIRE.length], {col:'rgba(255,255,255,.7)', size:'32px', bg:'rgba(255,255,255,.05)', pad:'10px 14px'}));
+  addBlock(masonryImg(4, '110px', {r:'8px'}));
+  addBlock(sticker(goalTexts[1], {label:'I WILL', accent:'#06d6a0', rot:'1'}));
+  addBlock(masonryImg(7, '95px', {ov:'rgba(251,191,36,.35)', r:'8px'}));
+  // Habits strip
+  if (habits.length) {
+    var habHtml = '<div style="padding:8px;background:rgba(6,214,160,.06);border:1px solid rgba(6,214,160,.12);border-radius:8px;">' +
+      '<div style="font-size:7px;letter-spacing:2px;color:#06d6a0;text-transform:uppercase;font-weight:700;margin-bottom:5px;">⚡ DAILY</div>' +
+      '<div style="display:flex;flex-direction:column;gap:3px;">' +
+      habits.slice(0,4).map(function(h){ return habPill(h); }).join('') +
+      '</div></div>';
+    addBlock(habHtml);
+  }
+  addBlock(masonryImg(10, '90px', {r:'8px'}));
+
+  // ── COLUMN 3 ────────────────────────────────────────────────────────────────
+  addBlock(masonryImg(2, '120px', {r:'8px'}));
+  addBlock(wordBlock('HAPPINESS.', {col:'rgba(255,255,255,.6)', size:'20px', bg:'rgba(255,255,255,.04)', pad:'8px 10px'}));
+  addBlock(masonryImg(5, '150px', {ov:'rgba(14,165,233,.35)', r:'8px'}));
+  addBlock(sticker(goalTexts[3], {label:'I WILL', accent:'#fbbf24', bg:'#fff9e6', rot:'-0.5'}));
+  addBlock(masonryImg(8, '100px', {r:'8px'}));
+  // Domains
+  var domHtml = '<div style="padding:8px;display:flex;flex-direction:column;gap:4px;">' +
+    (domains.length?domains:[ {name:'Clients',icon:'🤝'},{name:'Health',icon:'💪'},{name:'Balance',icon:'☯️'} ]).slice(0,4).map(function(d){
+      var col=DC[d.name]||'rgba(255,255,255,.5)';
+      return '<span style="padding:3px 8px;border-radius:20px;background:rgba(255,255,255,.05);border:1px solid '+col+'44;font-size:9px;font-weight:700;color:'+col+';white-space:nowrap;">'+(d.icon||'✦')+' '+d.name+'</span>';
+    }).join('') +
+  '</div>';
+  addBlock(domHtml);
+  addBlock(masonryImg(11, '80px', {ov:'rgba(167,139,250,.4)', r:'8px', lbl:''}));
+
+  inner.appendChild(board);
+
+  // Add more nudge
+  if (imgs.length < 6) {
+    var n = document.createElement('div');
+    n.style.cssText = 'text-align:center;padding:8px 0 2px;';
+    n.innerHTML = '<span onclick="switchVBTab(\'find\')" style="font-size:10px;color:rgba(255,255,255,.2);cursor:pointer;">♥ Add more photos from Find Images to fill your board</span>';
+    inner.appendChild(n);
   }
 }
+
+
 
 
 </script>

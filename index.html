@@ -838,6 +838,12 @@ body{background:
 
     <!-- FOLD 1: SCORE + COACH — most important, always above the fold -->
     <div style="padding:10px 16px 0">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div>
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700">Your Effectiveness Score</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:1px;">Based on mindset, tasks, momentum & alignment — tap to see breakdown</div>
+        </div>
+      </div>
       <div id="score-card" style="background:linear-gradient(135deg,rgba(14,165,233,.1),rgba(6,214,160,.06));border:1px solid rgba(14,165,233,.2);border-radius:16px;padding:14px 16px;cursor:pointer;margin-bottom:8px" onclick="toggleScoreBars()">
         <div style="display:flex;align-items:center;gap:14px">
           <div class="score-circle" id="score-circle" style="width:60px;height:60px;flex-shrink:0">
@@ -921,7 +927,10 @@ body{background:
 
     <!-- FOLD 2: THIS WEEK — with color legend -->
     <div style="padding:0 16px 4px;display:flex;align-items:center;justify-content:space-between">
-      <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700">This Week</div>
+      <div>
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700">This Week</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:1px;">% of tasks completed each day</div>
+      </div>
       <div style="display:flex;align-items:center;gap:10px">
         <div style="display:flex;align-items:center;gap:6px">
           <div style="display:flex;align-items:center;gap:3px"><div style="width:6px;height:6px;border-radius:50%;background:#06d6a0"></div><span style="font-size:9px;color:var(--muted)">&#x2265;80%</span></div>
@@ -937,8 +946,11 @@ body{background:
 
     <!-- FOLD 2: HABIT MATRIX -->
     <div style="padding:0 16px 4px;display:flex;align-items:center;justify-content:space-between">
-      <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700">Habit Matrix</div>
-      <button onclick="switchPage('roadmap')" style="font-size:10px;color:var(--teal);background:none;border:none;cursor:pointer;padding:0">Edit &#8594;</button>
+      <div>
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700">Habit Matrix</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:1px;">Your tasks this week · go to Roadmap → Tasks to check them off</div>
+      </div>
+      <button onclick="switchPage('roadmap')" style="font-size:10px;color:var(--teal);background:none;border:none;cursor:pointer;padding:0;flex-shrink:0">Edit &#8594;</button>
     </div>
     <div id="today-habit-matrix" style="margin:0 16px 14px;background:linear-gradient(180deg,rgba(17,24,39,.95),rgba(12,18,28,.98));border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:10px 12px;overflow-x:auto;min-height:60px">
       <div style="font-size:11px;color:var(--muted)">Loading habits...</div>
@@ -948,8 +960,11 @@ body{background:
 
     <!-- FOLD 3: GOALS — stacked, full width -->
     <div style="padding:0 16px 4px;display:flex;align-items:center;justify-content:space-between">
-      <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700">Goals</div>
-      <button onclick="switchPage('roadmap');setTimeout(function(){switchRoadmapTab('goals')},50)" style="font-size:10px;color:var(--blue);background:none;border:none;cursor:pointer;padding:0">View all &#8594;</button>
+      <div>
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700">Goals</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:1px;">Your 90-day targets — update % in Roadmap → Goals</div>
+      </div>
+      <button onclick="switchPage('roadmap');setTimeout(function(){switchRoadmapTab('goals')},50)" style="font-size:10px;color:var(--blue);background:none;border:none;cursor:pointer;padding:0;flex-shrink:0">View all &#8594;</button>
     </div>
     <div id="dashboard-goals-preview" style="margin:0 16px 14px">
       <div style="font-size:11px;color:var(--muted)">Loading goals...</div>
@@ -957,8 +972,11 @@ body{background:
 
     <!-- FOLD 3: LIFE DASHBOARD — stacked below goals -->
     <div style="padding:0 16px 4px;display:flex;align-items:center;justify-content:space-between">
-      <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700">Life Dashboard</div>
-      <button onclick="switchPage('roadmap');setTimeout(function(){switchRoadmapTab('domains')},50)" style="font-size:10px;color:var(--teal);background:none;border:none;cursor:pointer;padding:0">View &#8594;</button>
+      <div>
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700">Life Dashboard</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:1px;">Your lifestyle areas — Finance, Fitness, Business, Mindset</div>
+      </div>
+      <button onclick="switchPage('roadmap');setTimeout(function(){switchRoadmapTab('domains')},50)" style="font-size:10px;color:var(--teal);background:none;border:none;cursor:pointer;padding:0;flex-shrink:0">View &#8594;</button>
     </div>
     <div id="today-domains-preview" style="padding:0 16px 14px">
       <div style="font-size:12px;color:var(--muted);padding:8px 0">Add domains in Roadmap &#8594;</div>
@@ -991,24 +1009,40 @@ body{background:
 
     <!-- FOLD 4: ENERGY -->
     <div style="padding:0 16px 4px;display:flex;align-items:center;justify-content:space-between">
-      <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700">Energy Today</div>
+      <div>
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700">How's your energy today?</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:1px;">Tap an emoji once a day — Coach uses this to adapt your plan</div>
+      </div>
       <div id="dashboard-energy-label" style="font-size:10px;color:var(--muted)"></div>
     </div>
-    <div style="margin:0 16px 14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:10px 14px">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <button onclick="dashboardLogEnergy(1)" class="dash-energy-btn" data-level="1" style="font-size:22px;background:none;border:none;cursor:pointer;padding:4px;border-radius:8px;opacity:.5;transition:all .15s">&#x1F634;</button>
-        <button onclick="dashboardLogEnergy(2)" class="dash-energy-btn" data-level="2" style="font-size:22px;background:none;border:none;cursor:pointer;padding:4px;border-radius:8px;opacity:.5;transition:all .15s">&#x1F610;</button>
-        <button onclick="dashboardLogEnergy(3)" class="dash-energy-btn" data-level="3" style="font-size:22px;background:none;border:none;cursor:pointer;padding:4px;border-radius:8px;opacity:.5;transition:all .15s">&#x1F642;</button>
-        <button onclick="dashboardLogEnergy(4)" class="dash-energy-btn" data-level="4" style="font-size:22px;background:none;border:none;cursor:pointer;padding:4px;border-radius:8px;opacity:.5;transition:all .15s">&#x1F60A;</button>
-        <button onclick="dashboardLogEnergy(5)" class="dash-energy-btn" data-level="5" style="font-size:22px;background:none;border:none;cursor:pointer;padding:4px;border-radius:8px;opacity:.5;transition:all .15s">&#x1F525;</button>
+    <div style="margin:6px 16px 14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:12px 14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:4px">
+        <button onclick="dashboardLogEnergy(1)" class="dash-energy-btn" data-level="1" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:22px;background:none;border:1px solid rgba(255,255,255,.06);border-radius:10px;cursor:pointer;padding:8px 4px;opacity:.55;transition:all .15s">
+          &#x1F634;<span style="font-size:8px;color:rgba(255,255,255,.3);font-weight:600">Low</span>
+        </button>
+        <button onclick="dashboardLogEnergy(2)" class="dash-energy-btn" data-level="2" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:22px;background:none;border:1px solid rgba(255,255,255,.06);border-radius:10px;cursor:pointer;padding:8px 4px;opacity:.55;transition:all .15s">
+          &#x1F610;<span style="font-size:8px;color:rgba(255,255,255,.3);font-weight:600">Meh</span>
+        </button>
+        <button onclick="dashboardLogEnergy(3)" class="dash-energy-btn" data-level="3" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:22px;background:none;border:1px solid rgba(255,255,255,.06);border-radius:10px;cursor:pointer;padding:8px 4px;opacity:.55;transition:all .15s">
+          &#x1F642;<span style="font-size:8px;color:rgba(255,255,255,.3);font-weight:600">OK</span>
+        </button>
+        <button onclick="dashboardLogEnergy(4)" class="dash-energy-btn" data-level="4" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:22px;background:none;border:1px solid rgba(255,255,255,.06);border-radius:10px;cursor:pointer;padding:8px 4px;opacity:.55;transition:all .15s">
+          &#x1F60A;<span style="font-size:8px;color:rgba(255,255,255,.3);font-weight:600">Good</span>
+        </button>
+        <button onclick="dashboardLogEnergy(5)" class="dash-energy-btn" data-level="5" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:22px;background:none;border:1px solid rgba(255,255,255,.06);border-radius:10px;cursor:pointer;padding:8px 4px;opacity:.55;transition:all .15s">
+          &#x1F525;<span style="font-size:8px;color:rgba(255,255,255,.3);font-weight:600">Fire!</span>
+        </button>
       </div>
-      <div id="dashboard-energy-msg" style="font-size:10px;color:var(--muted);text-align:center;margin-top:4px;min-height:14px"></div>
+      <div id="dashboard-energy-msg" style="font-size:10px;color:var(--muted);text-align:center;margin-top:6px;min-height:14px"></div>
     </div>
 
     <!-- FOLD 4: EVOLUTION CHART -->
     <div style="padding:0 16px 10px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700">Evolution</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div>
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700">Your Evolution</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:1px;">Habits, goals & energy over time — are you growing?</div>
+        </div>
         <div style="display:flex;gap:4px">
           <button onclick="setLineChartPeriod(7)" id="lc-btn-7" style="padding:3px 9px;border-radius:6px;border:1px solid rgba(14,165,233,.4);background:rgba(14,165,233,.15);color:var(--blue);font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">7d</button>
           <button onclick="setLineChartPeriod(30)" id="lc-btn-30" style="padding:3px 9px;border-radius:6px;border:1px solid rgba(255,255,255,.1);background:none;color:var(--muted);font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">30d</button>

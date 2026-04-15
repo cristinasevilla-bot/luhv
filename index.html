@@ -1295,74 +1295,31 @@ body{background:
     </div>
 
     <!-- ── TAB 1: THE REAL VISION BOARD ── -->
-    <div id="vb-board-tab" style="padding:16px 16px 8px">
+    <div id="vb-board-tab" style="padding:12px 12px 8px">
 
       <!-- Hint banner -->
-      <div id="inspire-like-hint" style="margin-bottom:14px;padding:10px 14px;background:rgba(244,63,94,.08);border:1px solid rgba(244,63,94,.2);border-radius:12px;display:none;align-items:center;gap:10px;font-size:12px;color:rgba(255,255,255,.65)">
-        <span style="font-size:18px;flex-shrink:0">💡</span>
-        <span>Go to <strong style="color:var(--teal)">Find Images</strong> tab, tap the <strong style="color:#f43f5e">♥ heart</strong> to add images to your board. Tap any image to enlarge.</span>
+      <div id="inspire-like-hint" style="margin-bottom:12px;padding:9px 12px;background:rgba(244,63,94,.08);border:1px solid rgba(244,63,94,.2);border-radius:10px;display:none;align-items:center;gap:9px;font-size:12px;color:rgba(255,255,255,.65)">
+        <span style="font-size:16px;flex-shrink:0">💡</span>
+        <span>Go to <strong style="color:var(--teal)">Find Images</strong>, tap the <strong style="color:#f43f5e">♥ heart</strong> to add to your board.</span>
         <button onclick="document.getElementById('inspire-like-hint').style.display='none';localStorage.setItem('luhv_hint_liked','1')" style="margin-left:auto;background:none;border:none;color:rgba(255,255,255,.3);font-size:18px;cursor:pointer;flex-shrink:0;padding:0;line-height:1">×</button>
       </div>
 
       <!-- Empty state -->
-      <div id="vb-empty-state" style="display:none;text-align:center;padding:40px 20px">
-        <div style="font-size:52px;margin-bottom:12px">🎯</div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;margin-bottom:8px">BUILD YOUR VISION</div>
-        <div style="font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:20px;max-width:280px;margin-left:auto;margin-right:auto">Your vision board shows your goals, habits and lifestyle images in one place. Go to <strong style="color:var(--teal)">Find Images</strong> to add photos.</div>
-        <button onclick="switchVBTab('find')" style="padding:13px 28px;border:none;border-radius:14px;background:linear-gradient(135deg,var(--purple),var(--blue));color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:'DM Sans',sans-serif">Find Images →</button>
+      <div id="vb-empty-state" style="display:none;text-align:center;padding:48px 20px">
+        <div style="font-size:56px;margin-bottom:14px">🎯</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;margin-bottom:8px">BUILD YOUR VISION BOARD</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:22px;max-width:280px;margin-left:auto;margin-right:auto">Your goals, habits and saved images will appear here as a visual moodboard. Go to <strong style="color:var(--teal)">Find Images</strong> to add photos.</div>
+        <button onclick="switchVBTab('find')" style="padding:13px 30px;border:none;border-radius:14px;background:linear-gradient(135deg,var(--purple),var(--blue));color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:'DM Sans',sans-serif">Find Images →</button>
       </div>
 
-      <!-- THE BOARD ITSELF -->
-      <div id="vb-real-board" style="display:none">
+      <!-- THE MOODBOARD COLLAGE -->
+      <div id="vb-real-board" style="display:none;position:relative;background:#0e1218;border-radius:18px;overflow:hidden;min-height:600px;padding-bottom:20px">
+        <!-- Rendered by JS into a true collage -->
+        <div id="vb-collage-inner"></div>
 
-        <!-- HEADER TITLE BLOCK -->
-        <div style="text-align:center;padding:10px 0 18px;position:relative">
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:rgba(255,255,255,.15);text-transform:uppercase" id="vb-year-label">2026</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:3px;line-height:1;color:#fff">MY VISION</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:3px;line-height:1;background:linear-gradient(135deg,var(--teal),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent">BOARD</div>
-        </div>
-
-        <!-- GOALS SECTION -->
-        <div class="vb-section" id="vb-goals-section" style="margin-bottom:20px;display:none">
-          <div class="vb-section-label" style="font-size:9px;text-transform:uppercase;letter-spacing:2.5px;font-weight:700;color:var(--blue);margin-bottom:10px;display:flex;align-items:center;gap:6px">
-            <span style="display:inline-block;width:20px;height:1px;background:var(--blue)"></span>🎯 Goals<span style="display:inline-block;width:20px;height:1px;background:var(--blue)"></span>
-          </div>
-          <div id="vb-goals-content" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center"></div>
-        </div>
-
-        <!-- GOALS IMAGES ROW -->
-        <div id="vb-goals-images" style="display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;margin-bottom:20px"></div>
-
-        <!-- LIFESTYLE / DOMAINS SECTION -->
-        <div class="vb-section" id="vb-lifestyle-section" style="margin-bottom:10px;display:none">
-          <div class="vb-section-label" style="font-size:9px;text-transform:uppercase;letter-spacing:2.5px;font-weight:700;color:var(--purple);margin-bottom:10px;display:flex;align-items:center;gap:6px">
-            <span style="display:inline-block;width:20px;height:1px;background:var(--purple)"></span>🌟 Lifestyle<span style="display:inline-block;width:20px;height:1px;background:var(--purple)"></span>
-          </div>
-          <div id="vb-lifestyle-content" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center"></div>
-        </div>
-
-        <!-- LIFESTYLE IMAGES -->
-        <div id="vb-lifestyle-images" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:20px"></div>
-
-        <!-- HABITS SECTION -->
-        <div class="vb-section" id="vb-habits-section" style="margin-bottom:10px;display:none">
-          <div class="vb-section-label" style="font-size:9px;text-transform:uppercase;letter-spacing:2.5px;font-weight:700;color:var(--teal);margin-bottom:10px;display:flex;align-items:center;gap:6px">
-            <span style="display:inline-block;width:20px;height:1px;background:var(--teal)"></span>⚡ Daily Habits<span style="display:inline-block;width:20px;height:1px;background:var(--teal)"></span>
-          </div>
-          <div id="vb-habits-content" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center"></div>
-        </div>
-
-        <!-- HABITS IMAGES ROW -->
-        <div id="vb-habits-images" style="display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;margin-bottom:20px"></div>
-
-        <!-- MOTIVATIONAL QUOTE -->
-        <div id="vb-quote-block" style="text-align:center;padding:16px 20px;margin-bottom:8px;display:none">
-          <div style="font-size:13px;font-style:italic;color:rgba(255,255,255,.5);line-height:1.7" id="vb-quote-text"></div>
-        </div>
-
-        <!-- CTA to add more images -->
-        <div style="text-align:center;padding:8px 0 16px">
-          <button onclick="switchVBTab('find')" style="padding:10px 22px;border:1px dashed rgba(255,255,255,.15);border-radius:20px;background:transparent;color:var(--muted);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif">+ Add more images</button>
+        <!-- Footer CTA -->
+        <div style="text-align:center;padding:6px 0 4px;position:relative;z-index:5">
+          <button onclick="switchVBTab('find')" style="padding:8px 20px;border:1px dashed rgba(255,255,255,.15);border-radius:20px;background:transparent;color:rgba(255,255,255,.3);font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif">+ Add more images</button>
         </div>
       </div>
     </div>
@@ -5859,22 +5816,21 @@ var VB_QUOTES = [
   'Success is the sum of small efforts, repeated day in and day out.',
   'Every day is a chance to get better. Use it.',
   'Your habits shape your future. Build them with intention.',
-  'Dream big. Plan smart. Work hard. Stay focused.'
+  'Dream big. Plan smart. Work hard. Stay focused.',
+  'Be so good they cannot ignore you.',
+  'Focus on the step in front of you, not the whole staircase.'
 ];
 
-async function renderVisionBoardReal() {
-  var yearLabel = document.getElementById('vb-year-label');
-  if (yearLabel) yearLabel.textContent = new Date().getFullYear();
+var VB_WORDS = ['FOCUS','SUCCESS','BALANCE','FREEDOM','GROWTH','WEALTH','STRENGTH','CLARITY','VISION','HUSTLE','DISCIPLINE','ABUNDANCE'];
 
+async function renderVisionBoardReal() {
   var emptyState = document.getElementById('vb-empty-state');
   var realBoard  = document.getElementById('vb-real-board');
   var hint       = document.getElementById('inspire-like-hint');
 
-  // Load data
-  var goals   = [];
-  var habits  = [];
-  var domains = [];
-  try { goals   = JSON.parse(localStorage.getItem('luhv_goals_cache')  || '[]'); } catch(e) {}
+  // Load all data
+  var goals = [], habits = [], domains = [];
+  try { goals = JSON.parse(localStorage.getItem('luhv_goals_cache') || '[]'); } catch(e) {}
   try {
     var hData = await api('/api/habits');
     habits = Array.isArray(hData) ? hData : [];
@@ -5889,10 +5845,7 @@ async function renderVisionBoardReal() {
 
   var hasContent = visionBoard.length > 0 || goals.length > 0 || habits.length > 0 || domains.length > 0;
 
-  // Show hint if first time
-  if (hint && !localStorage.getItem('luhv_hint_liked')) {
-    hint.style.display = 'flex';
-  }
+  if (hint && !localStorage.getItem('luhv_hint_liked')) hint.style.display = 'flex';
 
   if (!hasContent) {
     if (emptyState) emptyState.style.display = 'block';
@@ -5902,134 +5855,267 @@ async function renderVisionBoardReal() {
   if (emptyState) emptyState.style.display = 'none';
   if (realBoard)  realBoard.style.display  = 'block';
 
-  // ── GOALS SECTION ──
-  var goalsSection  = document.getElementById('vb-goals-section');
-  var goalsContent  = document.getElementById('vb-goals-content');
-  var goalsImages   = document.getElementById('vb-goals-images');
-  if (goals.length > 0 && goalsSection && goalsContent) {
-    goalsSection.style.display = 'block';
-    goalsContent.innerHTML = goals.slice(0,4).map(function(g) {
+  var inner = document.getElementById('vb-collage-inner');
+  if (!inner) return;
+  inner.innerHTML = '';
+
+  // ── HEADER TITLE ──────────────────────────────────────────────────────────
+  var yr = new Date().getFullYear();
+  var header = document.createElement('div');
+  header.style.cssText = 'text-align:center;padding:22px 16px 16px;position:relative;z-index:4';
+  header.innerHTML =
+    '<div style="font-size:10px;letter-spacing:3px;color:rgba(255,255,255,.2);text-transform:uppercase;margin-bottom:4px">' + yr + '</div>' +
+    '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:42px;letter-spacing:4px;line-height:1;color:#fff;text-shadow:0 2px 20px rgba(0,0,0,.6)">MY VISION</div>' +
+    '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:42px;letter-spacing:4px;line-height:1;background:linear-gradient(90deg,var(--teal),var(--blue),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent">BOARD</div>';
+  inner.appendChild(header);
+
+  // ── SECTION BUILDER ───────────────────────────────────────────────────────
+  function makeSectionLabel(emoji, text, color) {
+    var d = document.createElement('div');
+    d.style.cssText = 'display:flex;align-items:center;gap:8px;padding:0 16px;margin:18px 0 10px;position:relative;z-index:4';
+    d.innerHTML = '<div style="flex:1;height:1px;background:' + color + ';opacity:.3"></div>' +
+      '<div style="font-size:9px;letter-spacing:2.5px;font-weight:700;color:' + color + ';text-transform:uppercase;white-space:nowrap">' + emoji + ' ' + text + '</div>' +
+      '<div style="flex:1;height:1px;background:' + color + ';opacity:.3"></div>';
+    return d;
+  }
+
+  // ── IMAGE CARD BUILDER ────────────────────────────────────────────────────
+  function makeImgCard(item, w, h, rotate, borderColor) {
+    var wrap = document.createElement('div');
+    var rot = rotate ? 'rotate(' + rotate + 'deg)' : '';
+    wrap.style.cssText = 'border-radius:10px;overflow:hidden;flex-shrink:0;cursor:pointer;' +
+      'width:' + w + ';height:' + h + ';' +
+      'transform:' + rot + ';' +
+      'border:3px solid ' + (borderColor || 'rgba(255,255,255,.08)') + ';' +
+      'box-shadow:0 8px 24px rgba(0,0,0,.5);position:relative;';
+    var img = document.createElement('img');
+    img.src = item.url;
+    img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+    img.loading = 'lazy';
+    img.onclick = function() { openImageLightbox(item.url, item.label || item.kw); };
+    // Label overlay at bottom
+    if (item.label || item.kw) {
+      var cap = document.createElement('div');
+      cap.style.cssText = 'position:absolute;bottom:0;left:0;right:0;padding:6px 8px 5px;background:linear-gradient(transparent,rgba(0,0,0,.75));font-size:9px;font-weight:700;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.8px;pointer-events:none;';
+      cap.textContent = (item.label || item.kw || '').split(' ').slice(0,3).join(' ');
+      wrap.appendChild(cap);
+    }
+    wrap.appendChild(img);
+    return wrap;
+  }
+
+  // ── TEXT PILL BUILDER ──────────────────────────────────────────────────────
+  function makeTextPill(text, bg, color, fontSize) {
+    var d = document.createElement('div');
+    d.style.cssText = 'padding:7px 14px;border-radius:20px;background:' + bg + ';color:' + color + ';font-size:' + (fontSize||'12px') + ';font-weight:700;white-space:nowrap;';
+    d.textContent = text;
+    return d;
+  }
+
+  // ── WORD BLOCK ─────────────────────────────────────────────────────────────
+  function makeWordBlock(word, style) {
+    var d = document.createElement('div');
+    d.style.cssText = style;
+    d.textContent = word;
+    return d;
+  }
+
+  // Distribute images across the board (all visionBoard images get used)
+  var imgs = visionBoard.slice();
+  var imgIdx = 0;
+  function nextImg() { return imgs.length ? imgs[imgIdx++ % imgs.length] : null; }
+
+  // ── SECTION 1: GOALS ──────────────────────────────────────────────────────
+  if (goals.length > 0) {
+    inner.appendChild(makeSectionLabel('🎯', 'My Goals', 'var(--blue)'));
+
+    // Row 1: up to 2 big images side by side, goals overlaid
+    var goalsRow = document.createElement('div');
+    goalsRow.style.cssText = 'padding:0 12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;position:relative;z-index:4';
+
+    goals.slice(0, 4).forEach(function(g) {
       var title = (g.title || '').replace(/^\[.*?\]\s*/, '');
-      var pct   = Math.round((g.progress / g.target) * 100);
-      var col   = pct >= 100 ? 'var(--teal)' : 'var(--blue)';
-      return '<div style="background:rgba(14,165,233,.08);border:1px solid rgba(14,165,233,.2);border-radius:14px;padding:12px 16px;min-width:140px;max-width:200px;text-align:center">' +
-        '<div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:8px;line-height:1.4">' + title + '</div>' +
-        '<div style="height:4px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden;margin-bottom:5px"><div style="height:100%;width:' + pct + '%;background:' + col + ';border-radius:99px;transition:width .5s"></div></div>' +
-        '<div style="font-size:11px;font-weight:700;color:' + col + '">' + pct + '%</div>' +
-        '</div>';
-    }).join('');
-  } else if (goalsSection) {
-    goalsSection.style.display = 'none';
-  }
+      var pct   = Math.min(100, Math.round((g.progress / g.target) * 100));
+      var col   = pct >= 100 ? '#06d6a0' : pct >= 50 ? '#0ea5e9' : '#6366f1';
 
-  // Goals images from vision board tagged 'business' or 'goal'
-  if (goalsImages) {
-    var goalImgs = visionBoard.filter(function(v) {
-      var kw = (v.kw || v.label || '').toLowerCase();
-      return kw.match(/business|goal|success|entrepreneur|leader|client|launch|revenue|office/);
-    }).slice(0, 4);
-    if (goalImgs.length > 0) {
-      goalsImages.innerHTML = '';
-      goalImgs.forEach(function(item) {
-        var img = document.createElement('img');
-        img.src = item.url;
-        img.style.cssText = 'width:120px;height:160px;object-fit:cover;border-radius:12px;flex-shrink:0;cursor:pointer;border:2px solid rgba(14,165,233,.25);';
-        img.onclick = function() { openImageLightbox(item.url, item.label || item.kw); };
-        goalsImages.appendChild(img);
-      });
-    } else {
-      goalsImages.innerHTML = '';
-    }
-  }
+      var card = document.createElement('div');
+      card.style.cssText = 'border-radius:14px;overflow:hidden;position:relative;background:#111827;border:1px solid rgba(255,255,255,.08);';
 
-  // ── LIFESTYLE / DOMAINS SECTION ──
-  var lifestyleSection = document.getElementById('vb-lifestyle-section');
-  var lifestyleContent = document.getElementById('vb-lifestyle-content');
-  var lifestyleImages  = document.getElementById('vb-lifestyle-images');
-  if (domains.length > 0 && lifestyleSection && lifestyleContent) {
-    lifestyleSection.style.display = 'block';
-    var domainColors = { Finance:'var(--yellow)', Fitness:'var(--teal)', Business:'var(--blue)', Mindset:'var(--purple)' };
-    lifestyleContent.innerHTML = domains.slice(0,6).map(function(d) {
-      var col = domainColors[d.name] || 'var(--muted)';
-      return '<div style="padding:8px 14px;border-radius:20px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);font-size:12px;font-weight:700;color:' + col + '">' + (d.icon||'✦') + ' ' + d.name + '</div>';
-    }).join('');
-  } else {
-    lifestyleSection.style.display = domains.length > 0 ? 'block' : 'none';
-  }
-
-  // Lifestyle images — those not matching goal/habit keywords
-  if (lifestyleImages) {
-    var lifeImgs = visionBoard.filter(function(v) {
-      var kw = (v.kw || v.label || '').toLowerCase();
-      return kw.match(/travel|beach|nature|city|food|home|life|balance|happiness|freedom|peace|calm|relax|meditation|yoga|sunrise|mountain|sea|ocean|forest/);
-    }).slice(0, 6);
-    if (lifeImgs.length > 0) {
-      lifestyleImages.innerHTML = '';
-      lifeImgs.forEach(function(item) {
-        var img = document.createElement('img');
-        img.src = item.url;
-        img.style.cssText = 'width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:10px;cursor:pointer;border:1px solid rgba(255,255,255,.08);';
-        img.onclick = function() { openImageLightbox(item.url, item.label || item.kw); };
-        lifestyleImages.appendChild(img);
-      });
-    } else {
-      // Use remaining board images
-      var remaining = visionBoard.slice(0, 6);
-      if (remaining.length > 0) {
-        lifestyleImages.innerHTML = '';
-        remaining.forEach(function(item) {
-          var img = document.createElement('img');
-          img.src = item.url;
-          img.style.cssText = 'width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:10px;cursor:pointer;border:1px solid rgba(255,255,255,.08);';
-          img.onclick = function() { openImageLightbox(item.url, item.label || item.kw); };
-          lifestyleImages.appendChild(img);
-        });
+      // Background image if available
+      var img = nextImg();
+      if (img) {
+        var bgImg = document.createElement('img');
+        bgImg.src = img.url;
+        bgImg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.35;';
+        bgImg.loading = 'lazy';
+        card.appendChild(bgImg);
+        card.style.cursor = 'pointer';
+        card.onclick = (function(item){ return function(){ openImageLightbox(item.url, item.label||item.kw); }; })(img);
       }
+
+      var content = document.createElement('div');
+      content.style.cssText = 'position:relative;z-index:2;padding:14px 12px 12px;min-height:100px;display:flex;flex-direction:column;justify-content:space-between;';
+      content.innerHTML =
+        '<div style="font-size:12px;font-weight:700;color:#fff;line-height:1.4;text-shadow:0 1px 4px rgba(0,0,0,.8)">' + title + '</div>' +
+        '<div>' +
+          '<div style="height:3px;background:rgba(255,255,255,.12);border-radius:99px;overflow:hidden;margin-bottom:4px"><div style="height:100%;width:' + pct + '%;background:' + col + ';border-radius:99px;"></div></div>' +
+          '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:22px;color:' + col + ';line-height:1">' + pct + '%</div>' +
+        '</div>';
+      card.appendChild(content);
+      goalsRow.appendChild(card);
+    });
+    inner.appendChild(goalsRow);
+  }
+
+  // ── SECTION 2: LIFESTYLE / DOMAINS ────────────────────────────────────────
+  if (domains.length > 0 || imgs.length > 0) {
+    inner.appendChild(makeSectionLabel('🌟', 'Lifestyle', 'var(--purple)'));
+
+    var domColors = { Finance:'var(--yellow)', Fitness:'var(--teal)', Business:'var(--blue)', Mindset:'var(--purple)', Health:'var(--teal)' };
+
+    // Asymmetric layout: 1 tall image left, stacked content right
+    var lifestyleWrap = document.createElement('div');
+    lifestyleWrap.style.cssText = 'padding:0 12px;display:flex;gap:8px;align-items:stretch;position:relative;z-index:4';
+
+    // Left: one tall portrait image
+    var leftImg = nextImg();
+    if (leftImg) {
+      var leftCard = makeImgCard(leftImg, '45%', '220px', '-1.5', 'rgba(99,102,241,.35)');
+      leftCard.style.flexShrink = '0';
+      lifestyleWrap.appendChild(leftCard);
     }
-  }
 
-  // ── HABITS SECTION ──
-  var habitsSection = document.getElementById('vb-habits-section');
-  var habitsContent = document.getElementById('vb-habits-content');
-  var habitsImages  = document.getElementById('vb-habits-images');
-  if (habits.length > 0 && habitsSection && habitsContent) {
-    habitsSection.style.display = 'block';
-    habitsContent.innerHTML = habits.slice(0,8).map(function(h) {
-      var done = h.done;
-      return '<div style="padding:7px 12px;border-radius:20px;background:' + (done ? 'rgba(6,214,160,.12)' : 'rgba(255,255,255,.04)') + ';border:1px solid ' + (done ? 'rgba(6,214,160,.3)' : 'rgba(255,255,255,.1)') + ';font-size:12px;font-weight:600;color:' + (done ? 'var(--teal)' : 'rgba(255,255,255,.6)') + ';display:flex;align-items:center;gap:5px">' +
-        (h.icon||'⚡') + ' ' + h.name + (done ? ' ✓' : '') + '</div>';
-    }).join('');
-  } else if (habitsSection) {
-    habitsSection.style.display = 'none';
-  }
+    // Right: domains pills + 2 small images stacked
+    var rightCol = document.createElement('div');
+    rightCol.style.cssText = 'flex:1;display:flex;flex-direction:column;gap:7px;';
 
-  // Habits images — health/fitness/mindset themed
-  if (habitsImages) {
-    var habitImgs = visionBoard.filter(function(v) {
-      var kw = (v.kw || v.label || '').toLowerCase();
-      return kw.match(/fitness|workout|gym|water|run|discipline|focus|morning|habit|health|strong|athlete|training/);
-    }).slice(0, 4);
-    if (habitImgs.length > 0) {
-      habitsImages.innerHTML = '';
-      habitImgs.forEach(function(item) {
-        var img = document.createElement('img');
-        img.src = item.url;
-        img.style.cssText = 'width:110px;height:145px;object-fit:cover;border-radius:12px;flex-shrink:0;cursor:pointer;border:2px solid rgba(6,214,160,.2);';
-        img.onclick = function() { openImageLightbox(item.url, item.label || item.kw); };
-        habitsImages.appendChild(img);
+    // Domain pills
+    if (domains.length > 0) {
+      var pillsWrap = document.createElement('div');
+      pillsWrap.style.cssText = 'display:flex;flex-wrap:wrap;gap:5px;';
+      domains.slice(0,6).forEach(function(d) {
+        var col = domColors[d.name] || 'rgba(255,255,255,.7)';
+        var pill = document.createElement('div');
+        pill.style.cssText = 'padding:5px 10px;border-radius:20px;background:rgba(255,255,255,.06);border:1px solid ' + col + '44;font-size:10px;font-weight:700;color:' + col + ';';
+        pill.textContent = (d.icon||'✦') + ' ' + d.name;
+        pillsWrap.appendChild(pill);
       });
-    } else {
-      habitsImages.innerHTML = '';
+      rightCol.appendChild(pillsWrap);
     }
+
+    // 2 small images stacked
+    [nextImg(), nextImg()].filter(Boolean).forEach(function(item, i) {
+      var sm = makeImgCard(item, '100%', '96px', i === 0 ? '1' : '-0.5', 'rgba(255,255,255,.1)');
+      sm.style.width = '100%';
+      rightCol.appendChild(sm);
+    });
+
+    lifestyleWrap.appendChild(rightCol);
+    inner.appendChild(lifestyleWrap);
   }
 
-  // ── QUOTE ──
-  var quoteBlock = document.getElementById('vb-quote-block');
-  var quoteText  = document.getElementById('vb-quote-text');
-  if (quoteBlock && quoteText) {
-    quoteBlock.style.display = 'block';
-    var qi = Math.floor(Date.now() / 86400000) % VB_QUOTES.length;
-    quoteText.textContent = '" ' + VB_QUOTES[qi] + ' "';
+  // ── MOTIVATIONAL WORD + IMAGE COLLAGE ─────────────────────────────────────
+  var qi = Math.floor(Date.now() / 86400000) % VB_QUOTES.length;
+  var wi = Math.floor(Date.now() / 86400000) % VB_WORDS.length;
+  var quoteStr = VB_QUOTES[qi];
+  var wordStr  = VB_WORDS[wi];
+
+  var midRow = document.createElement('div');
+  midRow.style.cssText = 'padding:14px 12px 4px;display:flex;gap:8px;align-items:center;position:relative;z-index:4;';
+
+  // Big word block
+  var wordBlock = document.createElement('div');
+  wordBlock.style.cssText = 'background:linear-gradient(135deg,rgba(6,214,160,.12),rgba(14,165,233,.08));border:1px solid rgba(6,214,160,.2);border-radius:14px;padding:16px 12px;text-align:center;flex-shrink:0;';
+  wordBlock.innerHTML = '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:32px;letter-spacing:3px;background:linear-gradient(135deg,var(--teal),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">' + wordStr + '</div>';
+  midRow.appendChild(wordBlock);
+
+  // Quote text
+  var quoteBlock = document.createElement('div');
+  quoteBlock.style.cssText = 'flex:1;font-size:11px;font-style:italic;color:rgba(255,255,255,.45);line-height:1.6;';
+  quoteBlock.textContent = '"' + quoteStr + '"';
+  midRow.appendChild(quoteBlock);
+
+  inner.appendChild(midRow);
+
+  // ── SECTION 3: DAILY HABITS ───────────────────────────────────────────────
+  if (habits.length > 0) {
+    inner.appendChild(makeSectionLabel('⚡', 'Daily Habits', 'var(--teal)'));
+
+    // Image behind habits strip
+    var habitsZone = document.createElement('div');
+    habitsZone.style.cssText = 'padding:0 12px;position:relative;z-index:4';
+
+    // Big background image with habits overlaid
+    var habBgImg = nextImg();
+    if (habBgImg) {
+      var habBg = document.createElement('div');
+      habBg.style.cssText = 'border-radius:16px;overflow:hidden;position:relative;min-height:130px;background:#111827;';
+      var habBgI = document.createElement('img');
+      habBgI.src = habBgImg.url;
+      habBgI.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.3;';
+      habBgI.loading = 'lazy';
+      habBg.appendChild(habBgI);
+
+      // Overlay gradient
+      var habOverlay = document.createElement('div');
+      habOverlay.style.cssText = 'position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.65),rgba(0,0,0,.2));';
+      habBg.appendChild(habOverlay);
+
+      // Habits content
+      var habContent = document.createElement('div');
+      habContent.style.cssText = 'position:relative;z-index:2;padding:14px 14px 14px;';
+
+      var habGrid = document.createElement('div');
+      habGrid.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;';
+      habits.slice(0, 10).forEach(function(h) {
+        var done = h.done;
+        var pill = document.createElement('div');
+        pill.style.cssText = 'padding:5px 10px;border-radius:20px;' +
+          'background:' + (done ? 'rgba(6,214,160,.25)' : 'rgba(255,255,255,.1)') + ';' +
+          'border:1px solid ' + (done ? 'rgba(6,214,160,.5)' : 'rgba(255,255,255,.2)') + ';' +
+          'font-size:11px;font-weight:600;' +
+          'color:' + (done ? '#06d6a0' : 'rgba(255,255,255,.8)') + ';' +
+          'display:flex;align-items:center;gap:5px;backdrop-filter:blur(4px);';
+        pill.innerHTML = (h.icon||'⚡') + ' ' + h.name + (done ? ' <span style="font-size:10px">✓</span>' : '');
+        habGrid.appendChild(pill);
+      });
+      habContent.appendChild(habGrid);
+      habBg.appendChild(habContent);
+      habitsZone.appendChild(habBg);
+    } else {
+      // No image — plain pills
+      var plainGrid = document.createElement('div');
+      plainGrid.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;';
+      habits.slice(0,10).forEach(function(h) {
+        var done = h.done;
+        var pill = document.createElement('div');
+        pill.style.cssText = 'padding:6px 12px;border-radius:20px;background:' + (done ? 'rgba(6,214,160,.12)':'rgba(255,255,255,.05)') + ';border:1px solid ' + (done ? 'rgba(6,214,160,.3)':'rgba(255,255,255,.1)') + ';font-size:11px;font-weight:600;color:' + (done ? 'var(--teal)':'rgba(255,255,255,.7)') + ';';
+        pill.textContent = (h.icon||'⚡') + ' ' + h.name + (done ? ' ✓' : '');
+        plainGrid.appendChild(pill);
+      });
+      habitsZone.appendChild(plainGrid);
+    }
+    inner.appendChild(habitsZone);
+  }
+
+  // ── BOTTOM IMAGE STRIP ─────────────────────────────────────────────────────
+  var remaining = [];
+  while (imgIdx < imgs.length) { remaining.push(imgs[imgIdx++]); }
+  if (remaining.length > 0 || (imgs.length > 0 && imgIdx > 0)) {
+    // Use any leftover + cycle back through
+    var bottomImgs = imgs.slice(0, Math.min(imgs.length, 4));
+    if (bottomImgs.length > 0) {
+      var botStrip = document.createElement('div');
+      botStrip.style.cssText = 'padding:14px 12px 8px;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;position:relative;z-index:4;';
+      var stripHeights = ['130px','110px','150px','120px'];
+      var stripRotates = ['1','-1.5','0.8','-1'];
+      bottomImgs.forEach(function(item, i) {
+        var c = makeImgCard(item, '100px', stripHeights[i%4], stripRotates[i%4], 'rgba(255,255,255,.12)');
+        c.style.flexShrink = '0';
+        botStrip.appendChild(c);
+      });
+      inner.appendChild(botStrip);
+    }
   }
 }
 

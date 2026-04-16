@@ -724,6 +724,7 @@ body{background:
 
       <button class="profile-logout" onclick="logout()">Sign Out</button>
       <button id="dev-tools-btn" onclick="closeProfile();openDevPanel();" style="display:none;width:100%;padding:10px;border:none;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.25);font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:6px;">🔧 Dev Tools</button>
+      <div id="dev-email-debug" style="display:none;text-align:center;font-size:10px;color:rgba(255,255,255,.2);margin-top:4px;padding:4px;"></div>
     </div>
   </div>
 </div>
@@ -6037,10 +6038,16 @@ document.addEventListener('DOMContentLoaded', initHints);
 var DEV_EMAILS = ['cristina.sevilla@digitaimind.com'];
 
 function initDevTools() {
-  // Show dev button only for admin emails
-  var email = USER && USER.email ? USER.email.toLowerCase() : '';
+  var email = USER && USER.email ? USER.email.toLowerCase().trim() : '';
   var btn = document.getElementById('dev-tools-btn');
-  if (btn && DEV_EMAILS.includes(email)) {
+  var dbg = document.getElementById('dev-email-debug');
+  console.log('[DevTools] Logged in email:', JSON.stringify(email));
+  // Always show the debug div so you can see your email
+  if (dbg) {
+    dbg.style.display = 'block';
+    dbg.textContent = 'Logged in as: ' + (email || 'unknown');
+  }
+  if (btn && DEV_EMAILS.map(function(e){ return e.toLowerCase().trim(); }).includes(email)) {
     btn.style.display = 'block';
   }
 }

@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MELTOS Admin</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: 'DM Sans', system-ui, sans-serif; background:#07111b; color:#fff; min-height:100vh; }
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Bebas+Neue&display=swap');
+
+  /* LOGIN */
+  #login-screen { display:flex; align-items:center; justify-content:center; min-height:100vh; }
+  .login-box { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1); border-radius:20px; padding:40px; width:360px; }
+  .login-box h1 { font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:2px; margin-bottom:6px; }
+  .login-box p { font-size:13px; color:rgba(255,255,255,.4); margin-bottom:28px; }
+  .field { margin-bottom:16px; }
+  .field label { font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:rgba(255,255,255,.4); display:block; margin-bottom:6px; }
+  .field input { width:100%; padding:12px 14px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:10px; color:#fff; font-size:14px; font-family:inherit; outline:none; }
+  .field input:focus { border-color:rgba(6,214,160,.4); }
+  .btn-primary { width:100%; padding:13px; background:linear-gradient(135deg,#06d6a0,#0ea5e9); border:none; border-radius:12px; color:#07111b; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; }
+  #login-error { color:#f43f5e; font-size:12px; margin-top:10px; text-align:center; min-height:18px; }
+
+  /* APP */
+  #app-screen { display:none; }
+  .topbar { background:rgba(8,12,18,.95); border-bottom:1px solid rgba(255,255,255,.07); padding:14px 24px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
+  .topbar-left { display:flex; align-items:center; gap:12px; }
+  .topbar h1 { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:2px; }
+  .topbar-badge { font-size:10px; background:rgba(244,63,94,.15); border:1px solid rgba(244,63,94,.3); color:#f43f5e; padding:3px 8px; border-radius:20px; font-weight:700; }
+  .logout-btn { background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); color:rgba(255,255,255,.5); padding:7px 14px; border-radius:8px; font-size:12px; cursor:pointer; font-family:inherit; }
+
+  .tabs { display:flex; gap:4px; padding:20px 24px 0; border-bottom:1px solid rgba(255,255,255,.06); }
+  .tab { padding:10px 18px; border-radius:10px 10px 0 0; font-size:13px; font-weight:600; cursor:pointer; color:rgba(255,255,255,.4); background:none; border:none; font-family:inherit; transition:all .15s; }
+  .tab.active { background:rgba(6,214,160,.1); color:#06d6a0; border-bottom:2px solid #06d6a0; }
+
+  .content { padding:24px; max-width:1200px; }
+
+  /* STATS */
+  .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:24px; }
+  .stat-card { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:16px; }
+  .stat-label { font-size:10px; text-transform:uppercase; letter-spacing:1.5px; color:rgba(255,255,255,.4); margin-bottom:6px; }
+  .stat-val { font-size:28px; font-family:'Bebas Neue',sans-serif; letter-spacing:1px; }
+  .stat-sub { font-size:11px; color:rgba(255,255,255,.3); margin-top:2px; }
+
+  /* TABLE */
+  .table-wrap { background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.07); border-radius:14px; overflow:hidden; }
+  .table-header { padding:14px 18px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,.07); }
+  .table-header h3 { font-size:13px; font-weight:700; color:rgba(255,255,255,.7); }
+  table { width:100%; border-collapse:collapse; }
+  th { font-size:10px; text-transform:uppercase; letter-spacing:1.5px; color:rgba(255,255,255,.3); padding:10px 18px; text-align:left; border-bottom:1px solid rgba(255,255,255,.06); }
+  td { padding:12px 18px; font-size:13px; border-bottom:1px solid rgba(255,255,255,.04); vertical-align:middle; }
+  tr:last-child td { border-bottom:none; }
+  tr:hover td { background:rgba(255,255,255,.02); }
+
+  .tier-badge { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; }
+  .tier-mvp    { background:rgba(6,214,160,.15);  color:#06d6a0;  border:1px solid rgba(6,214,160,.3); }
+  .tier-starter{ background:rgba(14,165,233,.15); color:#0ea5e9;  border:1px solid rgba(14,165,233,.3); }
+  .tier-basic  { background:rgba(255,255,255,.06); color:rgba(255,255,255,.4); border:1px solid rgba(255,255,255,.1); }
+  .tier-expired{ background:rgba(244,63,94,.12);  color:#f43f5e;  border:1px solid rgba(244,63,94,.25); }
+
+  .action-btn { padding:5px 12px; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; font-family:inherit; border:none; transition:all .15s; }
+  .btn-mvp   { background:rgba(6,214,160,.12); color:#06d6a0; border:1px solid rgba(6,214,160,.25); }
+  .btn-mvp:hover { background:rgba(6,214,160,.25); }
+  .btn-cut   { background:rgba(244,63,94,.1); color:#f43f5e; border:1px solid rgba(244,63,94,.2); }
+  .btn-cut:hover { background:rgba(244,63,94,.22); }
+  .btn-starter { background:rgba(14,165,233,.1); color:#0ea5e9; border:1px solid rgba(14,165,233,.2); }
+  .btn-starter:hover { background:rgba(14,165,233,.22); }
+
+  .search-input { width:260px; padding:9px 14px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); border-radius:10px; color:#fff; font-size:13px; font-family:inherit; outline:none; }
+  .search-input:focus { border-color:rgba(6,214,160,.4); }
+
+  .toast { position:fixed; bottom:28px; left:50%; transform:translateX(-50%); background:#06d6a0; color:#07111b; font-weight:700; font-size:13px; padding:10px 22px; border-radius:30px; z-index:9999; opacity:0; transition:opacity .2s; pointer-events:none; }
+  .toast.show { opacity:1; }
+
+  .loading { text-align:center; padding:40px; color:rgba(255,255,255,.3); font-size:13px; }
+  .empty { text-align:center; padding:40px; color:rgba(255,255,255,.3); font-size:13px; }
+
+  #page-users { display:block; }
+  #page-usage  { display:none; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <h1>MELTOS Admin</h1>
+    <p>Control panel — authorized access only</p>
+    <div class="field"><label>Email</label><input type="email" id="adm-email" placeholder="your@email.com"></div>
+    <div class="field"><label>Password</label><input type="password" id="adm-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')adminLogin()"></div>
+    <button class="btn-primary" onclick="adminLogin()">Sign In</button>
+    <div id="login-error"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-screen">
+  <div class="topbar">
+    <div class="topbar-left">
+      <h1>MELTOS</h1>
+      <span class="topbar-badge">ADMIN</span>
+    </div>
+    <button class="logout-btn" onclick="adminLogout()">Sign Out</button>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('users')" id="tab-users">👥 Users & Access</button>
+    <button class="tab" onclick="showTab('usage')" id="tab-usage">📊 AI Usage & Cost</button>
+  </div>
+
+  <div class="content">
+
+    <!-- USERS PAGE -->
+    <div id="page-users">
+      <div class="stats-grid" id="user-stats"></div>
+      <div class="table-wrap">
+        <div class="table-header">
+          <h3>All Users</h3>
+          <input class="search-input" type="text" placeholder="Search by name or email…" oninput="filterUsers(this.value)">
+        </div>
+        <div id="users-table"><div class="loading">Loading users…</div></div>
+      </div>
+    </div>
+
+    <!-- USAGE PAGE -->
+    <div id="page-usage">
+      <div class="stats-grid" id="usage-stats"></div>
+      <div class="table-wrap" style="margin-bottom:20px;">
+        <div class="table-header"><h3>Cost by User</h3></div>
+        <div id="usage-by-user"><div class="loading">Loading…</div></div>
+      </div>
+      <div class="table-wrap">
+        <div class="table-header"><h3>Recent AI Calls</h3></div>
+        <div id="usage-recent"><div class="loading">Loading…</div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'https://luhv.onrender.com';
+let TOKEN = localStorage.getItem('meltos_admin_token');
+let allUsers = [];
+
+// ── AUTH ──────────────────────────────────────────────────────────────────────
+async function adminLogin() {
+  const email = document.getElementById('adm-email').value.trim();
+  const pass  = document.getElementById('adm-pass').value;
+  const errEl = document.getElementById('login-error');
+  errEl.textContent = '';
+
+  try {
+    const res  = await fetch(API + '/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass })
+    });
+    const data = await res.json();
+    if (!data.token) { errEl.textContent = data.error || 'Invalid credentials'; return; }
+    if (!data.user?.is_admin) { errEl.textContent = 'Not authorized as admin'; return; }
+    TOKEN = data.token;
+    localStorage.setItem('meltos_admin_token', TOKEN);
+    showApp();
+  } catch(e) {
+    errEl.textContent = 'Connection error — is the server running?';
+  }
+}
+
+function adminLogout() {
+  localStorage.removeItem('meltos_admin_token');
+  TOKEN = null;
+  document.getElementById('app-screen').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+async function req(path, opts = {}) {
+  const res = await fetch(API + path, {
+    ...opts,
+    headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+TOKEN, ...(opts.headers||{}) }
+  });
+  if (res.status === 401 || res.status === 403) { adminLogout(); return null; }
+  return res.json().catch(() => null);
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+function showApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'block';
+  loadUsers();
+}
+
+function showTab(tab) {
+  document.getElementById('page-users').style.display = tab === 'users' ? 'block' : 'none';
+  document.getElementById('page-usage').style.display = tab === 'usage' ? 'block' : 'none';
+  document.getElementById('tab-users').classList.toggle('active', tab === 'users');
+  document.getElementById('tab-usage').classList.toggle('active', tab === 'usage');
+  if (tab === 'usage') loadUsage();
+}
+
+// ── USERS ─────────────────────────────────────────────────────────────────────
+async function loadUsers() {
+  const users = await req('/api/admin/users');
+  if (!users) return;
+  allUsers = users;
+  renderUserStats(users);
+  renderUsersTable(users);
+}
+
+function renderUserStats(users) {
+  const total   = users.length;
+  const mvp     = users.filter(u => u.tier === 'mvp' || u.tier === 'pro').length;
+  const starter = users.filter(u => u.tier === 'starter').length;
+  const expired = users.filter(u => u.expired).length;
+  const week    = users.filter(u => u.created_at && new Date(u.created_at) > new Date(Date.now()-7*86400000)).length;
+
+  document.getElementById('user-stats').innerHTML = [
+    { label:'Total Users',   val: total,   sub:'all time',         color:'#fff' },
+    { label:'MVP Active',    val: mvp,     sub:'paid + active',    color:'#06d6a0' },
+    { label:'Starter',       val: starter, sub:'paid, no coach',   color:'#0ea5e9' },
+    { label:'Expired',       val: expired, sub:'need renewal',     color:'#f43f5e' },
+    { label:'New This Week', val: week,    sub:'signups',          color:'#fbbf24' },
+  ].map(s => `
+    <div class="stat-card">
+      <div class="stat-label">${s.label}</div>
+      <div class="stat-val" style="color:${s.color}">${s.val}</div>
+      <div class="stat-sub">${s.sub}</div>
+    </div>`).join('');
+}
+
+function renderUsersTable(users) {
+  if (!users.length) { document.getElementById('users-table').innerHTML = '<div class="empty">No users found</div>'; return; }
+
+  const rows = users.map(u => {
+    const isExpired = u.expired;
+    const tierClass = isExpired ? 'tier-expired' : (u.tier === 'mvp' || u.tier === 'pro') ? 'tier-mvp' : u.tier === 'starter' ? 'tier-starter' : 'tier-basic';
+    const tierLabel = isExpired ? '⚠️ EXPIRED' : (u.tier === 'mvp' || u.tier === 'pro') ? '🏆 MVP' : u.tier === 'starter' ? '⭐ STARTER' : '🔒 BASIC';
+    const exp = u.billing_period_end ? new Date(u.billing_period_end).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+    const joined = u.created_at ? new Date(u.created_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+
+    return `<tr>
+      <td>
+        <div style="font-weight:700;font-size:13px;">${esc(u.name)}</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.4);">${esc(u.email)}</div>
+      </td>
+      <td><span class="tier-badge ${tierClass}">${tierLabel}</span></td>
+      <td style="color:${isExpired?'#f43f5e':'rgba(255,255,255,.5)'};">${exp}</td>
+      <td style="color:rgba(255,255,255,.4);">${u.streak || 0} days</td>
+      <td style="color:rgba(255,255,255,.35);">${joined}</td>
+      <td>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="action-btn btn-mvp"     onclick="setTier(${u.id},'mvp',30,'${esc(u.email)}')">MVP 30d</button>
+          <button class="action-btn btn-mvp"     onclick="setTier(${u.id},'mvp',365,'${esc(u.email)}')">MVP 1yr</button>
+          <button class="action-btn btn-starter" onclick="setTier(${u.id},'starter',30,'${esc(u.email)}')">Starter 30d</button>
+          <button class="action-btn btn-cut"     onclick="setTier(${u.id},'basic',0,'${esc(u.email)}')">Cut Access</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('users-table').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>User</th><th>Tier</th><th>Expires</th><th>Streak</th><th>Joined</th><th>Actions</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function filterUsers(query) {
+  const q = query.toLowerCase();
+  const filtered = allUsers.filter(u =>
+    u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
+  );
+  renderUsersTable(filtered);
+}
+
+async function setTier(userId, tier, days, email) {
+  const label = tier === 'basic' ? 'Cut access' : `Set ${tier.toUpperCase()} for ${days} days`;
+  if (!confirm(`${label} for ${email}?`)) return;
+
+  const result = await req(`/api/admin/users/${userId}/tier`, {
+    method: 'POST',
+    body: JSON.stringify({ tier, days })
+  });
+
+  if (result) {
+    showToast(tier === 'basic' ? `✂️ Access cut for ${email}` : `✅ ${tier.toUpperCase()} activated for ${email}`);
+    loadUsers();
+  } else {
+    showToast('Error — check server logs');
+  }
+}
+
+// ── USAGE ─────────────────────────────────────────────────────────────────────
+async function loadUsage() {
+  const data = await req('/api/admin/usage');
+  if (!data) return;
+
+  const t = data.totals || {};
+  document.getElementById('usage-stats').innerHTML = [
+    { label:'Total API Calls',  val: Number(t.calls||0).toLocaleString(),  sub:'all time',      color:'#fff' },
+    { label:'Total Tokens Used',val: Number(t.tokens||0).toLocaleString(), sub:'input+output',  color:'#0ea5e9' },
+    { label:'Est. Cost (USD)',   val: '$'+(Number(t.cost_usd||0).toFixed(2)), sub:'Claude API',  color:'#fbbf24' },
+  ].map(s => `
+    <div class="stat-card">
+      <div class="stat-label">${s.label}</div>
+      <div class="stat-val" style="color:${s.color}">${s.val}</div>
+      <div class="stat-sub">${s.sub}</div>
+    </div>`).join('');
+
+  // By user
+  if (!data.by_user.length) {
+    document.getElementById('usage-by-user').innerHTML = '<div class="empty">No usage data yet</div>';
+  } else {
+    const rows = data.by_user.map(u => `<tr>
+      <td><div style="font-weight:700">${esc(u.name)}</div><div style="font-size:11px;color:rgba(255,255,255,.4)">${esc(u.email)}</div></td>
+      <td><span class="tier-badge ${u.tier==='mvp'?'tier-mvp':u.tier==='starter'?'tier-starter':'tier-basic'}">${(u.tier||'basic').toUpperCase()}</span></td>
+      <td style="color:#0ea5e9">${Number(u.calls||0).toLocaleString()}</td>
+      <td style="color:rgba(255,255,255,.6)">${Number(u.tokens||0).toLocaleString()}</td>
+      <td style="color:#fbbf24">$${Number(u.cost_usd||0).toFixed(4)}</td>
+      <td style="color:rgba(255,255,255,.35)">${u.last_call ? new Date(u.last_call).toLocaleDateString('en-GB') : '—'}</td>
+    </tr>`).join('');
+    document.getElementById('usage-by-user').innerHTML = `
+      <table><thead><tr>
+        <th>User</th><th>Tier</th><th>Calls</th><th>Tokens</th><th>Cost</th><th>Last Call</th>
+      </tr></thead><tbody>${rows}</tbody></table>`;
+  }
+
+  // Recent
+  if (!data.recent.length) {
+    document.getElementById('usage-recent').innerHTML = '<div class="empty">No recent calls</div>';
+  } else {
+    const rows = data.recent.map(r => `<tr>
+      <td style="font-weight:600">${esc(r.name)}</td>
+      <td style="color:rgba(255,255,255,.5);font-size:12px">${esc(r.endpoint)}</td>
+      <td style="color:#0ea5e9">${Number(r.total_tokens||0).toLocaleString()}</td>
+      <td style="color:#fbbf24">$${Number(r.estimated_cost_usd||0).toFixed(5)}</td>
+      <td style="color:rgba(255,255,255,.35)">${new Date(r.created_at).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</td>
+    </tr>`).join('');
+    document.getElementById('usage-recent').innerHTML = `
+      <table><thead><tr>
+        <th>User</th><th>Endpoint</th><th>Tokens</th><th>Cost</th><th>Time</th>
+      </tr></thead><tbody>${rows}</tbody></table>`;
+  }
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// Auto-login if token exists
+if (TOKEN) showApp();
+</script>
+</body>
+</html>ad

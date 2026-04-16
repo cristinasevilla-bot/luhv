@@ -1363,7 +1363,7 @@ body{background:
     <div id="coach-upgrade-gate" style="display:none;position:absolute;inset:0;z-index:10;flex-direction:column;align-items:center;justify-content:center;background:rgba(8,12,18,.95);padding:28px;text-align:center;backdrop-filter:blur(8px)">
     <div id="coach-gate-icon" style="font-size:40px;margin-bottom:14px">⭐</div>
     <div id="coach-gate-title" style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;margin-bottom:8px;color:#fff">UPGRADE TO MVP</div>
-    <div id="coach-gate-desc" style="font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:8px;max-width:270px">Your Starter plan includes your personalised dashboard, roadmap, tasks and inspiration. The AI coach is available on the <strong style="color:var(--teal)">MVP plan</strong>.</div>
+    <div id="coach-gate-desc" style="font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:8px;max-width:270px">Your <strong style="color:rgba(255,255,255,.75)">Starter</strong> plan includes Dashboard, Roadmap, Tasks, Inspire &amp; Ranking. The AI Coach is unlocked on the <strong style="color:var(--teal)">MVP plan</strong>.</div>
     <div style="margin-bottom:22px;background:rgba(6,214,160,.07);border:1px solid rgba(6,214,160,.2);border-radius:12px;padding:10px 16px;max-width:260px">
       <div style="font-size:11px;color:var(--teal);font-weight:700;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px">What you get with MVP</div>
       <div style="font-size:12px;color:rgba(255,255,255,.65);text-align:left;line-height:1.7">✓ Unlimited AI Coach<br>✓ Weekly reviews &amp; check-ins<br>✓ Decision support<br>✓ Priority roadmap updates</div>
@@ -1713,7 +1713,7 @@ var tokenPacks = [];
 async function loadBillingStatus() {
   try {
     const data = await api('/api/billing/status');
-    if (!data) { userTier = 'pro'; tokenBalance = 999999; updateTierUI(); return; }
+    if (!data) { userTier = 'basic'; tokenBalance = 0; updateTierUI(); return; }
     
     if (data.expired) {
       showToast('Your plan has expired. Renew to keep full access.');
@@ -1722,6 +1722,7 @@ async function loadBillingStatus() {
       userTier = data.tier || 'basic';
     }
     tokenBalance = userTier === 'mvp' ? 999999 : userTier === 'starter' ? 0 : 0;
+    localStorage.setItem('luhv_cached_tier', userTier); // cache for offline fallback
     updateTierUI();
     
     // Show expiry warning if within 3 days
@@ -1732,9 +1733,16 @@ async function loadBillingStatus() {
       }
     }
   } catch(e) {
-    // If API fails, give access (fail open for now)
-    userTier = 'pro';
-    tokenBalance = 999999;
+    // API failed — keep default 'basic' tier, don't grant free pro access
+    // If user has a cached tier from a previous successful load, keep it
+    var cachedTier = localStorage.getItem('luhv_cached_tier');
+    if (cachedTier && cachedTier !== 'undefined') {
+      userTier = cachedTier;
+      tokenBalance = userTier === 'mvp' ? 999999 : 0;
+    } else {
+      userTier = 'basic';
+      tokenBalance = 0;
+    }
     updateTierUI();
   }
 }
@@ -1762,7 +1770,7 @@ function updateTierUI() {
     if (gatePlan) gatePlan.textContent = userTier === 'starter' ? 'Starter' : 'Basic (Free)';
     var gateDesc = document.getElementById('coach-gate-desc');
     if (gateDesc && userTier === 'starter') {
-      gateDesc.innerHTML = 'Your <strong style="color:rgba(255,255,255,.7)">Starter</strong> plan includes your personalised dashboard, roadmap, tasks and inspiration board. The AI Coach is unlocked on the <strong style="color:var(--teal)">MVP plan</strong>.';
+      gateDesc.innerHTML = 'Your <strong style="color:rgba(255,255,255,.75)">Starter</strong> plan includes Dashboard, Roadmap, Tasks, Inspire &amp; Ranking. The AI Coach is unlocked on the <strong style="color:var(--teal)">MVP plan</strong>.';
     } else if (gateDesc) {
       gateDesc.innerHTML = 'Unlock your personal AI coach, weekly reviews and decision support with the <strong style="color:var(--teal)">MVP plan</strong>.';
     }
@@ -1809,7 +1817,7 @@ function openPaywall(type) {
     // STARTER
     '<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:14px 16px;margin-bottom:10px">' +
       '<div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:8px">Starter</div>' +
-      '<div style="font-size:12px;color:rgba(255,255,255,.55);margin-bottom:12px;line-height:1.6">Dashboard · Roadmap · Focus · Inspire</div>' +
+      '<div style="font-size:12px;color:rgba(255,255,255,.55);margin-bottom:12px;line-height:1.6">Dashboard · Roadmap · Tasks · Inspire · Ranking</div>' +
       '<div style="display:flex;gap:8px">' +
         '<a href="https://square.link/u/N1xNrkES" target="_blank" style="flex:1;text-decoration:none;padding:10px;border:none;border-radius:10px;background:rgba(255,255,255,.07);color:#fff;font-size:12px;font-weight:700;cursor:pointer;text-align:center;display:block">$9.99 / month</a>' +
         '<a href="https://square.link/u/VDdzk7Am" target="_blank" style="flex:1;text-decoration:none;padding:10px;border:1px solid rgba(14,165,233,.3);border-radius:10px;background:rgba(14,165,233,.08);color:var(--blue);font-size:12px;font-weight:700;cursor:pointer;text-align:center;display:block">$99 / year <span style="font-size:10px;opacity:.7">save $20</span></a>' +
@@ -2064,6 +2072,7 @@ async function initApp() {
   }
   document.getElementById('welcome-msg').textContent       = `Hey ${USER.name}! Let's move one goal forward today. Tell Coach where you feel stuck, what you want to improve, or what your next step should be.`;
   if (document.getElementById('qtext')) loadQuotes();
+  loadBillingStatus(); // ← CRITICAL: check real tier before loading anything else
   loadHabits();
   loadGoals();
   loadJournal();
@@ -5552,18 +5561,12 @@ async function addSuggestedTasks(tasks) {
 window.suggestTasksForGoal = suggestTasksForGoal;
 window.showTaskSuggestions = showTaskSuggestions;
   
-// ── BILLING STUBS (Stripe disabled) ───────────────────────────────────────────
-var userTier = 'pro';
-var tokenBalance = 999999;
+// ── BILLING — real tier vars (set by loadBillingStatus after login) ────────────
+var userTier = 'basic';     // safe default — no free pro access
+var tokenBalance = 0;
 var tokenPacks = [];
-function loadBillingStatus() {}
-function patchSendMsg() {}
-// openPaywall defined above
-function closePaywall() {}
-function openTokenShop() {}
-function closeTokenShop() {}
-function subscribeTier() { openPaywall('upgrade'); }
-function buyTokens() { showToast('Payments coming soon'); }
+// closePaywall, openTokenShop, closeTokenShop, subscribeTier defined in Script 1 above
+// loadBillingStatus defined in Script 1 above — real implementation calls /api/billing/status
 
 // ── TASK (HABIT) CRUD ─────────────────────────────────────────────────────────
 async function deleteTask(id) {

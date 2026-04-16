@@ -2043,6 +2043,8 @@ function logout() {
   document.getElementById('auth-screen').style.display = 'flex';
 }
 
+var DEV_EMAILS = ['cristina.sevilla@digitaimind.com'];
+
 function initDevTools() {
   var email = USER && USER.email ? USER.email.toLowerCase().trim() : '';
   var btn = document.getElementById('dev-tools-btn');
@@ -6033,7 +6035,6 @@ document.addEventListener('DOMContentLoaded', initHints);
 
 // ── DEV TIER TESTING PANEL ────────────────────────────────────────────────────
 // List of emails allowed to see dev tools
-var DEV_EMAILS = ['cristina.sevilla@digitaimind.com'];
 
 
 

@@ -723,7 +723,7 @@ body{background:
       </div>
 
       <button class="profile-logout" onclick="logout()">Sign Out</button>
-      <button onclick="closeProfile();openDevPanel();" style="width:100%;padding:10px;border:none;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.3);font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:6px;">🔧 Dev Tools</button>
+      <button id="dev-tools-btn" onclick="closeProfile();openDevPanel();" style="display:none;width:100%;padding:10px;border:none;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.25);font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:6px;">🔧 Dev Tools</button>
     </div>
   </div>
 </div>
@@ -2136,6 +2136,7 @@ async function initApp() {
   document.getElementById('welcome-msg').textContent       = `Hey ${USER.name}! Let's move one goal forward today. Tell Coach where you feel stuck, what you want to improve, or what your next step should be.`;
   if (document.getElementById('qtext')) loadQuotes();
   loadBillingStatus(); // ← CRITICAL: check real tier before loading anything else
+  initDevTools();      // show dev button only for admin emails
   loadHabits();
   loadGoals();
   loadJournal();
@@ -6032,6 +6033,18 @@ function initHints() {
 document.addEventListener('DOMContentLoaded', initHints);
 
 // ── DEV TIER TESTING PANEL ────────────────────────────────────────────────────
+// List of emails allowed to see dev tools
+var DEV_EMAILS = ['meltosbyluhv@gmail.com', 'cristina@meltos.app', 'shon@luhv.com'];
+
+function initDevTools() {
+  // Show dev button only for admin emails
+  var email = USER && USER.email ? USER.email.toLowerCase() : '';
+  var btn = document.getElementById('dev-tools-btn');
+  if (btn && DEV_EMAILS.includes(email)) {
+    btn.style.display = 'block';
+  }
+}
+
 var _devTapCount = 0;
 var _devTapTimer = null;
 
@@ -6041,39 +6054,59 @@ function devPanelTap() {
   _devTapTimer = setTimeout(function(){ _devTapCount = 0; }, 2000);
   if (_devTapCount >= 5) {
     _devTapCount = 0;
-    openDevPanel();
+    // Only open for admin
+    var email = USER && USER.email ? USER.email.toLowerCase() : '';
+    if (DEV_EMAILS.includes(email)) openDevPanel();
   }
 }
 
 async function openDevPanel() {
   var panel = document.getElementById('dev-tier-panel');
-  if (!panel) return;
+  if (!panel) { showToast('Dev panel not found — redeploy the new index.html'); return; }
+
+  // Open immediately — don't wait for API
   panel.style.display = 'flex';
-  // Load current status
+
   var statusEl = document.getElementById('dev-current-status');
+  if (!statusEl) return;
+
+  // Show what we know from the client-side already
+  statusEl.innerHTML =
+    '<div style="margin-bottom:8px;font-size:11px;color:rgba(255,255,255,.5);">Fetching server status...</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">' +
+      '<div><div style="color:rgba(255,255,255,.4);font-size:10px;margin-bottom:2px;">Logged in as</div>' +
+        '<div style="color:#fff;font-size:12px;">' + (USER ? USER.email : '?') + '</div></div>' +
+      '<div><div style="color:rgba(255,255,255,.4);font-size:10px;margin-bottom:2px;">Client tier</div>' +
+        '<div style="color:#fbbf24;font-weight:700;font-size:13px;">' + (typeof userTier !== 'undefined' ? userTier.toUpperCase() : '?') + '</div></div>' +
+    '</div>';
+
+  // Try to load server status (needs ALLOW_TIER_TEST=true)
   try {
     var data = await api('/api/dev/my-status');
     if (data && !data.error) {
       var exp = data.billing_period_end ? new Date(data.billing_period_end).toLocaleDateString() : 'no expiry';
       statusEl.innerHTML =
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">' +
-          '<div><div style="color:rgba(255,255,255,.4);font-size:10px;margin-bottom:2px;">Current tier</div><div style="color:#fff;font-weight:700;font-size:14px;">' + (data.tier||'basic').toUpperCase() + '</div></div>' +
-          '<div><div style="color:rgba(255,255,255,.4);font-size:10px;margin-bottom:2px;">Coach access</div><div style="color:' + (data.coach_access?'#06d6a0':'#f43f5e') + ';font-weight:700;font-size:14px;">' + (data.coach_access?'✓ YES':'✗ NO') + '</div></div>' +
-          '<div><div style="color:rgba(255,255,255,.4);font-size:10px;margin-bottom:2px;">Expires</div><div style="color:' + (data.is_expired?'#f43f5e':'rgba(255,255,255,.7)') + ';font-size:12px;">' + (data.is_expired?'⚠️ EXPIRED — ' : '') + exp + '</div></div>' +
-          '<div><div style="color:rgba(255,255,255,.4);font-size:10px;margin-bottom:2px;">User</div><div style="color:rgba(255,255,255,.6);font-size:11px;">' + (data.email||'') + '</div></div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
+          '<div><div style="color:rgba(255,255,255,.4);font-size:10px;margin-bottom:2px;">Server tier</div>' +
+            '<div style="color:#fff;font-weight:700;font-size:15px;">' + (data.tier||'basic').toUpperCase() + '</div></div>' +
+          '<div><div style="color:rgba(255,255,255,.4);font-size:10px;margin-bottom:2px;">Coach access</div>' +
+            '<div style="color:' + (data.coach_access?'#06d6a0':'#f43f5e') + ';font-weight:700;font-size:15px;">' + (data.coach_access?'✓ YES':'✗ NO') + '</div></div>' +
+          '<div><div style="color:rgba(255,255,255,.4);font-size:10px;margin-bottom:2px;">Expires</div>' +
+            '<div style="color:' + (data.is_expired?'#f43f5e':'rgba(255,255,255,.65)') + ';font-size:12px;">' + (data.is_expired?'⚠️ EXPIRED — ':'') + exp + '</div></div>' +
+          '<div><div style="color:rgba(255,255,255,.4);font-size:10px;margin-bottom:2px;">Email</div>' +
+            '<div style="color:rgba(255,255,255,.5);font-size:11px;">' + (data.email||USER?.email||'') + '</div></div>' +
         '</div>';
     } else {
-      statusEl.textContent = data.error || 'Server returned error — is ALLOW_TIER_TEST=true set?';
-      statusEl.style.color = '#f43f5e';
+      statusEl.innerHTML += '<div style="margin-top:8px;padding:8px;background:rgba(244,63,94,.1);border-radius:8px;font-size:11px;color:#f43f5e;">Server: ' + (data.error || 'error') + '<br>Add <strong>ALLOW_TIER_TEST=true</strong> in Render → Environment to enable tier switching.</div>';
     }
   } catch(e) {
-    statusEl.textContent = 'Could not reach server. Is ALLOW_TIER_TEST=true?';
-    statusEl.style.color = '#f43f5e';
+    statusEl.innerHTML += '<div style="margin-top:8px;padding:8px;background:rgba(244,63,94,.1);border-radius:8px;font-size:11px;color:#f43f5e;">Could not reach server. Add <strong>ALLOW_TIER_TEST=true</strong> in Render → Environment.</div>';
   }
 }
 
 async function devSetTier(tier, days) {
   var resultEl = document.getElementById('dev-result');
+  if (!resultEl) return;
   resultEl.style.display = 'none';
   try {
     var body = { tier: tier };
@@ -6085,15 +6118,14 @@ async function devSetTier(tier, days) {
       resultEl.style.border = '1px solid rgba(6,214,160,.3)';
       resultEl.style.color = '#06d6a0';
       var exp = data.user.billing_period_end ? new Date(data.user.billing_period_end).toLocaleDateString() : 'no expiry';
-      resultEl.textContent = '✓ Tier set to ' + tier.toUpperCase() + ' (expires: ' + exp + '). Reloading...';
-      // Reload to apply changes
+      resultEl.textContent = '✓ Set to ' + tier.toUpperCase() + ' (expires: ' + exp + '). Reloading...';
       setTimeout(function(){ window.location.reload(); }, 1500);
     } else {
       resultEl.style.display = 'block';
       resultEl.style.background = 'rgba(244,63,94,.12)';
       resultEl.style.border = '1px solid rgba(244,63,94,.3)';
       resultEl.style.color = '#f43f5e';
-      resultEl.textContent = '✗ ' + (data.error || 'Failed. Is ALLOW_TIER_TEST=true on the server?');
+      resultEl.textContent = (data && data.error) ? '✗ ' + data.error : '✗ Failed — add ALLOW_TIER_TEST=true in Render → Environment';
     }
   } catch(e) {
     resultEl.style.display = 'block';

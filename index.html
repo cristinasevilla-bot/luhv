@@ -2044,6 +2044,9 @@ function logout() {
 }
 
 async function initApp() {
+  // Ping server immediately so Render wakes up before real requests hit
+  fetch('https://luhv.onrender.com/health').catch(function(){});
+
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app-screen').style.display  = 'block';
   const initials = USER.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
@@ -2061,22 +2064,32 @@ async function initApp() {
   }
   document.getElementById('welcome-msg').textContent       = `Hey ${USER.name}! Let's move one goal forward today. Tell Coach where you feel stuck, what you want to improve, or what your next step should be.`;
   if (document.getElementById('qtext')) loadQuotes();
-  loadBillingStatus(); // ← CRITICAL: check real tier before loading anything else
-  initDevTools();      // show dev button only for admin emails
+  loadBillingStatus();
+  initDevTools();
+  checkOnboarding(); // show quiz immediately from localStorage
+
+  // Critical above-fold content first
   loadHabits();
   loadGoals();
-  loadJournal();
-  loadPrompt();
-  initDemoNudges();
   loadCoachGreeting();
   loadEffectivenessScore();
-  checkOnboarding();
-  loadPeakHourCard();
-  loadTodayDomainsPreview();
-  loadTodayWeeklyDashboard();
   dashboardLoadGoalsPreview();
   dashboardLoadEnergyToday();
-  loadLineChart();
+
+  // Secondary content — slight delay so first batch doesn't compete
+  setTimeout(function() {
+    loadTodayWeeklyDashboard();
+    loadPeakHourCard();
+    loadTodayDomainsPreview();
+    loadLineChart();
+    loadPrompt();
+  }, 800);
+
+  // Non-critical — load last
+  setTimeout(function() {
+    loadJournal();
+    initDemoNudges();
+  }, 1500);
   document.getElementById('help-btn').style.display = 'flex';
   restoreTimerIfRunning();
   if (!localStorage.getItem('luhv_welcomed')) { setTimeout(showWelcome, 600); }
@@ -2824,30 +2837,47 @@ var obSteps = [
 ];
 
 async function checkOnboarding() {
+  var heroCta  = document.getElementById('quiz-hero-cta');
+  var doneCard = document.getElementById('quiz-done-card');
+
+  // Default: show hero immediately (don't wait for API)
+  // This prevents blank quiz on slow connections
+  var saved = null;
+  try { saved = JSON.parse(localStorage.getItem('luhv_onboarding')); } catch(e) {}
+
+  if (saved && Object.keys(saved).length > 2) {
+    // Has local data — show done card immediately
+    if (heroCta)  heroCta.style.display  = 'none';
+    if (doneCard) doneCard.style.display  = 'block';
+    var titleEl = document.getElementById('quiz-banner-title');
+    var subEl   = document.getElementById('quiz-banner-sub');
+    if (titleEl) titleEl.textContent = 'Add a new goal or update your plan →';
+    if (subEl)   subEl.textContent   = 'Retake the quiz · Coach will adapt your roadmap';
+    showProfileResultCard(saved);
+  } else {
+    // No local data — show hero CTA
+    if (heroCta)  heroCta.style.display  = 'block';
+    if (doneCard) doneCard.style.display  = 'none';
+  }
+
+  // Then verify with server in background
   try {
     var data = await api('/api/onboarding/status');
-    var heroCta  = document.getElementById('quiz-hero-cta');
-    var doneCard = document.getElementById('quiz-done-card');
-    var titleEl  = document.getElementById('quiz-banner-title');
-    var subEl    = document.getElementById('quiz-banner-sub');
-
-    if (data && !data.done) {
-      // Not done — show big hero, hide compact card
-      if (heroCta)  heroCta.style.display  = 'block';
-      if (doneCard) doneCard.style.display  = 'none';
-    } else {
-      // Done — hide hero, show compact card (with profile + always-visible retake)
+    if (!data || data.error) return; // keep what we showed
+    if (data.done) {
       if (heroCta)  heroCta.style.display  = 'none';
       if (doneCard) doneCard.style.display  = 'block';
-      if (titleEl)  titleEl.textContent = 'Add a new goal or update your plan →';
-      if (subEl)    subEl.textContent = 'Retake the quiz · Coach will adapt your roadmap';
-      // Show saved profile summary
-      var saved = null;
-      try { saved = JSON.parse(localStorage.getItem('luhv_onboarding')); } catch(e){}
-      if (!saved && data && data.data) saved = data.data;
-      if (saved) showProfileResultCard(saved);
+      var titleEl = document.getElementById('quiz-banner-title');
+      var subEl   = document.getElementById('quiz-banner-sub');
+      if (titleEl) titleEl.textContent = 'Add a new goal or update your plan →';
+      if (subEl)   subEl.textContent   = 'Retake the quiz · Coach will adapt your roadmap';
+      var serverData = data.data || saved;
+      if (serverData) showProfileResultCard(serverData);
+    } else {
+      if (heroCta)  heroCta.style.display  = 'block';
+      if (doneCard) doneCard.style.display  = 'none';
     }
-  } catch(e) {}
+  } catch(e) {} // silently keep current state
 }
 
 function startOnboarding() {
@@ -3223,18 +3253,16 @@ async function deleteGoal(id) {
   if (!confirm('Delete this goal?')) return;
   showToast('Deleting...');
   var result = await api('/api/goals/' + id, { method: 'DELETE' });
-  console.log('[deleteGoal] id:', id, 'result:', JSON.stringify(result));
   if (result === null) {
-    showToast('Server not reachable — check Render logs');
-    await loadGoals();
-    return;
+    // Server might be waking up — try once more after a pause
+    showToast('Server waking up, retrying...');
+    await new Promise(r => setTimeout(r, 3000));
+    result = await api('/api/goals/' + id, { method: 'DELETE' });
   }
   if (result && result.error) {
-    showToast('Error: ' + result.error + ' (' + (result.message || '') + ')');
-    console.error('[deleteGoal] Server error:', result);
+    showToast('Error: ' + result.error);
     return;
   }
-  // success (or empty response which also means success for DELETE)
   await loadGoals();
   showToast('Goal deleted ✓');
 }

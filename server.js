@@ -2236,6 +2236,48 @@ app.get('/api/billing/status', auth, async (req, res) => {
 
 app.get('/health', (_, res) => res.json({ status: 'ok', service: 'Luhv+ API' }));
 
+// ── DEV / TEST TIER OVERRIDE ──────────────────────────────────────────────────
+// Only works when ALLOW_TIER_TEST=true in env (never set this in production)
+app.post('/api/dev/set-tier', auth, async (req, res) => {
+  if (process.env.ALLOW_TIER_TEST !== 'true') {
+    return res.status(403).json({ error: 'Not available in production' });
+  }
+  const { tier, days } = req.body;
+  const validTiers = ['basic', 'starter', 'mvp'];
+  if (!validTiers.includes(tier)) {
+    return res.status(400).json({ error: 'tier must be one of: ' + validTiers.join(', ') });
+  }
+  const daysAccess = days || 30;
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + daysAccess);
+  await db.query(
+    'UPDATE users SET tier=$1, billing_period_end=$2 WHERE id=$3',
+    [tier, tier === 'basic' ? null : expiresAt.toISOString(), req.user.id]
+  );
+  const { rows: [user] } = await db.query(
+    'SELECT id, name, email, tier, billing_period_end FROM users WHERE id=$1', [req.user.id]
+  );
+  console.log(`[DEV] Tier set: ${user.email} → ${tier} (expires ${expiresAt.toDateString()})`);
+  res.json({ success: true, user: { id: user.id, name: user.name, email: user.email, tier: user.tier, billing_period_end: user.billing_period_end } });
+});
+
+// Get current user's full status (useful for debugging)
+app.get('/api/dev/my-status', auth, async (req, res) => {
+  if (process.env.ALLOW_TIER_TEST !== 'true') {
+    return res.status(403).json({ error: 'Not available in production' });
+  }
+  const { rows: [user] } = await db.query(
+    'SELECT id, name, email, tier, billing_period_end, streak FROM users WHERE id=$1', [req.user.id]
+  );
+  const expired = user.billing_period_end && new Date(user.billing_period_end) < new Date();
+  res.json({
+    ...user,
+    tier_config: TIERS[user.tier] || null,
+    is_expired: expired,
+    coach_access: !expired && (TIERS[user.tier]?.coach_access || false)
+  });
+});
+
 runMigrations().then(() => {
   app.listen(PORT, '0.0.0.0', () => console.log('Luhv+ API running on port ' + PORT));
 });

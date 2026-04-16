@@ -10,15 +10,24 @@ const STRIPE_WEBHOOK_SECRET = null;
 // ── TIER CONFIG ───────────────────────────────────────────────────────────────
 const TIERS = {
   basic: {
-    name: 'Basic',
-    price_id: process.env.STRIPE_PRICE_BASIC,   // $9.97/mo
-    monthly_tokens: 0,                           // no coach
+    name: 'Basic (Free)',
+    monthly_tokens: 0,
     coach_access: false
   },
+  starter: {
+    name: 'Starter',
+    monthly_tokens: 0,
+    coach_access: false   // Starter: dashboard, roadmap, tasks, inspire — NO coach
+  },
+  mvp: {
+    name: 'MVP',
+    monthly_tokens: 999999,
+    coach_access: true    // MVP: full coach access
+  },
+  // Legacy alias
   pro: {
-    name: 'Pro',
-    price_id: process.env.STRIPE_PRICE_PRO,     // $19.97/mo
-    monthly_tokens: 400000,                      // ~$4 worth @ claude-sonnet pricing
+    name: 'Pro (Legacy)',
+    monthly_tokens: 999999,
     coach_access: true
   }
 };
@@ -378,35 +387,42 @@ ${mode === 'decision' ? 'MODE: Decision alignment check. The user is asking if a
 // ── TIER MIDDLEWARE ───────────────────────────────────────────────────────────
 // Checks coach access and deducts tokens per request
 const coachAuth = async (req, res, next) => {
-  // STRIPE_DISABLED — all users get full coach access until payments are live
-  req.userTier = 'pro';
-  req.tokenBalance = 999999;
-  next();
-  return;
+  try {
+    const { rows: [user] } = await db.query(
+      'SELECT tier, token_balance, billing_period_end FROM users WHERE id=$1', [req.user.id]
+    );
+    if (!user) return res.status(401).json({ error: 'User not found' });
 
-  const { rows: [user] } = await db.query(
-    'SELECT tier, token_balance, stripe_customer_id FROM users WHERE id=$1', [req.user.id]
-  );
-  if (!user) return res.status(401).json({ error: 'User not found' });
+    // Check plan expiry first
+    if (user.billing_period_end && new Date(user.billing_period_end) < new Date()) {
+      await db.query("UPDATE users SET tier='basic' WHERE id=$1", [req.user.id]);
+      return res.status(403).json({
+        error: 'subscription_expired',
+        message: 'Your plan has expired. Please renew to keep Coach access.'
+      });
+    }
 
-  const tier = user.tier || 'basic';
-  if (!TIERS[tier]?.coach_access) {
-    return res.status(403).json({
-      error: 'upgrade_required',
-      message: 'Coach access requires Pro plan.',
-      upgrade_url: '/upgrade'
-    });
+    const tier = user.tier || 'basic';
+
+    // Check coach access by tier
+    if (!TIERS[tier]?.coach_access) {
+      return res.status(403).json({
+        error: 'upgrade_required',
+        message: tier === 'starter'
+          ? 'The AI Coach is available on the MVP plan. Upgrade to unlock it.'
+          : 'Coach access requires the MVP plan.',
+        current_tier: tier
+      });
+    }
+
+    req.userTier = tier;
+    req.tokenBalance = user.token_balance || 0;
+    next();
+  } catch(e) {
+    console.error('coachAuth error:', e);
+    // Fail closed — don't grant access on error
+    res.status(403).json({ error: 'Could not verify access. Please try again.' });
   }
-  if ((user.token_balance || 0) <= 0) {
-    return res.status(403).json({
-      error: 'tokens_exhausted',
-      message: 'You have used all your Coach tokens this month.',
-      token_packs: TOKEN_PACKS.map(p => ({ id: p.id, price_usd: p.price_usd, credits_usd: p.credits_usd }))
-    });
-  }
-  req.userTier = tier;
-  req.tokenBalance = user.token_balance;
-  next();
 };
 
 // Deduct tokens after a coach call (call with actual usage from Anthropic response)
@@ -1802,30 +1818,10 @@ app.patch('/api/domains/:id', auth, async (req, res) => {
 // ── SUBSCRIPTION & BILLING ────────────────────────────────────────────────────
 
 // Get current tier + token balance
-app.get('/api/billing/status', auth, async (req, res) => {
-  try {
-    const { rows: [user] } = await db.query(
-      'SELECT tier, token_balance, stripe_customer_id, billing_period_end FROM users WHERE id=$1',
-      [req.user.id]
-    );
-    const tier = user.tier || 'basic';
-    res.json({
-      tier,
-      tier_name: TIERS[tier]?.name || 'Basic',
-      coach_access: TIERS[tier]?.coach_access || false,
-      token_balance: user.token_balance || 0,
-      billing_period_end: user.billing_period_end,
-      token_packs: TOKEN_PACKS.map(p => ({ id: p.id, price_usd: p.price_usd, credits_usd: p.credits_usd, tokens: p.tokens }))
-    });
-  } catch(e) {
-    res.status(500).json({ error: 'Could not fetch billing status' });
-  }
-});
-
 // Create checkout session for subscription upgrade
 app.post('/api/billing/subscribe', auth, async (req, res) => {
-  // STRIPE_DISABLED — return coming soon
-  return res.json({ checkout_url: null, message: 'Payments coming soon' });
+  // Square handles payments via checkout links — return info
+  return res.json({ checkout_url: null, message: 'Use the Square checkout links in the app' });
   try {
     const { tier } = req.body;
     if (!TIERS[tier]) return res.status(400).json({ error: 'Invalid tier' });
@@ -2148,7 +2144,7 @@ app.post('/api/webhooks/square', express.raw({ type: 'application/json' }), asyn
       let tier = 'starter';
       let daysAccess = 30;
 
-      if (rawTitle.includes('trial') || rawTitle.includes('7 day')) { 
+      if (rawTitle.includes('trial') || rawTitle.includes('7 day') || rawTitle.includes('7-day')) { 
         tier = 'mvp'; daysAccess = 7; 
       } else if (rawTitle.includes('mvp') && (rawTitle.includes('annual') || rawTitle.includes('yearly'))) { 
         tier = 'mvp'; daysAccess = 365; 
@@ -2157,7 +2153,10 @@ app.post('/api/webhooks/square', express.raw({ type: 'application/json' }), asyn
       } else if (rawTitle.includes('starter') && (rawTitle.includes('annual') || rawTitle.includes('yearly'))) { 
         tier = 'starter'; daysAccess = 365; 
       } else if (rawTitle.includes('starter')) { 
-        tier = 'starter'; daysAccess = 30; 
+        tier = 'starter'; daysAccess = 30;
+      } else if (rawTitle.includes('pro')) {
+        // Legacy 'pro' plan — treat as mvp
+        tier = 'mvp'; daysAccess = 30;
       }
 
       const expiresAt = new Date();

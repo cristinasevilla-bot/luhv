@@ -727,6 +727,68 @@ body{background:
   </div>
 </div>
 
+<!-- DEV TIER PANEL — hidden, accessible via secret tap on version number -->
+<div id="dev-tier-panel" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);align-items:flex-end;justify-content:center;">
+  <div style="background:#0d1520;border-radius:20px 20px 0 0;padding:24px 20px 40px;width:100%;max-width:480px;border:1px solid rgba(255,255,255,.1);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div>
+        <div style="font-size:10px;color:#f43f5e;text-transform:uppercase;letter-spacing:2px;font-weight:700;">🔧 Dev Tools</div>
+        <div style="font-size:16px;font-weight:700;color:#fff;margin-top:2px;">Test Tier Access</div>
+      </div>
+      <button onclick="document.getElementById('dev-tier-panel').style.display='none'" style="background:rgba(255,255,255,.08);border:none;color:#fff;width:32px;height:32px;border-radius:50%;font-size:16px;cursor:pointer;">✕</button>
+    </div>
+
+    <!-- Current status -->
+    <div id="dev-current-status" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:rgba(255,255,255,.6);">
+      Loading status...
+    </div>
+
+    <!-- Tier buttons -->
+    <div style="font-size:10px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;">Set tier for YOUR account:</div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+
+      <button onclick="devSetTier('basic')" style="padding:12px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.04);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;text-align:left;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span>🔒 Basic (Free)</span>
+          <span style="font-size:10px;color:rgba(255,255,255,.4);">No coach, no expiry</span>
+        </div>
+        <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:2px;">Should see: coach gate, no chat access</div>
+      </button>
+
+      <button onclick="devSetTier('starter')" style="padding:12px 16px;border-radius:12px;border:1px solid rgba(14,165,233,.3);background:rgba(14,165,233,.06);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;text-align:left;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span>⭐ Starter — 30 days</span>
+          <span style="font-size:10px;color:var(--blue);">$9.99/mo</span>
+        </div>
+        <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:2px;">Should see: dashboard, roadmap, tasks — NO coach</div>
+      </button>
+
+      <button onclick="devSetTier('mvp')" style="padding:12px 16px;border-radius:12px;border:1px solid rgba(6,214,160,.3);background:rgba(6,214,160,.06);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;text-align:left;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span>🏆 MVP — 30 days</span>
+          <span style="font-size:10px;color:var(--teal);">$29.99/mo</span>
+        </div>
+        <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:2px;">Should see: full coach access, all features</div>
+      </button>
+
+      <button onclick="devSetTier('mvp', 0)" style="padding:12px 16px;border-radius:12px;border:1px solid rgba(244,63,94,.3);background:rgba(244,63,94,.06);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;text-align:left;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span>⏰ MVP — EXPIRED (0 days)</span>
+          <span style="font-size:10px;color:#f43f5e;">Test expiry</span>
+        </div>
+        <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:2px;">Should see: expired message, coach blocked</div>
+      </button>
+    </div>
+
+    <div id="dev-result" style="margin-top:14px;padding:10px 14px;border-radius:10px;display:none;font-size:12px;font-weight:600;"></div>
+
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.06);font-size:10px;color:rgba(255,255,255,.25);line-height:1.6;">
+      ⚠️ Only works when <code style="background:rgba(255,255,255,.08);padding:1px 5px;border-radius:4px;">ALLOW_TIER_TEST=true</code> is set on the server.<br>
+      Changes take effect on next page reload.
+    </div>
+  </div>
+</div>
+
 <!-- ONBOARDING MODAL -->
 <div id="onboarding-modal" style="display:none;position:fixed;inset:0;z-index:2000;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.92);padding:0">
   <div class="ob-box">
@@ -767,7 +829,7 @@ body{background:
 <div id="app-screen">
 <div class="app-shell">
   <div class="top-bar">
-    <div class="logo">MELTOS<span style="color:var(--teal);font-size:9px;vertical-align:super;margin-left:2px;letter-spacing:1px">by Luhv+</span></div>
+    <div class="logo" onclick="devPanelTap()" style="cursor:default;user-select:none;">MELTOS<span style="color:var(--teal);font-size:9px;vertical-align:super;margin-left:2px;letter-spacing:1px">by Luhv+</span></div>
     <div class="coins">⚡ <span id="coin-count">30</span></div>
     <div class="avatar" id="user-avatar" title="Profile" onclick="openProfile()">?</div>
   </div>
@@ -5968,7 +6030,80 @@ function initHints() {
 }
 document.addEventListener('DOMContentLoaded', initHints);
 
-// ── VISION BOARD — REAL BOARD RENDERER ───────────────────────────────────────
+// ── DEV TIER TESTING PANEL ────────────────────────────────────────────────────
+var _devTapCount = 0;
+var _devTapTimer = null;
+
+function devPanelTap() {
+  _devTapCount++;
+  clearTimeout(_devTapTimer);
+  _devTapTimer = setTimeout(function(){ _devTapCount = 0; }, 2000);
+  if (_devTapCount >= 5) {
+    _devTapCount = 0;
+    openDevPanel();
+  }
+}
+
+async function openDevPanel() {
+  var panel = document.getElementById('dev-tier-panel');
+  if (!panel) return;
+  panel.style.display = 'flex';
+  // Load current status
+  var statusEl = document.getElementById('dev-current-status');
+  try {
+    var data = await api('/api/dev/my-status');
+    if (data && !data.error) {
+      var exp = data.billing_period_end ? new Date(data.billing_period_end).toLocaleDateString() : 'no expiry';
+      statusEl.innerHTML =
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">' +
+          '<div><div style="color:rgba(255,255,255,.4);font-size:10px;margin-bottom:2px;">Current tier</div><div style="color:#fff;font-weight:700;font-size:14px;">' + (data.tier||'basic').toUpperCase() + '</div></div>' +
+          '<div><div style="color:rgba(255,255,255,.4);font-size:10px;margin-bottom:2px;">Coach access</div><div style="color:' + (data.coach_access?'#06d6a0':'#f43f5e') + ';font-weight:700;font-size:14px;">' + (data.coach_access?'✓ YES':'✗ NO') + '</div></div>' +
+          '<div><div style="color:rgba(255,255,255,.4);font-size:10px;margin-bottom:2px;">Expires</div><div style="color:' + (data.is_expired?'#f43f5e':'rgba(255,255,255,.7)') + ';font-size:12px;">' + (data.is_expired?'⚠️ EXPIRED — ' : '') + exp + '</div></div>' +
+          '<div><div style="color:rgba(255,255,255,.4);font-size:10px;margin-bottom:2px;">User</div><div style="color:rgba(255,255,255,.6);font-size:11px;">' + (data.email||'') + '</div></div>' +
+        '</div>';
+    } else {
+      statusEl.textContent = data.error || 'Server returned error — is ALLOW_TIER_TEST=true set?';
+      statusEl.style.color = '#f43f5e';
+    }
+  } catch(e) {
+    statusEl.textContent = 'Could not reach server. Is ALLOW_TIER_TEST=true?';
+    statusEl.style.color = '#f43f5e';
+  }
+}
+
+async function devSetTier(tier, days) {
+  var resultEl = document.getElementById('dev-result');
+  resultEl.style.display = 'none';
+  try {
+    var body = { tier: tier };
+    if (days !== undefined) body.days = days;
+    var data = await api('/api/dev/set-tier', { method: 'POST', body: JSON.stringify(body) });
+    if (data && data.success) {
+      resultEl.style.display = 'block';
+      resultEl.style.background = 'rgba(6,214,160,.12)';
+      resultEl.style.border = '1px solid rgba(6,214,160,.3)';
+      resultEl.style.color = '#06d6a0';
+      var exp = data.user.billing_period_end ? new Date(data.user.billing_period_end).toLocaleDateString() : 'no expiry';
+      resultEl.textContent = '✓ Tier set to ' + tier.toUpperCase() + ' (expires: ' + exp + '). Reloading...';
+      // Reload to apply changes
+      setTimeout(function(){ window.location.reload(); }, 1500);
+    } else {
+      resultEl.style.display = 'block';
+      resultEl.style.background = 'rgba(244,63,94,.12)';
+      resultEl.style.border = '1px solid rgba(244,63,94,.3)';
+      resultEl.style.color = '#f43f5e';
+      resultEl.textContent = '✗ ' + (data.error || 'Failed. Is ALLOW_TIER_TEST=true on the server?');
+    }
+  } catch(e) {
+    resultEl.style.display = 'block';
+    resultEl.style.background = 'rgba(244,63,94,.12)';
+    resultEl.style.border = '1px solid rgba(244,63,94,.3)';
+    resultEl.style.color = '#f43f5e';
+    resultEl.textContent = '✗ Network error: ' + e.message;
+  }
+}
+
+ ───────────────────────────────────────
 
 var VB_QUOTES = [
   'The life you want is on the other side of consistent action.',

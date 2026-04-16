@@ -1777,19 +1777,27 @@ var tokenPacks = [];
 async function loadBillingStatus() {
   try {
     const data = await api('/api/billing/status');
-    if (!data) { userTier = 'basic'; tokenBalance = 0; updateTierUI(); return; }
+    if (!data || data.error) {
+      // Use cached tier if available
+      var cachedTier = localStorage.getItem('luhv_cached_tier');
+      userTier = (cachedTier && cachedTier !== 'undefined') ? cachedTier : 'basic';
+      tokenBalance = (userTier === 'mvp' || userTier === 'pro') ? 999999 : 0;
+      updateTierUI();
+      return;
+    }
     
     if (data.expired) {
       showToast('Your plan has expired. Renew to keep full access.');
       userTier = 'basic';
     } else {
-      userTier = data.tier || 'basic';
+      var t = data.tier || 'basic';
+      // 'pro' is legacy alias for 'mvp' — treat identically
+      userTier = (t === 'pro') ? 'mvp' : t;
     }
-    tokenBalance = userTier === 'mvp' ? 999999 : userTier === 'starter' ? 0 : 0;
-    localStorage.setItem('luhv_cached_tier', userTier); // cache for offline fallback
+    tokenBalance = (userTier === 'mvp') ? 999999 : 0;
+    localStorage.setItem('luhv_cached_tier', userTier);
     updateTierUI();
     
-    // Show expiry warning if within 3 days
     if (data.billing_period_end) {
       var daysLeft = Math.ceil((new Date(data.billing_period_end) - new Date()) / (1000*60*60*24));
       if (daysLeft <= 3 && daysLeft > 0) {
@@ -1797,61 +1805,59 @@ async function loadBillingStatus() {
       }
     }
   } catch(e) {
-    // API failed — keep default 'basic' tier, don't grant free pro access
-    // If user has a cached tier from a previous successful load, keep it
     var cachedTier = localStorage.getItem('luhv_cached_tier');
-    if (cachedTier && cachedTier !== 'undefined') {
-      userTier = cachedTier;
-      tokenBalance = userTier === 'mvp' ? 999999 : 0;
-    } else {
-      userTier = 'basic';
-      tokenBalance = 0;
-    }
+    userTier = (cachedTier && cachedTier !== 'undefined') ? cachedTier : 'basic';
+    tokenBalance = (userTier === 'mvp' || userTier === 'pro') ? 999999 : 0;
     updateTierUI();
   }
 }
 
 function updateTierUI() {
-  // Show token balance in profile
+  // 'pro' is legacy alias for 'mvp' — treat identically everywhere
+  var isMvp = (userTier === 'mvp' || userTier === 'pro');
+  var isBlocked = (userTier === 'basic' || userTier === 'starter');
+
+  // Profile subscription label
   var balEl = document.getElementById('token-balance-display');
   if (balEl) {
-    var pct = Math.round((tokenBalance / 400000) * 100);
-    balEl.textContent = userTier === 'pro'
-      ? (pct + '% coach tokens remaining this month')
+    balEl.textContent = isMvp
+      ? '🏆 MVP plan — full coach access'
       : userTier === 'starter'
       ? 'Starter plan — upgrade for AI Coach access'
       : 'Basic plan — upgrade for coach access';
   }
-  // Show/hide upgrade banner on coach page
-  var coachGate = document.getElementById('coach-upgrade-gate');
-  var coachChat = document.getElementById('chat-msgs');
+
+  // Coach gate
+  var coachGate  = document.getElementById('coach-upgrade-gate');
+  var coachChat  = document.getElementById('chat-msgs');
   var coachInput = document.querySelector('.cinrow');
-  if (userTier === 'basic' || userTier === 'starter') {
-    if (coachGate) coachGate.style.display = 'flex';
-    if (coachChat) coachChat.style.opacity = '0.3';
-    if (coachInput) coachInput.style.display = 'none';
+
+  if (isBlocked) {
+    if (coachGate)  coachGate.style.display  = 'flex';
+    if (coachChat)  coachChat.style.opacity   = '0.3';
+    if (coachInput) coachInput.style.display  = 'none';
     var gatePlan = document.getElementById('coach-gate-plan');
     if (gatePlan) gatePlan.textContent = userTier === 'starter' ? 'Starter' : 'Basic (Free)';
     var gateDesc = document.getElementById('coach-gate-desc');
-    if (gateDesc && userTier === 'starter') {
-      gateDesc.innerHTML = 'Your <strong style="color:rgba(255,255,255,.75)">Starter</strong> plan includes Dashboard, Roadmap, Tasks, Inspire &amp; Ranking. The AI Coach is unlocked on the <strong style="color:var(--teal)">MVP plan</strong>.';
-    } else if (gateDesc) {
-      gateDesc.innerHTML = 'Unlock your personal AI coach, weekly reviews and decision support with the <strong style="color:var(--teal)">MVP plan</strong>.';
+    if (gateDesc) {
+      gateDesc.innerHTML = userTier === 'starter'
+        ? 'Your <strong style="color:rgba(255,255,255,.75)">Starter</strong> plan includes Dashboard, Roadmap, Tasks, Inspire &amp; Ranking. The AI Coach is unlocked on the <strong style="color:var(--teal)">MVP plan</strong>.'
+        : 'Unlock your personal AI coach, weekly reviews and decision support with the <strong style="color:var(--teal)">MVP plan</strong>.';
     }
-    // For starter: replace home coach greeting with upgrade nudge
     if (userTier === 'starter') {
       var greetCard = document.getElementById('coach-greeting-card');
       if (greetCard) {
-        greetCard.style.background = 'linear-gradient(135deg,rgba(99,102,241,.08),rgba(99,102,241,.03))';
-        greetCard.style.borderColor = 'rgba(99,102,241,.2)';
+        greetCard.style.background   = 'linear-gradient(135deg,rgba(99,102,241,.08),rgba(99,102,241,.03))';
+        greetCard.style.borderColor  = 'rgba(99,102,241,.2)';
         var greetText = document.getElementById('coach-greeting-text');
         if (greetText) greetText.innerHTML = '<span style="font-size:12px;color:rgba(255,255,255,.5)">🔒 AI Coach available on MVP plan — </span><span onclick="openPaywall(\'upgrade\')" style="font-size:12px;color:var(--purple);cursor:pointer;font-weight:700">Upgrade →</span>';
       }
     }
   } else {
-    if (coachGate) coachGate.style.display = 'none';
-    if (coachChat) coachChat.style.opacity = '1';
-    if (coachInput) coachInput.style.display = '';
+    // MVP / pro — full access
+    if (coachGate)  coachGate.style.display  = 'none';
+    if (coachChat)  coachChat.style.opacity   = '1';
+    if (coachInput) coachInput.style.display  = '';
   }
 }
 

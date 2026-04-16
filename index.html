@@ -3283,16 +3283,22 @@ function nextQuote() {
 
 async function deleteGoal(id) {
   if (!confirm('Delete this goal?')) return;
+  showToast('Deleting...');
   var result = await api('/api/goals/' + id, { method: 'DELETE' });
-  if (result && result.success) {
+  console.log('[deleteGoal] id:', id, 'result:', JSON.stringify(result));
+  if (result === null) {
+    showToast('Server not reachable — check Render logs');
     await loadGoals();
-    showToast('Goal deleted');
-  } else if (result && result.error) {
-    showToast('Could not delete: ' + result.error);
-  } else {
-    // Try anyway — server might have deleted it even if response was odd
-    await loadGoals();
+    return;
   }
+  if (result && result.error) {
+    showToast('Error: ' + result.error + ' (' + (result.message || '') + ')');
+    console.error('[deleteGoal] Server error:', result);
+    return;
+  }
+  // success (or empty response which also means success for DELETE)
+  await loadGoals();
+  showToast('Goal deleted ✓');
 }
 
 async function editGoalTitle(id, currentTitle) {

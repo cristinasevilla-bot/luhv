@@ -1945,27 +1945,12 @@ async function buyTokens(packId) {
   }
 }
 
-// Intercept coach API errors for tier/token issues
-var _origSendMsg = null;
-function patchSendMsg() {
-  // Patch api() responses for coach endpoints
-  var origApi = window.api;
-  window.api = async function(path, opts) {
-    try {
-      const result = await origApi(path, opts);
-      // Update token balance from coach responses
-      if (result && result.token_balance !== undefined) {
-        tokenBalance = result.token_balance;
-        updateTierUI();
-      }
-      return result;
-    } catch(e) {
-      // api() already handles 403 — but check body for our specific errors
-      if (e && e.error === 'upgrade_required') { closePaywall(); openPaywall('upgrade'); throw e; }
-      if (e && e.error === 'tokens_exhausted') { openTokenShop(); throw e; }
-      throw e;
-    }
-  };
+// Token balance update — called after coach responses
+function updateTokenBalance(result) {
+  if (result && result.token_balance !== undefined) {
+    tokenBalance = result.token_balance;
+    updateTierUI();
+  }
 }
 
 
@@ -1982,7 +1967,8 @@ async function api(path, opts = {}, _retry = 0) {
     if (res.status === 401) { logout(); return null; }
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw err;
+      // Return the error object instead of throwing — callers check result.error
+      return err;
     }
     return res.json().catch(() => null);
   } catch(e) {
@@ -1991,7 +1977,8 @@ async function api(path, opts = {}, _retry = 0) {
       await new Promise(r => setTimeout(r, 2500 * (_retry + 1)));
       return api(path, opts, _retry + 1);
     }
-    throw e;
+    // Network totally failed — return null, don't crash the caller
+    return null;
   }
 }
 
@@ -3297,7 +3284,15 @@ function nextQuote() {
 async function deleteGoal(id) {
   if (!confirm('Delete this goal?')) return;
   var result = await api('/api/goals/' + id, { method: 'DELETE' });
-  if (result && result.success) await loadGoals();
+  if (result && result.success) {
+    await loadGoals();
+    showToast('Goal deleted');
+  } else if (result && result.error) {
+    showToast('Could not delete: ' + result.error);
+  } else {
+    // Try anyway — server might have deleted it even if response was odd
+    await loadGoals();
+  }
 }
 
 async function editGoalTitle(id, currentTitle) {
@@ -3821,7 +3816,6 @@ async function sendMsg() {
   addMsg(msg, 'u'); input.value = ''; showTyping();
   chatHistory.push({ role: 'user', content: msg });
 
-  // Show thinking status bar
   var sbtn = document.querySelector('.sbtn');
   if (sbtn) { sbtn.disabled = true; sbtn.style.opacity = '.5'; }
   var thinkBar = document.getElementById('coach-thinking-bar');
@@ -3837,11 +3831,29 @@ async function sendMsg() {
 
   const data = await api('/api/coach/chat', { method: 'POST', body: JSON.stringify({ message: msg, history: chatHistory.slice(-10) }) });
 
-  // Hide thinking bar
   if (thinkBar) thinkBar.style.display = 'none';
   if (sbtn) { sbtn.disabled = false; sbtn.style.opacity = '1'; }
-
   removeTyping();
+
+  // Handle billing/access errors directly here — never let them crash other features
+  if (data && data.error === 'upgrade_required') {
+    openPaywall('upgrade');
+    chatHistory.pop(); // remove the failed message
+    return;
+  }
+  if (data && data.error === 'tokens_exhausted') {
+    addMsg("You've used all your Coach tokens this month. Top up to keep going! 🏆", 'a');
+    return;
+  }
+  if (data && data.error === 'subscription_expired') {
+    openPaywall('upgrade');
+    chatHistory.pop();
+    return;
+  }
+
+  // Update token balance if returned
+  updateTokenBalance(data);
+
   const reply = data?.reply || "Let's get this TRIUMPH 🏆 — I'm right here with you!";
   addMsg(reply, 'a');
   chatHistory.push({ role: 'assistant', content: reply });

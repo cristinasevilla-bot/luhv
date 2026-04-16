@@ -1,4 +1,5 @@
 const express   = require('express');
+const rateLimit  = require('express-rate-limit');
 const bcrypt    = require('bcryptjs');
 const jwt       = require('jsonwebtoken');
 const { Pool }  = require('pg');
@@ -49,8 +50,22 @@ app.get('/health', (req, res) => {
 });
 
 // ── CORS ─────────────────────────────────────────────────────────────────────
+const allowedOrigins = [
+  process.env.APP_URL,
+  process.env.WEB_APP_URL,
+  'https://meltosbyluhv.netlify.app'
+].filter(Boolean);
+
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin',  '*');
+  const origin = req.headers.origin;
+  if (!origin) {
+    // server-to-server / same-origin — allow
+  } else if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    return res.status(403).json({ error: 'Origin not allowed' });
+  }
+  res.setHeader('Vary', 'Origin');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,PUT,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
   if (req.method === 'OPTIONS') return res.sendStatus(200);
@@ -58,6 +73,26 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json());
+
+const generalLimiter = rateLimit({
+  windowMs: 60 * 1000, max: 60,
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Too many requests' }
+});
+const coachLimiter = rateLimit({
+  windowMs: 60 * 1000, max: 12,
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Too many coach requests' }
+});
+app.use('/api/', generalLimiter);
+app.use('/api/coach/', coachLimiter);
+
+app.use((req, res, next) => {
+  if (process.env.SYSTEM_DISABLED === 'true') {
+    return res.status(503).json({ error: 'Service temporarily unavailable' });
+  }
+  next();
+});
 
 // ── DATABASE ──────────────────────────────────────────────────────────────────
 const db = new Pool({
@@ -387,18 +422,41 @@ ${mode === 'decision' ? 'MODE: Decision alignment check. The user is asking if a
 // ── TIER MIDDLEWARE ───────────────────────────────────────────────────────────
 // Checks coach access and deducts tokens per request
 const coachAuth = async (req, res, next) => {
-  // Payments not enforced yet — all users have full access
-  req.userTier = 'mvp';
-  req.tokenBalance = 999999;
-  next();
+  try {
+    const tierConfig = TIERS[req.userTier] || TIERS.basic;
+    if (!tierConfig.coach_access) {
+      return res.status(403).json({ error: 'upgrade_required', message: 'Coach access is not included in your plan.' });
+    }
+    next();
+  } catch (e) {
+    console.error('coachAuth error:', e);
+    res.status(500).json({ error: 'Could not verify coach access' });
+  }
 };
 
 // Deduct tokens after a coach call (call with actual usage from Anthropic response)
-async function deductTokens(userId, inputTokens, outputTokens) {
-  // Sonnet pricing: $3/M input, $15/M output — we track raw tokens
+function estimateClaudeCostUSD(inputTokens = 0, outputTokens = 0) {
+  return Number(((inputTokens / 1000000) * 3 + (outputTokens / 1000000) * 15).toFixed(6));
+}
+
+async function logUsage(userId, endpoint, model, inputTokens = 0, outputTokens = 0) {
+  try {
+    await db.query(
+      `INSERT INTO usage_logs (user_id, endpoint, model, input_tokens, output_tokens, total_tokens, estimated_cost_usd)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+      [userId, endpoint, model, inputTokens, outputTokens, inputTokens + outputTokens,
+       estimateClaudeCostUSD(inputTokens, outputTokens)]
+    );
+  } catch(e) { console.warn('logUsage error:', e.message); }
+}
+
+async function deductTokens(userId, inputTokens = 0, outputTokens = 0) {
   const total = inputTokens + outputTokens;
   await db.query(
-    'UPDATE users SET token_balance = GREATEST(0, token_balance - $1) WHERE id=$2',
+    `UPDATE users SET token_balance = CASE
+       WHEN tier IN ('mvp','pro') THEN token_balance
+       ELSE GREATEST(0, token_balance - $1)
+     END WHERE id=$2`,
     [total, userId]
   );
 }
@@ -447,7 +505,7 @@ async function updateSession(sessionId, updates) {
 // Body: { message?: string }  empty on first call to get the welcome question
 // Returns: { question, phase, step, progress, isComplete, sessionId }
 
-app.post('/api/coach/session', auth, coachAuth, async (req, res) => {
+app.post('/api/coach/session', auth, checkTier, coachAuth, async (req, res) => {
   try {
     const { message } = req.body;
     const { rows: [user] } = await db.query(
@@ -615,7 +673,7 @@ Keep it warm, under 5 sentences, Luhv+ voice.
 });
 
 // ── GET SESSION STATUS ────────────────────────────────────────────────────────
-app.get('/api/coach/session', auth, async (req, res) => {
+app.get('/api/coach/session', auth, checkTier, async (req, res) => {
   try {
     const session = await getActiveSession(req.user.id);
     if (!session) return res.json({ hasActiveSession: false });
@@ -642,7 +700,7 @@ app.get('/api/coach/session', auth, async (req, res) => {
 });
 
 // ── RESET SESSION (start fresh) ───────────────────────────────────────────────
-app.post('/api/coach/session/reset', auth, coachAuth, async (req, res) => {
+app.post('/api/coach/session/reset', auth, checkTier, coachAuth, async (req, res) => {
   try {
     await db.query(
       'UPDATE coach_sessions SET completed = true WHERE user_id = $1 AND completed = false',
@@ -724,8 +782,10 @@ COACHING SESSION CONTEXT:
     );
 
     // Deduct tokens used
-    const usage = response.usage;
-    await deductTokens(req.user.id, usage.input_tokens, usage.output_tokens);
+    const usage = response.usage || {};
+    await logUsage(req.user.id, '/api/coach/chat', 'claude-sonnet-4-20250514',
+      usage.input_tokens || 0, usage.output_tokens || 0);
+    await deductTokens(req.user.id, usage.input_tokens || 0, usage.output_tokens || 0);
     const { rows: [updated] } = await db.query('SELECT token_balance FROM users WHERE id=$1', [req.user.id]);
 
     res.json({ reply, token_balance: updated.token_balance });
@@ -2032,6 +2092,19 @@ async function runMigrations() {
     `CREATE TABLE IF NOT EXISTS life_domains (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, name TEXT NOT NULL, icon TEXT DEFAULT '?', color TEXT DEFAULT '#0ea5e9', domain_type TEXT DEFAULT 'custom', created_at TIMESTAMPTZ DEFAULT NOW())`,
     `CREATE TABLE IF NOT EXISTS domain_metrics (id SERIAL PRIMARY KEY, domain_id INTEGER REFERENCES life_domains(id) ON DELETE CASCADE, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, name TEXT NOT NULL, metric_type TEXT DEFAULT 'number', unit TEXT, target NUMERIC, current_value NUMERIC DEFAULT 0, period TEXT DEFAULT 'monthly', updated_at TIMESTAMPTZ DEFAULT NOW(), created_at TIMESTAMPTZ DEFAULT NOW())`,
     `CREATE TABLE IF NOT EXISTS domain_metric_logs (id SERIAL PRIMARY KEY, metric_id INTEGER, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, value NUMERIC NOT NULL, note TEXT, logged_at TIMESTAMPTZ DEFAULT NOW())`,
+    `CREATE TABLE IF NOT EXISTS usage_logs (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      endpoint TEXT NOT NULL,
+      model TEXT,
+      input_tokens INTEGER DEFAULT 0,
+      output_tokens INTEGER DEFAULT 0,
+      total_tokens INTEGER DEFAULT 0,
+      estimated_cost_usd NUMERIC(10,6) DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`,
+    `CREATE INDEX IF NOT EXISTS usage_logs_user_id_idx ON usage_logs(user_id)`,
+    `CREATE INDEX IF NOT EXISTS usage_logs_created_at_idx ON usage_logs(created_at)`,
   ];
   for (const sql of migrations) {
     try { await db.query(sql); } catch(e) { console.warn('Migration warning:', sql.slice(0,50), e.message); }
@@ -2161,8 +2234,33 @@ app.post('/api/webhooks/square', express.raw({ type: 'application/json' }), asyn
 
 // ── CHECK ACCESS MIDDLEWARE ────────────────────────────────────────────────────
 async function checkTier(req, res, next) {
-  // Payments not enforced yet — all users pass through
-  next();
+  try {
+    const { rows: [user] } = await db.query(
+      'SELECT id, tier, token_balance, billing_period_end FROM users WHERE id=$1',
+      [req.user.id]
+    );
+    if (!user) return res.status(401).json({ error: 'User not found' });
+
+    let tier = user.tier || 'basic';
+    if (tier === 'pro') tier = 'mvp'; // legacy alias
+
+    const expired = user.billing_period_end && new Date(user.billing_period_end) < new Date();
+    if (expired) {
+      tier = 'basic';
+      await db.query(
+        "UPDATE users SET tier='basic', token_balance=0, billing_period_end=NULL WHERE id=$1",
+        [req.user.id]
+      );
+    }
+
+    req.userTier = tier;
+    req.tokenBalance = Number(user.token_balance || 0);
+    req.billingExpired = !!expired;
+    next();
+  } catch (e) {
+    console.error('checkTier error:', e);
+    res.status(500).json({ error: 'Could not verify access tier' });
+  }
 }
 
 // ── BILLING STATUS (now reads from DB) ────────────────────────────────────────

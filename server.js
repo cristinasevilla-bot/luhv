@@ -1072,9 +1072,56 @@ app.get('/api/admin/stats', adminAuth, async (req, res) => {
 
 app.get('/api/admin/users', adminAuth, async (req, res) => {
   const { rows } = await db.query(
-    'SELECT id, name, email, streak, last_active, created_at FROM users ORDER BY created_at DESC'
+    `SELECT id, name, email, tier, token_balance, billing_period_end,
+            streak, last_active, created_at,
+            CASE WHEN billing_period_end IS NULL THEN false
+                 WHEN billing_period_end < NOW() THEN true
+                 ELSE false END as expired
+     FROM users ORDER BY created_at DESC`
   );
   res.json(rows);
+});
+
+// Set user tier (admin only)
+app.post('/api/admin/users/:id/tier', adminAuth, async (req, res) => {
+  const { tier, days } = req.body;
+  const validTiers = ['basic', 'starter', 'mvp'];
+  if (!validTiers.includes(tier)) return res.status(400).json({ error: 'Invalid tier' });
+  const expiresAt = tier === 'basic' ? null : new Date(Date.now() + (days || 30) * 86400000);
+  const { rows } = await db.query(
+    'UPDATE users SET tier=$1, billing_period_end=$2 WHERE id=$3 RETURNING id, name, email, tier, billing_period_end',
+    [tier, expiresAt, req.params.id]
+  );
+  console.log(`[ADMIN] Tier set: ${rows[0]?.email} → ${tier} expires ${expiresAt?.toDateString() || 'never'}`);
+  res.json(rows[0] || null);
+});
+
+// Get usage stats
+app.get('/api/admin/usage', adminAuth, async (req, res) => {
+  try {
+    const [total, byUser, recent] = await Promise.all([
+      db.query(`SELECT COUNT(*) as calls, SUM(total_tokens) as tokens,
+                SUM(estimated_cost_usd) as cost_usd FROM usage_logs`),
+      db.query(`SELECT u.name, u.email, u.tier,
+                COUNT(l.id) as calls,
+                SUM(l.total_tokens) as tokens,
+                SUM(l.estimated_cost_usd) as cost_usd,
+                MAX(l.created_at) as last_call
+                FROM usage_logs l JOIN users u ON u.id=l.user_id
+                GROUP BY u.id, u.name, u.email, u.tier
+                ORDER BY cost_usd DESC LIMIT 20`),
+      db.query(`SELECT u.name, l.endpoint, l.total_tokens, l.estimated_cost_usd, l.created_at
+                FROM usage_logs l JOIN users u ON u.id=l.user_id
+                ORDER BY l.created_at DESC LIMIT 50`)
+    ]);
+    res.json({
+      totals: total.rows[0],
+      by_user: byUser.rows,
+      recent: recent.rows
+    });
+  } catch(e) {
+    res.json({ totals: { calls: 0, tokens: 0, cost_usd: 0 }, by_user: [], recent: [] });
+  }
 });
 
 app.get('/api/admin/conversations', adminAuth, async (req, res) => {
@@ -2092,6 +2139,7 @@ async function runMigrations() {
     `CREATE TABLE IF NOT EXISTS life_domains (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, name TEXT NOT NULL, icon TEXT DEFAULT '?', color TEXT DEFAULT '#0ea5e9', domain_type TEXT DEFAULT 'custom', created_at TIMESTAMPTZ DEFAULT NOW())`,
     `CREATE TABLE IF NOT EXISTS domain_metrics (id SERIAL PRIMARY KEY, domain_id INTEGER REFERENCES life_domains(id) ON DELETE CASCADE, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, name TEXT NOT NULL, metric_type TEXT DEFAULT 'number', unit TEXT, target NUMERIC, current_value NUMERIC DEFAULT 0, period TEXT DEFAULT 'monthly', updated_at TIMESTAMPTZ DEFAULT NOW(), created_at TIMESTAMPTZ DEFAULT NOW())`,
     `CREATE TABLE IF NOT EXISTS domain_metric_logs (id SERIAL PRIMARY KEY, metric_id INTEGER, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, value NUMERIC NOT NULL, note TEXT, logged_at TIMESTAMPTZ DEFAULT NOW())`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT false`,
     `CREATE TABLE IF NOT EXISTS usage_logs (
       id SERIAL PRIMARY KEY,
       user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,

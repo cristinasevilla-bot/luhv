@@ -2043,6 +2043,21 @@ function logout() {
   document.getElementById('auth-screen').style.display = 'flex';
 }
 
+function initDevTools() {
+  var email = USER && USER.email ? USER.email.toLowerCase().trim() : '';
+  var btn = document.getElementById('dev-tools-btn');
+  var dbg = document.getElementById('dev-email-debug');
+  console.log('[DevTools] Logged in email:', JSON.stringify(email));
+  // Always show the debug div so you can see your email
+  if (dbg) {
+    dbg.style.display = 'block';
+    dbg.textContent = 'Logged in as: ' + (email || 'unknown');
+  }
+  if (btn && DEV_EMAILS.map(function(e){ return e.toLowerCase().trim(); }).includes(email)) {
+    btn.style.display = 'block';
+  }
+}
+
 async function initApp() {
   // Ping server immediately so Render wakes up before real requests hit
   fetch('https://luhv.onrender.com/health').catch(function(){});
@@ -6020,20 +6035,7 @@ document.addEventListener('DOMContentLoaded', initHints);
 // List of emails allowed to see dev tools
 var DEV_EMAILS = ['cristina.sevilla@digitaimind.com'];
 
-function initDevTools() {
-  var email = USER && USER.email ? USER.email.toLowerCase().trim() : '';
-  var btn = document.getElementById('dev-tools-btn');
-  var dbg = document.getElementById('dev-email-debug');
-  console.log('[DevTools] Logged in email:', JSON.stringify(email));
-  // Always show the debug div so you can see your email
-  if (dbg) {
-    dbg.style.display = 'block';
-    dbg.textContent = 'Logged in as: ' + (email || 'unknown');
-  }
-  if (btn && DEV_EMAILS.map(function(e){ return e.toLowerCase().trim(); }).includes(email)) {
-    btn.style.display = 'block';
-  }
-}
+
 
 var _devTapCount = 0;
 var _devTapTimer = null;
@@ -6126,7 +6128,6 @@ async function devSetTier(tier, days) {
   }
 }
 
- ───────────────────────────────────────
 
 var VB_QUOTES = [
   'The life you want is on the other side of consistent action.',

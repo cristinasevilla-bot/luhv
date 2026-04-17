@@ -1046,10 +1046,19 @@ app.get('/api/journal/prompt', auth, async (req, res) => {
 });
 
 // ── ADMIN ─────────────────────────────────────────────────────────────────────
-const adminAuth = (req, res, next) => {
-  auth(req, res, () => {
-    if (!req.user.is_admin) return res.status(403).json({ error: 'Admins only' });
-    next();
+const adminAuth = async (req, res, next) => {
+  auth(req, res, async () => {
+    try {
+      const { rows: [user] } = await db.query(
+        'SELECT is_admin FROM users WHERE id=$1', [req.user.id]
+      );
+      if (!user || !user.is_admin) {
+        return res.status(403).json({ error: 'Admins only' });
+      }
+      next();
+    } catch(e) {
+      res.status(500).json({ error: 'Could not verify admin status' });
+    }
   });
 };
 

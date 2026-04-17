@@ -1,0 +1,1805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MELTOS — Your Personal Performance OS</title>
+<meta name="description" content="MELTOS transforms how you execute life. Track time, measure focus, eliminate waste, and turn goals into measurable systems.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,700;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #060810;
+    --navy: #080d18;
+    --card: #0d1421;
+    --teal: #06d6a0;
+    --blue: #0ea5e9;
+    --purple: #6366f1;
+    --gold: #fbbf24;
+    --red: #f43f5e;
+    --muted: #5a6a7e;
+    --light: #c8d6e5;
+    --white: #f0f6ff;
+    --border: rgba(14,165,233,0.12);
+  }
+
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    overflow-x: hidden;
+    line-height: 1.6;
+  }
+
+  /* ── NOISE OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.5;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 18px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(6,8,16,0.8);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(14,165,233,0.08);
+  }
+
+  .nav-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px;
+    letter-spacing: 3px;
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .nav-logo .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--teal);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  .nav-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--teal);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .nav-cta {
+    padding: 10px 24px;
+    border-radius: 30px;
+    background: linear-gradient(135deg, var(--blue), var(--teal));
+    color: #04111a;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    letter-spacing: 0.5px;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+
+  .nav-cta:hover { opacity: 0.85; transform: translateY(-1px); }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 120px 24px 80px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-glow-1 {
+    position: absolute;
+    width: 700px; height: 700px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(6,214,160,0.12) 0%, transparent 70%);
+    top: -200px; left: -200px;
+    pointer-events: none;
+  }
+
+  .hero-glow-2 {
+    position: absolute;
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(14,165,233,0.10) 0%, transparent 70%);
+    bottom: -200px; right: -200px;
+    pointer-events: none;
+  }
+
+  .hero-eyebrow {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--teal);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    animation: fadeUp 0.8s ease both;
+  }
+
+  .hero-eyebrow::before, .hero-eyebrow::after {
+    content: '';
+    width: 40px; height: 1px;
+    background: var(--teal);
+    opacity: 0.4;
+  }
+
+  .hero-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(72px, 12vw, 140px);
+    letter-spacing: 4px;
+    line-height: 0.9;
+    margin-bottom: 12px;
+    animation: fadeUp 0.8s 0.1s ease both;
+  }
+
+  .hero-title .accent { color: var(--teal); }
+
+  .hero-sub-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(18px, 3vw, 28px);
+    letter-spacing: 6px;
+    color: var(--muted);
+    margin-bottom: 32px;
+    animation: fadeUp 0.8s 0.2s ease both;
+  }
+
+  .hero-desc {
+    max-width: 560px;
+    font-size: 17px;
+    color: var(--light);
+    line-height: 1.7;
+    margin-bottom: 48px;
+    animation: fadeUp 0.8s 0.3s ease both;
+  }
+
+  .hero-desc strong { color: var(--white); font-weight: 700; }
+
+  .hero-btns {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    justify-content: center;
+    animation: fadeUp 0.8s 0.4s ease both;
+  }
+
+  .btn-primary {
+    padding: 16px 36px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--blue), var(--teal));
+    color: #04111a;
+    font-size: 15px;
+    font-weight: 800;
+    text-decoration: none;
+    letter-spacing: 0.3px;
+    transition: all 0.2s;
+    box-shadow: 0 16px 40px rgba(6,214,160,0.25);
+  }
+
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 20px 48px rgba(6,214,160,0.35); }
+
+  .btn-ghost {
+    padding: 16px 36px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.12);
+    color: var(--light);
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s;
+    backdrop-filter: blur(10px);
+  }
+
+  .btn-ghost:hover { border-color: rgba(14,165,233,0.4); color: var(--white); background: rgba(14,165,233,0.06); }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── HERO STATS ── */
+  .hero-stats {
+    display: flex;
+    gap: 0;
+    margin-top: 72px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+    background: rgba(13,20,33,0.7);
+    backdrop-filter: blur(20px);
+    animation: fadeUp 0.8s 0.5s ease both;
+    width: 100%;
+    max-width: 600px;
+  }
+
+  .stat-item {
+    flex: 1;
+    padding: 24px 20px;
+    text-align: center;
+    border-right: 1px solid var(--border);
+  }
+
+  .stat-item:last-child { border-right: none; }
+
+  .stat-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 42px;
+    line-height: 1;
+    color: var(--teal);
+    margin-bottom: 4px;
+  }
+
+  .stat-lbl {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+
+  /* ── MOCKUP SECTION ── */
+  .mockup-section {
+    padding: 100px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .section-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--teal);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(40px, 6vw, 72px);
+    letter-spacing: 2px;
+    text-align: center;
+    line-height: 1;
+    margin-bottom: 16px;
+  }
+
+  .section-desc {
+    text-align: center;
+    color: var(--muted);
+    font-size: 16px;
+    max-width: 500px;
+    margin: 0 auto 64px;
+    line-height: 1.7;
+  }
+
+  /* ── APP MOCKUPS ── */
+  .mockup-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+    max-width: 1100px;
+    margin: 0 auto;
+    align-items: start;
+  }
+
+  .phone-frame {
+    border-radius: 36px;
+    overflow: hidden;
+    border: 1.5px solid rgba(255,255,255,0.1);
+    background: var(--card);
+    box-shadow: 0 40px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04);
+    position: relative;
+    transform-origin: center top;
+  }
+
+  .phone-frame.center {
+    transform: scale(1.06);
+    border-color: rgba(6,214,160,0.3);
+    box-shadow: 0 50px 100px rgba(0,0,0,0.6), 0 0 40px rgba(6,214,160,0.12);
+  }
+
+  .phone-notch {
+    height: 28px;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .phone-notch::after {
+    content: '';
+    width: 80px; height: 16px;
+    background: #111;
+    border-radius: 0 0 10px 10px;
+  }
+
+  .phone-screen {
+    background: #060810;
+    min-height: 580px;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  /* ── SIMULATED SCREEN: DASHBOARD ── */
+  .sim-topbar {
+    background: rgba(8,13,24,0.95);
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(14,165,233,0.1);
+  }
+
+  .sim-logo { font-family: 'Bebas Neue',sans-serif; font-size:15px; letter-spacing:2px; }
+  .sim-logo span { color: var(--teal); }
+
+  .sim-coins {
+    background: rgba(251,191,36,0.12);
+    border: 0.5px solid rgba(251,191,36,0.3);
+    border-radius: 20px;
+    padding: 2px 8px;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--gold);
+  }
+
+  .sim-avatar {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--blue), var(--purple));
+    font-size: 9px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sim-hero-img {
+    height: 100px;
+    background: linear-gradient(135deg, #0d2035, #06151f);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .sim-hero-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 20%;
+    opacity: 0.7;
+  }
+
+  .sim-hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(6,8,16,0.95) 100%);
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+
+  .sim-greet { font-size: 9px; color: rgba(255,255,255,0.5); }
+  .sim-name { font-family: 'Bebas Neue',sans-serif; font-size: 16px; letter-spacing: 1px; line-height: 1; }
+  .sim-streak {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    background: rgba(251,191,36,0.1);
+    border: 0.5px solid rgba(251,191,36,0.3);
+    border-radius: 20px;
+    padding: 2px 7px;
+    font-size: 8px;
+    font-weight: 700;
+    color: var(--gold);
+    width: fit-content;
+    margin-top: 4px;
+  }
+
+  .sim-section { padding: 8px 12px; }
+  .sim-section-label {
+    font-size: 7px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .sim-week-row {
+    display: flex;
+    gap: 4px;
+    justify-content: space-between;
+    background: rgba(17,24,39,0.8);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 8px;
+    margin-bottom: 8px;
+  }
+
+  .sim-day-circle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    flex: 1;
+  }
+
+  .sim-ring {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 2.5px solid rgba(255,255,255,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 7px;
+    font-weight: 800;
+    position: relative;
+  }
+
+  .sim-ring.done { border-color: var(--teal); color: var(--teal); }
+  .sim-ring.partial { border-color: var(--gold); color: var(--gold); }
+  .sim-ring.low { border-color: var(--red); color: var(--red); }
+  .sim-ring.today { border-color: rgba(14,165,233,0.5); border-style: dashed; color: var(--blue); }
+
+  .sim-day-name { font-size: 7px; color: rgba(255,255,255,0.4); font-weight: 700; }
+
+  .sim-score-card {
+    background: linear-gradient(135deg, rgba(14,165,233,0.1), rgba(6,214,160,0.06));
+    border: 1px solid rgba(14,165,233,0.2);
+    border-radius: 12px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .sim-score-circle {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: conic-gradient(var(--teal) 252deg, rgba(255,255,255,0.08) 252deg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  .sim-score-inner {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: #080d18;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+
+  .sim-score-num { font-family: 'Bebas Neue',sans-serif; font-size: 14px; line-height: 1; }
+  .sim-score-slash { font-size: 6px; color: var(--muted); }
+
+  .sim-score-level { font-family: 'Bebas Neue',sans-serif; font-size: 14px; color: var(--teal); margin-bottom: 2px; }
+  .sim-score-msg { font-size: 9px; color: var(--muted); line-height: 1.4; }
+
+  .sim-habit-row {
+    background: rgba(17,24,39,0.8);
+    border: 0.5px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    padding: 7px 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 5px;
+  }
+
+  .sim-habit-ico {
+    width: 24px; height: 24px;
+    border-radius: 7px;
+    background: rgba(6,214,160,0.12);
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sim-habit-name { font-size: 10px; font-weight: 500; flex: 1; }
+  .sim-habit-time { font-size: 9px; color: var(--muted); }
+
+  .sim-chk {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    border: 1.5px solid var(--muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+  }
+
+  .sim-chk.done { background: var(--teal); border-color: var(--teal); color: #000; }
+
+  .sim-bnav {
+    background: rgba(8,13,24,0.95);
+    border-top: 0.5px solid rgba(14,165,233,0.1);
+    padding: 8px 4px 12px;
+    display: flex;
+    justify-content: space-around;
+  }
+
+  .sim-ni {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    padding: 4px 8px; border-radius: 8px;
+  }
+
+  .sim-ni.active { background: rgba(14,165,233,0.1); }
+  .sim-ni-ico { font-size: 14px; }
+  .sim-ni-lbl { font-size: 7px; color: var(--muted); }
+  .sim-ni.active .sim-ni-lbl { color: var(--blue); }
+
+  /* ── COACH SCREEN ── */
+  .sim-chat-area { padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+
+  .sim-msg-ai {
+    background: rgba(17,24,39,0.9);
+    border: 0.5px solid rgba(14,165,233,0.15);
+    border-radius: 12px 12px 12px 3px;
+    padding: 8px 10px;
+    font-size: 10px;
+    line-height: 1.5;
+    color: var(--light);
+    max-width: 88%;
+  }
+
+  .sim-msg-user {
+    background: linear-gradient(135deg, var(--blue), var(--purple));
+    border-radius: 12px 12px 3px 12px;
+    padding: 8px 10px;
+    font-size: 10px;
+    color: #fff;
+    max-width: 80%;
+    align-self: flex-end;
+  }
+
+  .sim-msg-lbl {
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--teal);
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .sim-chips {
+    padding: 0 12px 8px;
+    display: flex;
+    gap: 6px;
+    overflow: hidden;
+  }
+
+  .sim-chip {
+    flex-shrink: 0;
+    padding: 4px 10px;
+    border: 0.5px solid rgba(255,255,255,0.12);
+    border-radius: 20px;
+    font-size: 9px;
+    color: var(--light);
+    background: rgba(17,24,39,0.7);
+    white-space: nowrap;
+  }
+
+  .sim-input-row {
+    margin: 0 12px;
+    background: rgba(17,24,39,0.8);
+    border: 0.5px solid rgba(14,165,233,0.2);
+    border-radius: 20px;
+    padding: 8px 14px;
+    font-size: 9px;
+    color: var(--muted);
+  }
+
+  /* ── ROADMAP SCREEN ── */
+  .sim-goal-card {
+    background: rgba(17,24,39,0.8);
+    border: 0.5px solid rgba(255,255,255,0.07);
+    border-radius: 10px;
+    padding: 8px 10px;
+    margin-bottom: 6px;
+  }
+
+  .sim-goal-title { font-size: 10px; font-weight: 700; margin-bottom: 6px; }
+  .sim-goal-bar-track { background: rgba(255,255,255,0.07); border-radius: 99px; height: 4px; overflow: hidden; margin-bottom: 4px; }
+  .sim-goal-bar-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--blue), var(--teal)); }
+  .sim-goal-pct { font-size: 9px; color: var(--teal); font-weight: 700; }
+
+  /* ── FEATURES ── */
+  .features-section {
+    padding: 100px 24px;
+    background: linear-gradient(180deg, transparent, rgba(13,20,33,0.4), transparent);
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .feature-card {
+    background: rgba(13,20,33,0.8);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 20px;
+    padding: 32px;
+    transition: border-color 0.3s, transform 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--card-accent, var(--teal)), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .feature-card:hover { border-color: rgba(14,165,233,0.25); transform: translateY(-4px); }
+  .feature-card:hover::before { opacity: 1; }
+
+  .feature-icon {
+    width: 52px; height: 52px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    margin-bottom: 20px;
+  }
+
+  .feature-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+
+  .feature-desc {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+
+  .feature-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 16px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* ── HOW IT WORKS ── */
+  .howitworks-section {
+    padding: 100px 24px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-top: 64px;
+  }
+
+  .step {
+    display: grid;
+    grid-template-columns: 60px 1fr;
+    gap: 24px;
+    position: relative;
+    padding-bottom: 48px;
+  }
+
+  .step:last-child { padding-bottom: 0; }
+
+  .step-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  .step-num {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--blue), var(--teal));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    color: #04111a;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  .step-line {
+    width: 1px;
+    flex: 1;
+    background: linear-gradient(180deg, rgba(14,165,233,0.3), rgba(6,214,160,0.1));
+    margin-top: 8px;
+  }
+
+  .step:last-child .step-line { display: none; }
+
+  .step-body { padding-top: 12px; }
+
+  .step-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+
+  .step-desc {
+    font-size: 15px;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+
+  .step-highlight {
+    display: inline-block;
+    margin-top: 12px;
+    padding: 6px 14px;
+    border-radius: 8px;
+    background: rgba(6,214,160,0.08);
+    border: 1px solid rgba(6,214,160,0.2);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--teal);
+    letter-spacing: 1px;
+  }
+
+  /* ── PHASES ── */
+  .phases-section {
+    padding: 100px 24px;
+    background: rgba(13,20,33,0.4);
+  }
+
+  .phases-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    max-width: 1100px;
+    margin: 64px auto 0;
+  }
+
+  .phase-card {
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px;
+    padding: 24px 20px;
+    position: relative;
+    overflow: hidden;
+    background: rgba(13,20,33,0.6);
+    transition: transform 0.2s;
+  }
+
+  .phase-card:hover { transform: translateY(-4px); }
+
+  .phase-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 64px;
+    line-height: 0.9;
+    color: rgba(255,255,255,0.04);
+    position: absolute;
+    top: 8px; right: 12px;
+  }
+
+  .phase-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    color: var(--teal);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .phase-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 1px;
+    margin-bottom: 14px;
+  }
+
+  .phase-items {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .phase-items li {
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .phase-items li::before {
+    content: '';
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--teal);
+    flex-shrink: 0;
+  }
+
+  /* ── QUOTE ── */
+  .quote-section {
+    padding: 120px 24px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .quote-glow {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(6,214,160,0.06) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .quote-mark {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 160px;
+    color: var(--teal);
+    opacity: 0.08;
+    line-height: 0.5;
+    margin-bottom: 32px;
+    display: block;
+  }
+
+  .quote-text {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(32px, 5vw, 56px);
+    letter-spacing: 2px;
+    line-height: 1.15;
+    max-width: 800px;
+    margin: 0 auto 24px;
+    color: var(--white);
+  }
+
+  .quote-text .highlight { color: var(--teal); }
+
+  .quote-attribution {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+
+  /* ── CTA FINAL ── */
+  .cta-section {
+    padding: 100px 24px;
+    text-align: center;
+    position: relative;
+  }
+
+  .cta-box {
+    max-width: 700px;
+    margin: 0 auto;
+    background: linear-gradient(135deg, rgba(13,20,33,0.9), rgba(8,13,24,0.95));
+    border: 1px solid rgba(14,165,233,0.2);
+    border-radius: 28px;
+    padding: 64px 48px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta-box::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--teal), transparent);
+  }
+
+  .cta-box::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--blue), transparent);
+  }
+
+  .cta-eyebrow {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--teal);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+
+  .cta-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(42px, 7vw, 80px);
+    letter-spacing: 3px;
+    line-height: 1;
+    margin-bottom: 20px;
+  }
+
+  .cta-desc {
+    font-size: 16px;
+    color: var(--muted);
+    line-height: 1.7;
+    margin-bottom: 40px;
+    max-width: 460px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .cta-form {
+    display: flex;
+    gap: 10px;
+    max-width: 420px;
+    margin: 0 auto;
+  }
+
+  .cta-input {
+    flex: 1;
+    padding: 14px 18px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.04);
+    color: var(--white);
+    font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .cta-input:focus { border-color: rgba(14,165,233,0.4); }
+  .cta-input::placeholder { color: var(--muted); }
+
+  .cta-submit {
+    padding: 14px 24px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--blue), var(--teal));
+    border: none;
+    color: #04111a;
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: opacity 0.2s, transform 0.2s;
+    white-space: nowrap;
+  }
+
+  .cta-submit:hover { opacity: 0.85; transform: translateY(-1px); }
+
+  .cta-fine {
+    font-size: 12px;
+    color: rgba(255,255,255,0.2);
+    margin-top: 14px;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    padding: 48px 40px 32px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .footer-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 3px;
+  }
+
+  .footer-logo span { color: var(--teal); font-size: 14px; letter-spacing: 2px; }
+
+  .footer-copy {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 1px;
+  }
+
+  /* ── FLOATING BADGE ── */
+  .floating-badge {
+    position: fixed;
+    bottom: 32px;
+    right: 32px;
+    z-index: 50;
+    background: rgba(13,20,33,0.95);
+    border: 1px solid rgba(6,214,160,0.3);
+    border-radius: 99px;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.4);
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+
+  .floating-badge:hover { transform: translateY(-2px); border-color: rgba(6,214,160,0.6); }
+
+  .floating-badge-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--teal);
+    animation: pulse 2s infinite;
+  }
+
+  .floating-badge-text {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--white);
+  }
+
+  .floating-badge-arrow {
+    font-size: 14px;
+    color: var(--teal);
+  }
+
+  /* ── PLACEHOLDERS for app screenshots ── */
+  .screen-placeholder {
+    background: linear-gradient(135deg, #0d1421, #060810);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+    color: rgba(255,255,255,0.15);
+    font-size: 11px;
+    text-align: center;
+    letter-spacing: 1px;
+    font-family: 'Space Mono', monospace;
+    padding: 20px;
+    border: 1px dashed rgba(255,255,255,0.06);
+    border-radius: 8px;
+  }
+
+  .screen-placeholder .ph-icon { font-size: 28px; opacity: 0.3; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    nav { padding: 16px 24px; }
+    .mockup-grid { grid-template-columns: 1fr; max-width: 340px; }
+    .phone-frame.center { transform: none; }
+    .phases-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  @media (max-width: 600px) {
+    nav { padding: 14px 20px; }
+    .nav-tag { display: none; }
+    .hero-stats { flex-wrap: wrap; }
+    .stat-item { min-width: 33%; border-bottom: 1px solid var(--border); }
+    .phases-grid { grid-template-columns: 1fr; }
+    .cta-form { flex-direction: column; }
+    .cta-box { padding: 40px 24px; }
+    footer { flex-direction: column; text-align: center; }
+    .floating-badge { bottom: 20px; right: 16px; }
+  }
+
+  /* Scroll reveal */
+  .reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">
+    MELTOS
+    <div class="dot"></div>
+  </div>
+  <div class="nav-tag">by Luhv+</div>
+  <a href="https://meltosbyluhv.netlify.app" target="_blank" class="nav-cta">Launch App →</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-glow-1"></div>
+  <div class="hero-glow-2"></div>
+
+  <div class="hero-eyebrow">Performance OS</div>
+
+  <h1 class="hero-title">
+    MELTOS
+  </h1>
+  <p class="hero-sub-title">Your Personal Performance Operating System</p>
+
+  <p class="hero-desc">
+    Imagine having the clarity and direction to execute at your highest level — a system that allows you to operate with supreme confidence, eliminate <strong>80% of wasted effort</strong>, and become your most effective self. All within <strong>30 days or less</strong>.<br><br>
+    With MELTOS, that's exactly what you get. A performance system that turns your goals into daily wins, sharpens your focus on what actually moves the needle, and reclaims <strong>2+ hours a day</strong> for the things and people you love — not by doing more, but by doing what matters.
+  </p>
+
+  <div class="hero-btns">
+    <a href="https://meltosbyluhv.netlify.app" target="_blank" class="btn-primary">Launch App 🏆</a>
+    <a href="#pricing" class="btn-ghost">See Plans →</a>
+  </div>
+
+  <div class="hero-stats">
+    <div class="stat-item">
+      <div class="stat-num">3x</div>
+      <div class="stat-lbl">Faster Goals</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">2hrs</div>
+      <div class="stat-lbl">Reclaimed Daily</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">24/7</div>
+      <div class="stat-lbl">AI Coach</div>
+    </div>
+  </div>
+</section>
+
+<!-- APP MOCKUPS -->
+<section class="mockup-section reveal">
+  <div class="section-label">Inside MELTOS</div>
+  <h2 class="section-title">THE OS IN ACTION</h2>
+  <p class="section-desc">Every screen built around one goal: eliminate the gap between who you are and who you intend to be.</p>
+
+  <div class="mockup-grid">
+
+    <!-- PHONE 1: DASHBOARD -->
+    <div class="phone-frame reveal">
+      <div class="phone-notch"></div>
+      <div class="phone-screen">
+        <div class="sim-topbar">
+          <div class="sim-logo">MELTOS</div>
+          <div class="sim-coins">⚡ 30</div>
+          <div class="sim-avatar">SL</div>
+        </div>
+        <div class="sim-hero-img">
+          <img src="https://ggfvluqiwcnhbmetxxao.supabase.co/storage/v1/object/public/coach/coach.png" alt="Coach" style="width:100%;height:100%;object-fit:cover;object-position:center 35%;filter:blur(1px) brightness(0.45) saturate(1.2);">
+          <div class="sim-hero-overlay">
+            <div class="sim-greet">Good morning,</div>
+            <div class="sim-name">MVP 👊</div>
+            <div class="sim-streak">🔥 14-Day Streak</div>
+          </div>
+        </div>
+        <div class="sim-section">
+          <div class="sim-section-label">This Week</div>
+          <div class="sim-week-row">
+            <div class="sim-day-circle"><div class="sim-ring done">100%</div><div class="sim-day-name">Mon</div></div>
+            <div class="sim-day-circle"><div class="sim-ring done">80%</div><div class="sim-day-name">Tue</div></div>
+            <div class="sim-day-circle"><div class="sim-ring partial">60%</div><div class="sim-day-name">Wed</div></div>
+            <div class="sim-day-circle"><div class="sim-ring done">100%</div><div class="sim-day-name">Thu</div></div>
+            <div class="sim-day-circle"><div class="sim-ring low">20%</div><div class="sim-day-name">Fri</div></div>
+            <div class="sim-day-circle"><div class="sim-ring done">90%</div><div class="sim-day-name">Sat</div></div>
+            <div class="sim-day-circle"><div class="sim-ring today">—</div><div class="sim-day-name">Sun</div></div>
+          </div>
+          <div class="sim-score-card">
+            <div class="sim-score-circle">
+              <div class="sim-score-inner">
+                <div class="sim-score-num">78</div>
+                <div class="sim-score-slash">/100</div>
+              </div>
+            </div>
+            <div>
+              <div class="sim-score-level">EFFECTIVE</div>
+              <div class="sim-score-msg">Great is one decision away.<br>Keep the momentum.</div>
+            </div>
+          </div>
+          <div class="sim-section-label" style="margin-top:8px">Habit Matrix</div>
+          <div class="sim-habit-row"><div class="sim-habit-ico">💧</div><div><div class="sim-habit-name">Drink 8 glasses water</div><div class="sim-habit-time">Morning</div></div><div class="sim-chk done">✓</div></div>
+          <div class="sim-habit-row"><div class="sim-habit-ico">🏃</div><div><div class="sim-habit-name">30 min workout</div><div class="sim-habit-time">7:00 AM</div></div><div class="sim-chk done">✓</div></div>
+          <div class="sim-habit-row"><div class="sim-habit-ico">📚</div><div><div class="sim-habit-name">Read 20 pages</div><div class="sim-habit-time">Evening</div></div><div class="sim-chk"></div></div>
+        </div>
+        <div class="sim-bnav">
+          <div class="sim-ni active"><div class="sim-ni-ico">📊</div><div class="sim-ni-lbl">Dashboard</div></div>
+          <div class="sim-ni"><div class="sim-ni-ico">🗺️</div><div class="sim-ni-lbl">Roadmap</div></div>
+          <div class="sim-ni"><div class="sim-ni-ico">⏱️</div><div class="sim-ni-lbl">Focus</div></div>
+          <div class="sim-ni"><div class="sim-ni-ico">⚡</div><div class="sim-ni-lbl">Coach</div></div>
+          <div class="sim-ni"><div class="sim-ni-ico">✨</div><div class="sim-ni-lbl">Inspire</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHONE 2: COACH (center, larger) -->
+    <div class="phone-frame center reveal">
+      <div class="phone-notch"></div>
+      <div class="phone-screen">
+        <div class="sim-topbar">
+          <div class="sim-logo">MELTOS</div>
+          <div class="sim-coins">⚡ 30</div>
+          <div class="sim-avatar">SL</div>
+        </div>
+        <div class="sim-hero-img" style="height:110px">
+          <img src="https://ggfvluqiwcnhbmetxxao.supabase.co/storage/v1/object/public/coach/coach.png" alt="Coach" style="width:100%;height:100%;object-fit:cover;object-position:center 30%;filter:blur(1px) brightness(0.4) saturate(1.3);">
+          <div class="sim-hero-overlay">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;line-height:1">COACH</div>
+            <div style="font-size:9px;color:rgba(255,255,255,0.5);margin-top:2px">Ask anything. Get clarity. Move faster.</div>
+          </div>
+        </div>
+        <div class="sim-chat-area">
+          <div>
+            <div class="sim-msg-lbl">Coach</div>
+            <div class="sim-msg-ai">You are spending <strong style="color:#fbbf24">68% of your time on low-impact tasks</strong>. Switch focus to client outreach for highest ROI this week.</div>
+          </div>
+          <div class="sim-msg-user">What should I prioritize today?</div>
+          <div>
+            <div class="sim-msg-lbl">Coach</div>
+            <div class="sim-msg-ai">Based on your 90-day goal, your <strong style="color:#06d6a0">highest leverage assignment</strong> right now is: 1 hour of deep work on your launch strategy. Block it in your peak window — now.</div>
+          </div>
+          <div class="sim-msg-user">What's my peak window?</div>
+          <div>
+            <div class="sim-msg-lbl">Coach</div>
+            <div class="sim-msg-ai">⚡ <strong style="color:#fbbf24">8–11am</strong> — that's your Creativity window. You complete 2.3× more deep tasks in this period vs afternoons.</div>
+          </div>
+        </div>
+        <div class="sim-chips">
+          <div class="sim-chip">Decision check 🎯</div>
+          <div class="sim-chip">My progress 📈</div>
+          <div class="sim-chip">Next step ⚡</div>
+        </div>
+        <div class="sim-input-row">Ask Coach about your next step...</div>
+        <div class="sim-bnav">
+          <div class="sim-ni"><div class="sim-ni-ico">📊</div><div class="sim-ni-lbl">Dashboard</div></div>
+          <div class="sim-ni"><div class="sim-ni-ico">🗺️</div><div class="sim-ni-lbl">Roadmap</div></div>
+          <div class="sim-ni"><div class="sim-ni-ico">⏱️</div><div class="sim-ni-lbl">Focus</div></div>
+          <div class="sim-ni active"><div class="sim-ni-ico">⚡</div><div class="sim-ni-lbl">Coach</div></div>
+          <div class="sim-ni"><div class="sim-ni-ico">✨</div><div class="sim-ni-lbl">Inspire</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHONE 3: ROADMAP -->
+    <div class="phone-frame reveal">
+      <div class="phone-notch"></div>
+      <div class="phone-screen">
+        <div class="sim-topbar">
+          <div class="sim-logo">MELTOS</div>
+          <div class="sim-coins">⚡ 30</div>
+          <div class="sim-avatar">SL</div>
+        </div>
+        <div class="sim-hero-img">
+          <img src="https://ggfvluqiwcnhbmetxxao.supabase.co/storage/v1/object/public/coach/coach.png" alt="Coach" style="width:100%;height:100%;object-fit:cover;object-position:center 35%;filter:blur(1px) brightness(0.4) saturate(1.1);">
+          <div class="sim-hero-overlay">
+            <div style="font-size:8px;color:var(--teal);text-transform:uppercase;letter-spacing:2px;margin-bottom:2px">Roadmap</div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;line-height:1">YOUR PATH TO PEAK.</div>
+          </div>
+        </div>
+        <div class="sim-section">
+          <div class="sim-section-label">Goals</div>
+          <div class="sim-goal-card">
+            <div class="sim-goal-title">🏆 Close 10 clients this month</div>
+            <div class="sim-goal-bar-track"><div class="sim-goal-bar-fill" style="width:70%"></div></div>
+            <div class="sim-goal-pct">70% · Due Apr 30</div>
+          </div>
+          <div class="sim-goal-card">
+            <div class="sim-goal-title">💪 Reach 80kg target weight</div>
+            <div class="sim-goal-bar-track"><div class="sim-goal-bar-fill" style="width:45%;background:linear-gradient(90deg,#fbbf24,#f43f5e)"></div></div>
+            <div class="sim-goal-pct" style="color:#fbbf24">45% · Due Jun 1</div>
+          </div>
+          <div class="sim-goal-card">
+            <div class="sim-goal-title">📈 Launch online course</div>
+            <div class="sim-goal-bar-track"><div class="sim-goal-bar-fill" style="width:20%;background:linear-gradient(90deg,#6366f1,#0ea5e9)"></div></div>
+            <div class="sim-goal-pct" style="color:#6366f1">20% · Due May 15</div>
+          </div>
+          <div class="sim-section-label" style="margin-top:10px">Daily Tasks</div>
+          <div class="sim-habit-row"><div class="sim-habit-ico" style="background:rgba(99,102,241,0.15)">📞</div><div><div class="sim-habit-name">5 outreach calls</div></div><div class="sim-chk done">✓</div></div>
+          <div class="sim-habit-row"><div class="sim-habit-ico" style="background:rgba(251,191,36,0.12)">✍️</div><div><div class="sim-habit-name">Write 500 words</div></div><div class="sim-chk"></div></div>
+        </div>
+        <div class="sim-bnav">
+          <div class="sim-ni"><div class="sim-ni-ico">📊</div><div class="sim-ni-lbl">Dashboard</div></div>
+          <div class="sim-ni active"><div class="sim-ni-ico">🗺️</div><div class="sim-ni-lbl">Roadmap</div></div>
+          <div class="sim-ni"><div class="sim-ni-ico">⏱️</div><div class="sim-ni-lbl">Focus</div></div>
+          <div class="sim-ni"><div class="sim-ni-ico">⚡</div><div class="sim-ni-lbl">Coach</div></div>
+          <div class="sim-ni"><div class="sim-ni-ico">✨</div><div class="sim-ni-lbl">Inspire</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+
+</section>
+
+<!-- FEATURES -->
+<section class="features-section">
+  <div class="section-label reveal">Core Modules</div>
+  <h2 class="section-title reveal">WHAT MELTOS REPLACES</h2>
+  <p class="section-desc reveal">Scattered goals. Habit apps. Task managers. Motivation systems. All replaced with one decision intelligence engine.</p>
+
+  <div class="features-grid">
+
+    <div class="feature-card reveal" style="--card-accent: #06d6a0">
+      <div class="feature-icon" style="background:rgba(6,214,160,0.1);border:1px solid rgba(6,214,160,0.2)">📊</div>
+      <div class="feature-title">Performance Dashboard</div>
+      <p class="feature-desc">Your personal scoreboard. Track your Effectiveness Score across Mindset, Assignment, Momentum, and Alignment — every single day.</p>
+      <div class="feature-tag" style="background:rgba(6,214,160,0.08);border:1px solid rgba(6,214,160,0.2);color:var(--teal)">Real-time score</div>
+    </div>
+
+    <div class="feature-card reveal" style="--card-accent: #0ea5e9">
+      <div class="feature-icon" style="background:rgba(14,165,233,0.1);border:1px solid rgba(14,165,233,0.2)">🗺️</div>
+      <div class="feature-title">Life Roadmap</div>
+      <p class="feature-desc">Three levels — Lifestyle vision, monthly Goals, and daily Tasks. Every assignment traces back to a why. Structure beats motivation.</p>
+      <div class="feature-tag" style="background:rgba(14,165,233,0.08);border:1px solid rgba(14,165,233,0.2);color:var(--blue)">Goal hierarchy</div>
+    </div>
+
+    <div class="feature-card reveal" style="--card-accent: #6366f1">
+      <div class="feature-icon" style="background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2)">⚡</div>
+      <div class="feature-title">MELT Coach</div>
+      <p class="feature-desc">Detects procrastination patterns, suggests next assignments, rewrites goals into execution steps, and gives real-time course correction based on your data.</p>
+      <div class="feature-tag" style="background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);color:var(--purple)">AI accountability</div>
+    </div>
+
+    <div class="feature-card reveal" style="--card-accent: #fbbf24">
+      <div class="feature-icon" style="background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.2)">⏱️</div>
+      <div class="feature-title">Focus Engine</div>
+      <p class="feature-desc">Deep Work, Quick Sprint, and Break modes. Linked to your goals so every session moves the needle. Peak window protection built in.</p>
+      <div class="feature-tag" style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);color:var(--gold)">Deep work system</div>
+    </div>
+
+    <div class="feature-card reveal" style="--card-accent: #f43f5e">
+      <div class="feature-icon" style="background:rgba(244,63,94,0.1);border:1px solid rgba(244,63,94,0.2)">🎯</div>
+      <div class="feature-title">Decision Intelligence</div>
+      <p class="feature-desc">Ask "Does this align with my goals?" before any decision. Coach detects the mismatch between your intentions and behavior and corrects your course.</p>
+      <div class="feature-tag" style="background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.2);color:var(--red)">Alignment check</div>
+    </div>
+
+    <div class="feature-card reveal" style="--card-accent: #a78bfa">
+      <div class="feature-icon" style="background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.2)">✨</div>
+      <div class="feature-title">Vision Board</div>
+      <p class="feature-desc">Curated images by life domain — Finance, Fitness, Business, Mindset. Save them to your board and see them in Focus and Roadmap as fuel.</p>
+      <div class="feature-tag" style="background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.2);color:#a78bfa">Identity mapping</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="howitworks-section" id="how-it-works">
+  <div class="section-label reveal">The Loop</div>
+  <h2 class="section-title reveal" style="text-align:center">HOW IT WORKS</h2>
+  <p class="section-desc reveal">A simple daily loop that compounds into extraordinary results over time.</p>
+
+  <div class="steps">
+    <div class="step reveal">
+      <div class="step-left">
+        <div class="step-num">1</div>
+        <div class="step-line"></div>
+      </div>
+      <div class="step-body">
+        <div class="step-title">CHECK YOUR SCORE</div>
+        <p class="step-desc">30 seconds every morning. Your Effectiveness Score shows you exactly where you stand across Mindset, Assignment, Momentum, and Alignment. No ambiguity.</p>
+        <div class="step-highlight">Daily pulse · 30 seconds</div>
+      </div>
+    </div>
+
+    <div class="step reveal">
+      <div class="step-left">
+        <div class="step-num">2</div>
+        <div class="step-line"></div>
+      </div>
+      <div class="step-body">
+        <div class="step-title">EXECUTE YOUR TASKS</div>
+        <p class="step-desc">Your daily non-negotiables are already waiting. Check them off. Each one traces back to a goal, which traces back to your life vision. You always know why.</p>
+        <div class="step-highlight">Habit matrix · Streak system</div>
+      </div>
+    </div>
+
+    <div class="step reveal">
+      <div class="step-left">
+        <div class="step-num">3</div>
+        <div class="step-line"></div>
+      </div>
+      <div class="step-body">
+        <div class="step-title">PROTECT YOUR PEAK WINDOW</div>
+        <p class="step-desc">Your Creativity window (5am–12pm) is worth 2× the output. Use Focus mode during this time. One deep work session on your most important goal changes the day.</p>
+        <div class="step-highlight">Focus engine · Peak detection</div>
+      </div>
+    </div>
+
+    <div class="step reveal">
+      <div class="step-left">
+        <div class="step-num">4</div>
+        <div class="step-line"></div>
+      </div>
+      <div class="step-body">
+        <div class="step-title">ASK YOUR COACH</div>
+        <p class="step-desc">Stuck? Make a decision? Need a weekly plan? Coach knows your goals, habits, energy levels, and streak. It speaks to <em>your</em> life, not generic advice.</p>
+        <div class="step-highlight">AI coach · Real-time correction</div>
+      </div>
+    </div>
+
+    <div class="step reveal">
+      <div class="step-left">
+        <div class="step-num">5</div>
+        <div class="step-line"></div>
+      </div>
+      <div class="step-body">
+        <div class="step-title">SEE YOUR EVOLUTION</div>
+        <p class="step-desc">Track your habit consistency, goal progress, and energy over 7, 30, or 90 days. Download your performance report. Watch the compound effect in motion.</p>
+        <div class="step-highlight">Evolution chart · CSV export</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PHASES -->
+<section class="phases-section">
+  <div class="section-label reveal">Vision</div>
+  <h2 class="section-title reveal">THE ROADMAP</h2>
+  <p class="section-desc reveal">MELTOS is built to become the human performance infrastructure layer. Here's where we're going.</p>
+
+  <div class="phases-grid">
+    <div class="phase-card reveal">
+      <div class="phase-num">1</div>
+      <div class="phase-label">Now</div>
+      <div class="phase-title">CORE OS</div>
+      <ul class="phase-items">
+        <li>Performance tracking</li>
+        <li>AI Coach</li>
+        <li>Goal roadmap</li>
+        <li>Focus engine</li>
+        <li>Vision board</li>
+        <li>Scoreboard</li>
+      </ul>
+    </div>
+    <div class="phase-card reveal">
+      <div class="phase-num">2</div>
+      <div class="phase-label">Next</div>
+      <div class="phase-title">MODULES</div>
+      <ul class="phase-items">
+        <li>MELTOS Focus Pro</li>
+        <li>MELTOS Vision</li>
+        <li>MELTOS Health</li>
+        <li>Energy optimization</li>
+        <li>Advanced analytics</li>
+        <li>Export & integrations</li>
+      </ul>
+    </div>
+    <div class="phase-card reveal">
+      <div class="phase-num">3</div>
+      <div class="phase-label">Scaling</div>
+      <div class="phase-title">PLATFORM</div>
+      <ul class="phase-items">
+        <li>API for coaches</li>
+        <li>Enterprise dashboards</li>
+        <li>Team performance OS</li>
+        <li>Education licensing</li>
+        <li>White-label product</li>
+        <li>Marketplace</li>
+      </ul>
+    </div>
+    <div class="phase-card reveal" style="border-color:rgba(6,214,160,0.15)">
+      <div class="phase-num">4</div>
+      <div class="phase-label">Vision</div>
+      <div class="phase-title" style="color:var(--teal)">ECOSYSTEM</div>
+      <ul class="phase-items">
+        <li>Human perf. infrastructure</li>
+        <li>Like Notion → workspace OS</li>
+        <li>Like Stripe → fin infra</li>
+        <li>MELTOS → execution layer</li>
+        <li>For coaches, orgs, schools</li>
+        <li>$1B SaaS ecosystem</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+
+
+
+<!-- PRICING -->
+<section style="padding:100px 24px;text-align:center;position:relative;" id="pricing">
+  <div style="font-family:'Space Mono',monospace;font-size:10px;color:#06d6a0;letter-spacing:3px;text-transform:uppercase;margin-bottom:16px;">Pricing</div>
+  <h2 style="font-family:'Bebas Neue',sans-serif;font-size:clamp(36px,6vw,64px);letter-spacing:2px;margin-bottom:16px;color:#fff;">CHOOSE YOUR LEVEL</h2>
+  <p style="font-size:16px;color:rgba(255,255,255,.5);max-width:500px;margin:0 auto 60px;line-height:1.7;">Start free. Upgrade when you're ready to unlock your AI Coach and full performance system.</p>
+
+  <!-- Toggle monthly/annual -->
+  <div style="display:inline-flex;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:30px;padding:4px;margin-bottom:48px;gap:4px;">
+    <button id="btn-monthly" onclick="setPricing('monthly')" style="padding:8px 20px;border-radius:24px;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;background:linear-gradient(135deg,#06d6a0,#0ea5e9);color:#07111b;transition:all .2s;">Monthly</button>
+    <button id="btn-annual" onclick="setPricing('annual')" style="padding:8px 20px;border-radius:24px;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;background:transparent;color:rgba(255,255,255,.4);transition:all .2s;">Annual <span style="font-size:10px;background:rgba(6,214,160,.15);color:#06d6a0;padding:2px 7px;border-radius:10px;margin-left:4px;">Save 30%</span></button>
+  </div>
+
+  <!-- 7 day trial banner -->
+  <div style="max-width:900px;margin:0 auto 32px;background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2);border-radius:16px;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+    <div style="text-align:left;">
+      <div style="font-size:12px;color:#fbbf24;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">🔥 Try before you commit</div>
+      <div style="font-size:14px;color:rgba(255,255,255,.8);">7-day full MVP trial for just <strong style="color:#fbbf24;">€2</strong> — cancel anytime</div>
+    </div>
+    <a href="https://square.link/u/Oj9nU0MG" target="_blank" style="padding:10px 22px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.35);border-radius:12px;color:#fbbf24;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap;">Start Trial →</a>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;max-width:900px;margin:0 auto;">
+
+    <!-- STARTER -->
+    <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:36px 28px;text-align:left;">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,.4);margin-bottom:12px;">Starter</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:52px;letter-spacing:1px;color:#fff;line-height:1;">
+        <span class="price-starter">$9.99</span><span style="font-size:18px;color:rgba(255,255,255,.4)" class="period-starter">/mo</span>
+      </div>
+      <div style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:28px;margin-top:4px;" class="billing-starter">Billed monthly</div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:32px;">
+        <div style="display:flex;gap:10px;align-items:center;font-size:14px;color:rgba(255,255,255,.7)"><span style="color:#06d6a0">✓</span> Dashboard & Performance Score</div>
+        <div style="display:flex;gap:10px;align-items:center;font-size:14px;color:rgba(255,255,255,.7)"><span style="color:#06d6a0">✓</span> Roadmap & 90-day Goals</div>
+        <div style="display:flex;gap:10px;align-items:center;font-size:14px;color:rgba(255,255,255,.7)"><span style="color:#06d6a0">✓</span> Daily Tasks & Habit Matrix</div>
+        <div style="display:flex;gap:10px;align-items:center;font-size:14px;color:rgba(255,255,255,.7)"><span style="color:#06d6a0">✓</span> Vision Board & Inspire</div>
+        <div style="display:flex;gap:10px;align-items:center;font-size:14px;color:rgba(255,255,255,.7)"><span style="color:#06d6a0">✓</span> Community Ranking</div>
+        <div style="display:flex;gap:10px;align-items:center;font-size:14px;color:rgba(255,255,255,.35)"><span>—</span> AI Coach</div>
+      </div>
+      <a id="link-starter" href="https://square.link/u/N1xNrkES" target="_blank" style="display:block;width:100%;padding:14px;border:1px solid rgba(14,165,233,.4);border-radius:14px;background:rgba(14,165,233,.08);color:#0ea5e9;font-size:14px;font-weight:700;text-align:center;text-decoration:none;font-family:'DM Sans',sans-serif;">Get Starter →</a>
+    </div>
+
+    <!-- MVP — highlighted -->
+    <div style="background:linear-gradient(135deg,rgba(6,214,160,.1),rgba(14,165,233,.06));border:1.5px solid rgba(6,214,160,.35);border-radius:24px;padding:36px 28px;text-align:left;position:relative;">
+      <div style="position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#06d6a0,#0ea5e9);color:#07111b;font-size:11px;font-weight:800;padding:5px 16px;border-radius:20px;white-space:nowrap;">MOST POPULAR</div>
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#06d6a0;margin-bottom:12px;">MVP</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:52px;letter-spacing:1px;color:#fff;line-height:1;">
+        <span class="price-mvp">$29.99</span><span style="font-size:18px;color:rgba(255,255,255,.4)" class="period-mvp">/mo</span>
+      </div>
+      <div style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:28px;margin-top:4px;" class="billing-mvp">Billed monthly</div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:32px;">
+        <div style="display:flex;gap:10px;align-items:center;font-size:14px;color:rgba(255,255,255,.7)"><span style="color:#06d6a0">✓</span> Everything in Starter</div>
+        <div style="display:flex;gap:10px;align-items:center;font-size:14px;color:#fff;font-weight:600"><span style="color:#06d6a0">✓</span> 24/7 AI Coach (personalised)</div>
+        <div style="display:flex;gap:10px;align-items:center;font-size:14px;color:#fff;font-weight:600"><span style="color:#06d6a0">✓</span> Weekly Performance Reviews</div>
+        <div style="display:flex;gap:10px;align-items:center;font-size:14px;color:#fff;font-weight:600"><span style="color:#06d6a0">✓</span> Decision Alignment Check</div>
+        <div style="display:flex;gap:10px;align-items:center;font-size:14px;color:#fff;font-weight:600"><span style="color:#06d6a0">✓</span> Daily Intention Coaching</div>
+        <div style="display:flex;gap:10px;align-items:center;font-size:14px;color:#fff;font-weight:600"><span style="color:#06d6a0">✓</span> Focus Timer + Goal Tracking</div>
+      </div>
+      <a id="link-mvp" href="https://square.link/u/prFufr1m" target="_blank" style="display:block;width:100%;padding:14px;border:none;border-radius:14px;background:linear-gradient(135deg,#06d6a0,#0ea5e9);color:#07111b;font-size:14px;font-weight:800;text-align:center;text-decoration:none;font-family:'DM Sans',sans-serif;">Get MVP — Full Access →</a>
+    </div>
+
+  </div>
+
+  <p style="font-size:13px;color:rgba(255,255,255,.3);margin-top:32px;">After payment, create your account at <a href="https://meltosbyluhv.netlify.app" style="color:#06d6a0;text-decoration:none;">meltosbyluhv.netlify.app</a> with the same email used at checkout.</p>
+
+  <script>
+  var pricing = {
+    monthly: {
+      starter: { price: "$9.99", period: "/mo", billing: "Billed monthly", link: "https://square.link/u/N1xNrkES" },
+      mvp:     { price: "$29.99", period: "/mo", billing: "Billed monthly", link: "https://square.link/u/prFufr1m" }
+    },
+    annual: {
+      starter: { price: "$99", period: "/yr", billing: "Billed annually — save $20", link: "https://square.link/u/VDdzk7Am" },
+      mvp:     { price: "$200", period: "/yr", billing: "Billed annually — save $160", link: "https://square.link/u/fdKovMff" }
+    }
+  };
+  function setPricing(mode) {
+    var p = pricing[mode];
+    document.querySelector(".price-starter").textContent   = p.starter.price;
+    document.querySelector(".period-starter").textContent  = p.starter.period;
+    document.querySelector(".billing-starter").textContent = p.starter.billing;
+    document.getElementById("link-starter").href           = p.starter.link;
+    document.querySelector(".price-mvp").textContent       = p.mvp.price;
+    document.querySelector(".period-mvp").textContent      = p.mvp.period;
+    document.querySelector(".billing-mvp").textContent     = p.mvp.billing;
+    document.getElementById("link-mvp").href               = p.mvp.link;
+    document.getElementById("btn-monthly").style.background = mode==="monthly" ? "linear-gradient(135deg,#06d6a0,#0ea5e9)" : "transparent";
+    document.getElementById("btn-monthly").style.color      = mode==="monthly" ? "#07111b" : "rgba(255,255,255,.4)";
+    document.getElementById("btn-annual").style.background  = mode==="annual"  ? "linear-gradient(135deg,#06d6a0,#0ea5e9)" : "transparent";
+    document.getElementById("btn-annual").style.color       = mode==="annual"  ? "#07111b" : "rgba(255,255,255,.4)";
+  }
+  </script>
+</section>
+
+<!-- CTA + INSTALL -->
+<section class="cta-section" id="early-access">
+  <div class="cta-box">
+    <div class="cta-eyebrow">Now Live</div>
+    <h2 class="cta-title">START YOUR OS</h2>
+    <p class="cta-desc">Create your free account today. Set your goals, build your system, and unlock your AI Coach when you're ready.</p>
+
+    <a href="https://meltosbyluhv.netlify.app" target="_blank" class="btn-primary" style="display:inline-flex;align-items:center;gap:10px;font-size:16px;padding:18px 40px;margin-bottom:48px">
+      <span>Launch MELTOS App</span>
+      <span>→</span>
+    </a>
+
+    <!-- INSTALL SECTION -->
+    <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:40px;margin-top:8px">
+      <div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--teal);letter-spacing:3px;text-transform:uppercase;margin-bottom:8px">Install on your device</div>
+      <p style="font-size:14px;color:var(--muted);margin-bottom:32px;line-height:1.6">MELTOS is a Progressive Web App — no app store needed.<br>Install it in seconds directly from your browser.</p>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:540px;margin:0 auto 32px">
+
+        <!-- iOS -->
+        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:24px 20px;text-align:left">
+          <div style="font-size:28px;margin-bottom:12px">🍎</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;margin-bottom:14px;color:var(--white)">iPhone / iPad</div>
+          <ol style="list-style:none;display:flex;flex-direction:column;gap:10px">
+            <li style="display:flex;gap:10px;align-items:flex-start">
+              <span style="background:rgba(6,214,160,0.15);border:1px solid rgba(6,214,160,0.3);border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--teal);flex-shrink:0;margin-top:1px">1</span>
+              <span style="font-size:13px;color:var(--muted);line-height:1.5">Open <strong style="color:var(--white)">meltosbyluhv.netlify.app</strong> in Safari</span>
+            </li>
+            <li style="display:flex;gap:10px;align-items:flex-start">
+              <span style="background:rgba(6,214,160,0.15);border:1px solid rgba(6,214,160,0.3);border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--teal);flex-shrink:0;margin-top:1px">2</span>
+              <span style="font-size:13px;color:var(--muted);line-height:1.5">Tap the <strong style="color:var(--white)">Share</strong> button <span style="font-size:15px">⎋</span> at the bottom</span>
+            </li>
+            <li style="display:flex;gap:10px;align-items:flex-start">
+              <span style="background:rgba(6,214,160,0.15);border:1px solid rgba(6,214,160,0.3);border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--teal);flex-shrink:0;margin-top:1px">3</span>
+              <span style="font-size:13px;color:var(--muted);line-height:1.5">Tap <strong style="color:var(--white)">"Add to Home Screen"</strong> and confirm</span>
+            </li>
+            <li style="display:flex;gap:10px;align-items:flex-start">
+              <span style="background:rgba(6,214,160,0.15);border:1px solid rgba(6,214,160,0.3);border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--teal);flex-shrink:0;margin-top:1px">4</span>
+              <span style="font-size:13px;color:var(--muted);line-height:1.5">Open MELTOS from your home screen like any app 🏆</span>
+            </li>
+          </ol>
+        </div>
+
+        <!-- Android -->
+        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:24px 20px;text-align:left">
+          <div style="font-size:28px;margin-bottom:12px">🤖</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;margin-bottom:14px;color:var(--white)">Android</div>
+          <ol style="list-style:none;display:flex;flex-direction:column;gap:10px">
+            <li style="display:flex;gap:10px;align-items:flex-start">
+              <span style="background:rgba(14,165,233,0.15);border:1px solid rgba(14,165,233,0.3);border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--blue);flex-shrink:0;margin-top:1px">1</span>
+              <span style="font-size:13px;color:var(--muted);line-height:1.5">Open <strong style="color:var(--white)">meltosbyluhv.netlify.app</strong> in Chrome</span>
+            </li>
+            <li style="display:flex;gap:10px;align-items:flex-start">
+              <span style="background:rgba(14,165,233,0.15);border:1px solid rgba(14,165,233,0.3);border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--blue);flex-shrink:0;margin-top:1px">2</span>
+              <span style="font-size:13px;color:var(--muted);line-height:1.5">Tap the <strong style="color:var(--white)">⋮ menu</strong> (top right)</span>
+            </li>
+            <li style="display:flex;gap:10px;align-items:flex-start">
+              <span style="background:rgba(14,165,233,0.15);border:1px solid rgba(14,165,233,0.3);border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--blue);flex-shrink:0;margin-top:1px">3</span>
+              <span style="font-size:13px;color:var(--muted);line-height:1.5">Tap <strong style="color:var(--white)">"Add to Home Screen"</strong> or <strong style="color:var(--white)">"Install App"</strong></span>
+            </li>
+            <li style="display:flex;gap:10px;align-items:flex-start">
+              <span style="background:rgba(14,165,233,0.15);border:1px solid rgba(14,165,233,0.3);border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--blue);flex-shrink:0;margin-top:1px">4</span>
+              <span style="font-size:13px;color:var(--muted);line-height:1.5">MELTOS installs as a native app on your Android 🏆</span>
+            </li>
+          </ol>
+        </div>
+
+      </div>
+
+      <!-- Desktop note -->
+      <div style="display:flex;align-items:center;gap:12px;padding:14px 18px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;max-width:540px;margin:0 auto">
+        <span style="font-size:22px;flex-shrink:0">💻</span>
+        <div style="text-align:left">
+          <div style="font-size:12px;font-weight:700;color:var(--white);margin-bottom:2px">Also works on Desktop</div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.5">Open in Chrome or Edge → click the install icon in the address bar → use MELTOS as a desktop app</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Email capture -->
+    <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:32px;margin-top:40px">
+      <div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:16px">Get notified of new features</div>
+      <div class="cta-form">
+        <input type="email" class="cta-input" placeholder="your@email.com" id="email-input">
+        <button class="cta-submit" onclick="handleSignup()">Notify Me</button>
+      </div>
+      <p class="cta-fine" id="signup-msg">No spam. Just product updates.</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">MELTOS <span>by Luhv+</span></div>
+  <div class="footer-copy">© 2026 MELTOS by Luhv+ · All rights reserved</div>
+  <div style="margin-top:10px;font-size:12px;">
+    <a href="/privacy.html" style="color:rgba(255,255,255,.3);text-decoration:none;margin:0 12px;">Privacy Policy</a>
+    <a href="/terms.html" style="color:rgba(255,255,255,.3);text-decoration:none;margin:0 12px;">Terms of Service</a>
+    <a href="mailto:meltosbyluhv@gmail.com" style="color:rgba(255,255,255,.3);text-decoration:none;margin:0 12px;">Contact</a>
+  </div>
+</footer>
+
+<!-- FLOATING BADGE -->
+<a href="https://meltosbyluhv.netlify.app" target="_blank" class="floating-badge">
+  <div class="floating-badge-dot"></div>
+  <div class="floating-badge-text">Open App</div>
+  <div class="floating-badge-arrow">→</div>
+</a>
+
+<script>
+// Scroll reveal
+const reveals = document.querySelectorAll('.reveal');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach((entry, i) => {
+    if (entry.isIntersecting) {
+      setTimeout(() => entry.target.classList.add('visible'), i * 60);
+      observer.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.1 });
+reveals.forEach(el => observer.observe(el));
+
+// Signup handler
+function handleSignup() {
+  const email = document.getElementById('email-input').value.trim();
+  const msg = document.getElementById('signup-msg');
+  if (!email || !email.includes('@')) {
+    msg.textContent = '⚠️ Please enter a valid email.';
+    msg.style.color = '#f43f5e';
+    return;
+  }
+  msg.textContent = '🏆 You\'re on the list. We\'ll be in touch.';
+  msg.style.color = '#06d6a0';
+  document.getElementById('email-input').value = '';
+
+}
+
+// Animated stat counters
+function animateCount(el, target, suffix) {
+  let current = 0;
+  const step = target / 40;
+  const timer = setInterval(() => {
+    current += step;
+    if (current >= target) { current = target; clearInterval(timer); }
+    el.textContent = Math.round(current) + (suffix || '');
+  }, 30);
+}
+
+const statsObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const nums = entry.target.querySelectorAll('.stat-num');
+      // Static text — no number animation for 3x and 2hrs
+      if (nums[0]) nums[0].textContent = '3x';
+      if (nums[1]) nums[1].textContent = '2hrs';
+      statsObserver.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.5 });
+const statsEl = document.querySelector('.hero-stats');
+if (statsEl) statsObserver.observe(statsEl);
+</script>
+
+</body>
+</html>

@@ -2140,6 +2140,7 @@ async function runMigrations() {
     `CREATE TABLE IF NOT EXISTS domain_metrics (id SERIAL PRIMARY KEY, domain_id INTEGER REFERENCES life_domains(id) ON DELETE CASCADE, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, name TEXT NOT NULL, metric_type TEXT DEFAULT 'number', unit TEXT, target NUMERIC, current_value NUMERIC DEFAULT 0, period TEXT DEFAULT 'monthly', updated_at TIMESTAMPTZ DEFAULT NOW(), created_at TIMESTAMPTZ DEFAULT NOW())`,
     `CREATE TABLE IF NOT EXISTS domain_metric_logs (id SERIAL PRIMARY KEY, metric_id INTEGER, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, value NUMERIC NOT NULL, note TEXT, logged_at TIMESTAMPTZ DEFAULT NOW())`,
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT false`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS is_trial BOOLEAN DEFAULT false`,
     `CREATE TABLE IF NOT EXISTS usage_logs (
       id SERIAL PRIMARY KEY,
       user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
@@ -2221,20 +2222,23 @@ app.post('/api/webhooks/square', express.raw({ type: 'application/json' }), asyn
         } catch(ce) { console.warn('Could not fetch customer:', ce.message); }
       }
 
-      // Extract plan from note or reference_id
-      // Read plan from payment title, note or reference_id
+      // Extract plan from product name, note or reference_id
       const rawTitle = (
+        event.data?.object?.order?.line_items?.[0]?.name ||
         payment.note || 
         payment.reference_id || 
-        event.data?.object?.order?.line_items?.[0]?.name ||
         ''
       ).toLowerCase();
-      
+
+      // Also check amount as fallback
+      const amountCents = payment.amount_money?.amount || order?.total_money?.amount || 0;
+
       let tier = 'starter';
       let daysAccess = 30;
+      let isTrial = false;
 
-      if (rawTitle.includes('trial') || rawTitle.includes('7 day') || rawTitle.includes('7-day')) { 
-        tier = 'mvp'; daysAccess = 7; 
+      if (rawTitle.includes('trial') || rawTitle.includes('7 day') || rawTitle.includes('7-day') || amountCents <= 250) {
+        tier = 'mvp'; daysAccess = 7; isTrial = true;
       } else if (rawTitle.includes('mvp') && (rawTitle.includes('annual') || rawTitle.includes('yearly'))) { 
         tier = 'mvp'; daysAccess = 365; 
       } else if (rawTitle.includes('mvp')) { 
@@ -2244,7 +2248,6 @@ app.post('/api/webhooks/square', express.raw({ type: 'application/json' }), asyn
       } else if (rawTitle.includes('starter')) { 
         tier = 'starter'; daysAccess = 30;
       } else if (rawTitle.includes('pro')) {
-        // Legacy 'pro' plan — treat as mvp
         tier = 'mvp'; daysAccess = 30;
       }
 
@@ -2252,24 +2255,21 @@ app.post('/api/webhooks/square', express.raw({ type: 'application/json' }), asyn
       expiresAt.setDate(expiresAt.getDate() + daysAccess);
 
       if (buyerEmail) {
-        // Update user tier in DB
         const { rows } = await db.query(
-          'UPDATE users SET tier=$1, billing_period_end=$2 WHERE LOWER(email)=LOWER($3) RETURNING id, name, email',
-          [tier, expiresAt.toISOString(), buyerEmail]
+          `UPDATE users SET tier=$1, billing_period_end=$2, is_trial=$3
+           WHERE LOWER(email)=LOWER($4) RETURNING id, name, email`,
+          [tier, expiresAt.toISOString(), isTrial, buyerEmail]
         );
 
         if (rows.length > 0) {
-          console.log(`Access granted: ${buyerEmail} → ${tier} until ${expiresAt.toDateString()}`);
-          
-          // Send confirmation email to admin
-          const adminEmail = 'meltosbyluhv@gmail.com';
           const userName = rows[0].name || buyerEmail;
-          console.log(`PAYMENT CONFIRMED: ${userName} (${buyerEmail}) → ${tier} plan, expires ${expiresAt.toDateString()}`);
-          
-          // If you add nodemailer later, send email here
+          console.log(`✅ PAYMENT: ${userName} (${buyerEmail}) → ${tier}${isTrial?' TRIAL':''} until ${expiresAt.toDateString()}`);
         } else {
-          console.warn(`No user found for email: ${buyerEmail}`);
+          // User not found — log so admin can activate manually
+          console.warn(`⚠️ PAYMENT received but no user found for email: ${buyerEmail} → ${tier} (${daysAccess}d)`);
         }
+      } else {
+        console.warn(`⚠️ PAYMENT received but could not extract buyer email. Raw title: "${rawTitle}", amount: ${amountCents}`);
       }
     }
 
@@ -2315,27 +2315,33 @@ async function checkTier(req, res, next) {
 app.get('/api/billing/status', auth, async (req, res) => {
   try {
     const { rows: [user] } = await db.query(
-      'SELECT tier, billing_period_end FROM users WHERE id=$1',
+      'SELECT tier, billing_period_end, is_trial FROM users WHERE id=$1',
       [req.user.id]
     );
     
     const expired = user?.billing_period_end && new Date(user.billing_period_end) < new Date();
     if (expired) {
-      await db.query("UPDATE users SET tier='basic' WHERE id=$1", [req.user.id]);
-      return res.json({ tier: 'basic', expired: true, billing_period_end: null });
+      await db.query("UPDATE users SET tier='basic', is_trial=false WHERE id=$1", [req.user.id]);
+      return res.json({ tier: 'basic', expired: true, is_trial: false, billing_period_end: null });
     }
 
-    // Normalize legacy 'pro' tier to 'mvp'
     let tier = user?.tier || 'basic';
     if (tier === 'pro') tier = 'mvp';
+
+    // Days left — useful for trial warning
+    const daysLeft = user?.billing_period_end
+      ? Math.ceil((new Date(user.billing_period_end) - new Date()) / (1000*60*60*24))
+      : null;
 
     res.json({
       tier,
       billing_period_end: user?.billing_period_end,
+      is_trial: user?.is_trial || false,
+      days_left: daysLeft,
       expired: false
     });
   } catch(e) {
-    res.json({ tier: 'basic', expired: false });
+    res.json({ tier: 'basic', expired: false, is_trial: false });
   }
 });
 

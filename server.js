@@ -1093,16 +1093,17 @@ app.get('/api/admin/users', adminAuth, async (req, res) => {
 
 // Set user tier (admin only)
 app.post('/api/admin/users/:id/tier', adminAuth, async (req, res) => {
-  const { tier, days } = req.body;
+  const { tier, days, is_trial } = req.body;
   const validTiers = ['basic', 'starter', 'mvp'];
   if (!validTiers.includes(tier)) return res.status(400).json({ error: 'Invalid tier' });
   const expiresAt = tier === 'basic' ? null : new Date(Date.now() + (days || 30) * 86400000);
+  const isTrial = !!is_trial;
   const { rows } = await db.query(
-    'UPDATE users SET tier=$1, billing_period_end=$2 WHERE id=$3 RETURNING id, name, email, tier, billing_period_end',
-    [tier, expiresAt, req.params.id]
+    'UPDATE users SET tier=$1, billing_period_end=$2, is_trial=$3 WHERE id=$4 RETURNING id, name, email, tier, billing_period_end, is_trial',
+    [tier, expiresAt, isTrial, req.params.id]
   );
-  console.log(`[ADMIN] Tier set: ${rows[0]?.email} → ${tier} expires ${expiresAt?.toDateString() || 'never'}`);
-  res.json(rows[0] || null);
+  console.log(`[ADMIN] Tier set: ${rows[0]?.email} → ${tier}${isTrial?' (trial)':''} expires ${expiresAt?.toDateString() || 'never'}`);
+  res.json(rows[0] || { id: req.params.id, tier, billing_period_end: expiresAt });
 });
 
 // Get usage stats

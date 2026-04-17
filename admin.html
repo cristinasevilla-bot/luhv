@@ -63,6 +63,10 @@ tr:hover td { background:rgba(255,255,255,.015); }
 .ab-str:hover { background:rgba(14,165,233,.22); }
 .ab-cut { background:rgba(244,63,94,.08); color:#f43f5e; border:1px solid rgba(244,63,94,.15); }
 .ab-cut:hover { background:rgba(244,63,94,.2); }
+.ab-trial { background:rgba(251,191,36,.1); color:#fbbf24; border:1px solid rgba(251,191,36,.2); }
+.ab-trial:hover { background:rgba(251,191,36,.22); }
+.ab-trial { background:rgba(251,191,36,.1); color:#fbbf24; border:1px solid rgba(251,191,36,.2); }
+.ab-trial:hover { background:rgba(251,191,36,.22); }
 .loading { padding:32px; text-align:center; color:rgba(255,255,255,.25); font-size:13px; }
 .empty   { padding:32px; text-align:center; color:rgba(255,255,255,.25); font-size:13px; }
 .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#06d6a0; color:#07111b; font-weight:700; font-size:13px; padding:10px 22px; border-radius:30px; z-index:9999; opacity:0; transition:opacity .2s; pointer-events:none; white-space:nowrap; }
@@ -250,9 +254,11 @@ function renderTable(users) {
         <td style="color:rgba(255,255,255,.4)">${u.streak||0}d</td>
         <td style="color:rgba(255,255,255,.3);font-size:12px">${joined}</td>
         <td><div class="actions">
-          <button class="ab ab-mvp" onclick="setTier(${u.id},'mvp',30,'${em}')">MVP 30d</button>
-          <button class="ab ab-mvp" onclick="setTier(${u.id},'mvp',365,'${em}')">MVP 1yr</button>
-          <button class="ab ab-str" onclick="setTier(${u.id},'starter',30,'${em}')">Starter</button>
+          <button class="ab ab-trial" onclick="setTier(${u.id},'mvp',7,'${em}',true)">🔥 Trial 7d</button>
+          <button class="ab ab-mvp" onclick="setTier(${u.id},'mvp',30,'${em}')">MVP mo</button>
+          <button class="ab ab-mvp" onclick="setTier(${u.id},'mvp',365,'${em}')">MVP yr</button>
+          <button class="ab ab-str" onclick="setTier(${u.id},'starter',30,'${em}')">Starter mo</button>
+          <button class="ab ab-str" onclick="setTier(${u.id},'starter',365,'${em}')">Starter yr</button>
           <button class="ab ab-cut" onclick="setTier(${u.id},'basic',0,'${em}')">✂️ Cut</button>
         </div></td>
       </tr>`;
@@ -265,9 +271,10 @@ function filterUsers(q) {
   renderTable(allUsers.filter(u=>(u.name||'').toLowerCase().includes(lq)||(u.email||'').toLowerCase().includes(lq)));
 }
 
-async function setTier(userId, tier, days, email) {
+async function setTier(userId, tier, days, email, isTrial) {
   if (!confirm(tier==='basic'?`Cut access for ${email}?`:`Set ${tier.toUpperCase()} (${days}d) for ${email}?`)) return;
-  const result = await apiReq(`/api/admin/users/${userId}/tier`,{method:'POST',body:JSON.stringify({tier,days})});
+  const isTrial = tier==='mvp' && days===7;
+  const result = await apiReq(`/api/admin/users/${userId}/tier`,{method:'POST',body:JSON.stringify({tier,days,is_trial:isTrial})});
   // result can be the user object or null — both can mean success for basic tier
   if (result !== undefined) {
     showToast(tier==='basic'?`✂️ Access cut — ${email}`:`✅ ${tier.toUpperCase()} activated — ${email}`);

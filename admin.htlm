@@ -4,137 +4,134 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MELTOS Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
 <style>
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family: 'DM Sans', system-ui, sans-serif; background:#07111b; color:#fff; min-height:100vh; }
-  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Bebas+Neue&display=swap');
-
-  /* LOGIN */
-  #login-screen { display:flex; align-items:center; justify-content:center; min-height:100vh; }
-  .login-box { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1); border-radius:20px; padding:40px; width:360px; }
-  .login-box h1 { font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:2px; margin-bottom:6px; }
-  .login-box p { font-size:13px; color:rgba(255,255,255,.4); margin-bottom:28px; }
-  .field { margin-bottom:16px; }
-  .field label { font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:rgba(255,255,255,.4); display:block; margin-bottom:6px; }
-  .field input { width:100%; padding:12px 14px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:10px; color:#fff; font-size:14px; font-family:inherit; outline:none; }
-  .field input:focus { border-color:rgba(6,214,160,.4); }
-  .btn-primary { width:100%; padding:13px; background:linear-gradient(135deg,#06d6a0,#0ea5e9); border:none; border-radius:12px; color:#07111b; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; }
-  #login-error { color:#f43f5e; font-size:12px; margin-top:10px; text-align:center; min-height:18px; }
-
-  /* APP */
-  #app-screen { display:none; }
-  .topbar { background:rgba(8,12,18,.95); border-bottom:1px solid rgba(255,255,255,.07); padding:14px 24px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
-  .topbar-left { display:flex; align-items:center; gap:12px; }
-  .topbar h1 { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:2px; }
-  .topbar-badge { font-size:10px; background:rgba(244,63,94,.15); border:1px solid rgba(244,63,94,.3); color:#f43f5e; padding:3px 8px; border-radius:20px; font-weight:700; }
-  .logout-btn { background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); color:rgba(255,255,255,.5); padding:7px 14px; border-radius:8px; font-size:12px; cursor:pointer; font-family:inherit; }
-
-  .tabs { display:flex; gap:4px; padding:20px 24px 0; border-bottom:1px solid rgba(255,255,255,.06); }
-  .tab { padding:10px 18px; border-radius:10px 10px 0 0; font-size:13px; font-weight:600; cursor:pointer; color:rgba(255,255,255,.4); background:none; border:none; font-family:inherit; transition:all .15s; }
-  .tab.active { background:rgba(6,214,160,.1); color:#06d6a0; border-bottom:2px solid #06d6a0; }
-
-  .content { padding:24px; max-width:1200px; }
-
-  /* STATS */
-  .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:24px; }
-  .stat-card { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:16px; }
-  .stat-label { font-size:10px; text-transform:uppercase; letter-spacing:1.5px; color:rgba(255,255,255,.4); margin-bottom:6px; }
-  .stat-val { font-size:28px; font-family:'Bebas Neue',sans-serif; letter-spacing:1px; }
-  .stat-sub { font-size:11px; color:rgba(255,255,255,.3); margin-top:2px; }
-
-  /* TABLE */
-  .table-wrap { background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.07); border-radius:14px; overflow:hidden; }
-  .table-header { padding:14px 18px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,.07); }
-  .table-header h3 { font-size:13px; font-weight:700; color:rgba(255,255,255,.7); }
-  table { width:100%; border-collapse:collapse; }
-  th { font-size:10px; text-transform:uppercase; letter-spacing:1.5px; color:rgba(255,255,255,.3); padding:10px 18px; text-align:left; border-bottom:1px solid rgba(255,255,255,.06); }
-  td { padding:12px 18px; font-size:13px; border-bottom:1px solid rgba(255,255,255,.04); vertical-align:middle; }
-  tr:last-child td { border-bottom:none; }
-  tr:hover td { background:rgba(255,255,255,.02); }
-
-  .tier-badge { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; }
-  .tier-mvp    { background:rgba(6,214,160,.15);  color:#06d6a0;  border:1px solid rgba(6,214,160,.3); }
-  .tier-starter{ background:rgba(14,165,233,.15); color:#0ea5e9;  border:1px solid rgba(14,165,233,.3); }
-  .tier-basic  { background:rgba(255,255,255,.06); color:rgba(255,255,255,.4); border:1px solid rgba(255,255,255,.1); }
-  .tier-expired{ background:rgba(244,63,94,.12);  color:#f43f5e;  border:1px solid rgba(244,63,94,.25); }
-
-  .action-btn { padding:5px 12px; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; font-family:inherit; border:none; transition:all .15s; }
-  .btn-mvp   { background:rgba(6,214,160,.12); color:#06d6a0; border:1px solid rgba(6,214,160,.25); }
-  .btn-mvp:hover { background:rgba(6,214,160,.25); }
-  .btn-cut   { background:rgba(244,63,94,.1); color:#f43f5e; border:1px solid rgba(244,63,94,.2); }
-  .btn-cut:hover { background:rgba(244,63,94,.22); }
-  .btn-starter { background:rgba(14,165,233,.1); color:#0ea5e9; border:1px solid rgba(14,165,233,.2); }
-  .btn-starter:hover { background:rgba(14,165,233,.22); }
-
-  .search-input { width:260px; padding:9px 14px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); border-radius:10px; color:#fff; font-size:13px; font-family:inherit; outline:none; }
-  .search-input:focus { border-color:rgba(6,214,160,.4); }
-
-  .toast { position:fixed; bottom:28px; left:50%; transform:translateX(-50%); background:#06d6a0; color:#07111b; font-weight:700; font-size:13px; padding:10px 22px; border-radius:30px; z-index:9999; opacity:0; transition:opacity .2s; pointer-events:none; }
-  .toast.show { opacity:1; }
-
-  .loading { text-align:center; padding:40px; color:rgba(255,255,255,.3); font-size:13px; }
-  .empty { text-align:center; padding:40px; color:rgba(255,255,255,.3); font-size:13px; }
-
-  #page-users { display:block; }
-  #page-usage  { display:none; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'DM Sans',system-ui,sans-serif; background:#07111b; color:#fff; min-height:100vh; }
+#login-screen { display:flex; align-items:center; justify-content:center; min-height:100vh; }
+.login-box { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1); border-radius:20px; padding:40px; width:340px; }
+.login-box h1 { font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:2px; margin-bottom:4px; }
+.login-box p { font-size:13px; color:rgba(255,255,255,.4); margin-bottom:28px; }
+.field { margin-bottom:14px; }
+.field label { font-size:10px; text-transform:uppercase; letter-spacing:1.5px; color:rgba(255,255,255,.4); display:block; margin-bottom:5px; }
+.field input { width:100%; padding:11px 13px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:10px; color:#fff; font-size:14px; font-family:inherit; outline:none; }
+.field input:focus { border-color:rgba(6,214,160,.5); }
+.btn-login { width:100%; padding:13px; background:linear-gradient(135deg,#06d6a0,#0ea5e9); border:none; border-radius:12px; color:#07111b; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; margin-top:4px; }
+.btn-login:disabled { opacity:.6; cursor:not-allowed; }
+#login-error { color:#f43f5e; font-size:12px; margin-top:10px; text-align:center; min-height:16px; }
+.login-help { font-size:11px; color:rgba(255,255,255,.2); text-align:center; margin-top:16px; line-height:1.7; }
+.login-help code { background:rgba(255,255,255,.06); padding:2px 6px; border-radius:4px; font-size:10px; }
+#app-screen { display:none; min-height:100vh; }
+.topbar { background:rgba(8,12,18,.97); border-bottom:1px solid rgba(255,255,255,.07); padding:14px 24px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
+.topbar h1 { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:2px; }
+.admin-badge { font-size:9px; background:rgba(244,63,94,.15); border:1px solid rgba(244,63,94,.3); color:#f43f5e; padding:3px 8px; border-radius:20px; font-weight:700; margin-left:10px; }
+.topbar-right { display:flex; align-items:center; gap:10px; }
+.topbar-email { font-size:12px; color:rgba(255,255,255,.3); }
+.btn-logout { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); color:rgba(255,255,255,.45); padding:7px 14px; border-radius:8px; font-size:12px; cursor:pointer; font-family:inherit; }
+.tabs { display:flex; gap:2px; padding:16px 24px 0; }
+.tab { padding:9px 18px; border-radius:10px 10px 0 0; font-size:13px; font-weight:600; cursor:pointer; color:rgba(255,255,255,.35); background:none; border:none; font-family:inherit; border-bottom:2px solid transparent; }
+.tab.active { color:#06d6a0; border-bottom-color:#06d6a0; background:rgba(6,214,160,.06); }
+.content { padding:24px; max-width:1300px; }
+.stats-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:20px; }
+.stat-card { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07); border-radius:12px; padding:14px 16px; }
+.stat-label { font-size:9px; text-transform:uppercase; letter-spacing:1.5px; color:rgba(255,255,255,.35); margin-bottom:5px; }
+.stat-val { font-size:26px; font-family:'Bebas Neue',sans-serif; letter-spacing:1px; line-height:1; }
+.stat-sub { font-size:10px; color:rgba(255,255,255,.25); margin-top:3px; }
+.table-wrap { background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.07); border-radius:14px; overflow:hidden; margin-bottom:20px; }
+.table-top { padding:12px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,.06); gap:12px; flex-wrap:wrap; }
+.table-top h3 { font-size:12px; font-weight:700; color:rgba(255,255,255,.6); text-transform:uppercase; letter-spacing:1px; }
+.search { padding:8px 12px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:8px; color:#fff; font-size:13px; font-family:inherit; outline:none; width:220px; }
+.search:focus { border-color:rgba(6,214,160,.4); }
+.btn-refresh { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); color:rgba(255,255,255,.5); padding:7px 12px; border-radius:8px; font-size:12px; cursor:pointer; font-family:inherit; }
+table { width:100%; border-collapse:collapse; }
+th { font-size:9px; text-transform:uppercase; letter-spacing:1.5px; color:rgba(255,255,255,.25); padding:9px 16px; text-align:left; border-bottom:1px solid rgba(255,255,255,.05); white-space:nowrap; }
+td { padding:11px 16px; font-size:13px; border-bottom:1px solid rgba(255,255,255,.03); vertical-align:middle; }
+tr:last-child td { border-bottom:none; }
+tr:hover td { background:rgba(255,255,255,.015); }
+.badge { display:inline-flex; align-items:center; gap:4px; padding:3px 9px; border-radius:20px; font-size:10px; font-weight:700; white-space:nowrap; }
+.badge-mvp     { background:rgba(6,214,160,.12);  color:#06d6a0;  border:1px solid rgba(6,214,160,.25); }
+.badge-starter { background:rgba(14,165,233,.12); color:#0ea5e9;  border:1px solid rgba(14,165,233,.25); }
+.badge-basic   { background:rgba(255,255,255,.05); color:rgba(255,255,255,.4); border:1px solid rgba(255,255,255,.08); }
+.badge-expired { background:rgba(244,63,94,.1);   color:#f43f5e;  border:1px solid rgba(244,63,94,.2); }
+.badge-trial   { background:rgba(251,191,36,.1);   color:#fbbf24;  border:1px solid rgba(251,191,36,.2); }
+.actions { display:flex; gap:5px; flex-wrap:wrap; }
+.ab { padding:5px 10px; border-radius:7px; font-size:11px; font-weight:700; cursor:pointer; font-family:inherit; border:none; white-space:nowrap; transition:all .15s; }
+.ab-mvp { background:rgba(6,214,160,.1); color:#06d6a0; border:1px solid rgba(6,214,160,.2); }
+.ab-mvp:hover { background:rgba(6,214,160,.22); }
+.ab-str { background:rgba(14,165,233,.1); color:#0ea5e9; border:1px solid rgba(14,165,233,.2); }
+.ab-str:hover { background:rgba(14,165,233,.22); }
+.ab-cut { background:rgba(244,63,94,.08); color:#f43f5e; border:1px solid rgba(244,63,94,.15); }
+.ab-cut:hover { background:rgba(244,63,94,.2); }
+.loading { padding:32px; text-align:center; color:rgba(255,255,255,.25); font-size:13px; }
+.empty   { padding:32px; text-align:center; color:rgba(255,255,255,.25); font-size:13px; }
+.toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#06d6a0; color:#07111b; font-weight:700; font-size:13px; padding:10px 22px; border-radius:30px; z-index:9999; opacity:0; transition:opacity .2s; pointer-events:none; white-space:nowrap; }
+.toast.show { opacity:1; }
+.toast.error { background:#f43f5e; color:#fff; }
+#page-users { display:block; }
+#page-usage  { display:none; }
 </style>
 </head>
 <body>
 
-<!-- LOGIN -->
 <div id="login-screen">
   <div class="login-box">
-    <h1>MELTOS Admin</h1>
-    <p>Control panel — authorized access only</p>
-    <div class="field"><label>Email</label><input type="email" id="adm-email" placeholder="your@email.com"></div>
+    <h1>MELTOS</h1>
+    <p>Admin — authorized access only</p>
+    <div class="field"><label>Email</label><input type="email" id="adm-email" placeholder="your@email.com" autocomplete="email"></div>
     <div class="field"><label>Password</label><input type="password" id="adm-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')adminLogin()"></div>
-    <button class="btn-primary" onclick="adminLogin()">Sign In</button>
+    <button class="btn-login" id="login-btn" onclick="adminLogin()">Sign In →</button>
     <div id="login-error"></div>
+    <div class="login-help">
+      First run this in Supabase SQL Editor:<br>
+      <code>UPDATE users SET is_admin=true WHERE lower(email)=lower('cristina.sevilla@digitaimind.com');</code>
+    </div>
   </div>
 </div>
 
-<!-- APP -->
 <div id="app-screen">
   <div class="topbar">
-    <div class="topbar-left">
+    <div style="display:flex;align-items:center;">
       <h1>MELTOS</h1>
-      <span class="topbar-badge">ADMIN</span>
+      <span class="admin-badge">Admin</span>
     </div>
-    <button class="logout-btn" onclick="adminLogout()">Sign Out</button>
+    <div class="topbar-right">
+      <span class="topbar-email" id="admin-email-display"></span>
+      <button class="btn-logout" onclick="adminLogout()">Sign Out</button>
+    </div>
   </div>
 
   <div class="tabs">
-    <button class="tab active" onclick="showTab('users')" id="tab-users">👥 Users & Access</button>
-    <button class="tab" onclick="showTab('usage')" id="tab-usage">📊 AI Usage & Cost</button>
+    <button class="tab active" onclick="showTab('users')" id="tab-users">👥 Users &amp; Access</button>
+    <button class="tab" onclick="showTab('usage')" id="tab-usage">📊 AI Usage &amp; Cost</button>
   </div>
 
   <div class="content">
-
-    <!-- USERS PAGE -->
     <div id="page-users">
-      <div class="stats-grid" id="user-stats"></div>
+      <div class="stats-row" id="user-stats"></div>
       <div class="table-wrap">
-        <div class="table-header">
+        <div class="table-top">
           <h3>All Users</h3>
-          <input class="search-input" type="text" placeholder="Search by name or email…" oninput="filterUsers(this.value)">
+          <div style="display:flex;gap:8px;">
+            <input class="search" type="text" placeholder="Search name or email…" oninput="filterUsers(this.value)">
+            <button class="btn-refresh" onclick="loadUsers()">↻ Refresh</button>
+          </div>
         </div>
-        <div id="users-table"><div class="loading">Loading users…</div></div>
+        <div id="users-table"><div class="loading">Loading…</div></div>
       </div>
     </div>
 
-    <!-- USAGE PAGE -->
     <div id="page-usage">
-      <div class="stats-grid" id="usage-stats"></div>
-      <div class="table-wrap" style="margin-bottom:20px;">
-        <div class="table-header"><h3>Cost by User</h3></div>
+      <div class="stats-row" id="usage-stats"></div>
+      <div class="table-wrap">
+        <div class="table-top"><h3>Cost by User</h3></div>
         <div id="usage-by-user"><div class="loading">Loading…</div></div>
       </div>
       <div class="table-wrap">
-        <div class="table-header"><h3>Recent AI Calls</h3></div>
+        <div class="table-top"><h3>Recent AI Calls</h3></div>
         <div id="usage-recent"><div class="loading">Loading…</div></div>
       </div>
     </div>
-
   </div>
 </div>
 
@@ -143,222 +140,191 @@
 <script>
 const API = 'https://luhv.onrender.com';
 let TOKEN = localStorage.getItem('meltos_admin_token');
+let adminUser = null;
 let allUsers = [];
 
-// ── AUTH ──────────────────────────────────────────────────────────────────────
 async function adminLogin() {
   const email = document.getElementById('adm-email').value.trim();
   const pass  = document.getElementById('adm-pass').value;
   const errEl = document.getElementById('login-error');
-  errEl.textContent = '';
-
+  const btn   = document.getElementById('login-btn');
+  if (!email || !pass) { errEl.textContent = 'Enter email and password'; return; }
+  btn.disabled = true; btn.textContent = 'Signing in…'; errEl.textContent = '';
   try {
     const res  = await fetch(API + '/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ email, password: pass })
     });
     const data = await res.json();
-    if (!data.token) { errEl.textContent = data.error || 'Invalid credentials'; return; }
-    if (!data.user?.is_admin) { errEl.textContent = 'Not authorized as admin'; return; }
-    TOKEN = data.token;
+    if (!data.token) { errEl.textContent = data.error || 'Invalid credentials'; btn.disabled=false; btn.textContent='Sign In →'; return; }
+    if (!data.user?.is_admin) { errEl.textContent = 'Not authorized as admin — run the SQL in Supabase first'; btn.disabled=false; btn.textContent='Sign In →'; return; }
+    TOKEN = data.token; adminUser = data.user;
     localStorage.setItem('meltos_admin_token', TOKEN);
     showApp();
   } catch(e) {
-    errEl.textContent = 'Connection error — is the server running?';
+    errEl.textContent = 'Cannot reach server — is Render running?';
+    btn.disabled=false; btn.textContent='Sign In →';
   }
 }
 
 function adminLogout() {
   localStorage.removeItem('meltos_admin_token');
-  TOKEN = null;
-  document.getElementById('app-screen').style.display = 'none';
-  document.getElementById('login-screen').style.display = 'flex';
+  TOKEN=null; adminUser=null;
+  document.getElementById('app-screen').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('adm-pass').value='';
+  document.getElementById('login-btn').disabled=false;
+  document.getElementById('login-btn').textContent='Sign In →';
 }
 
-async function req(path, opts = {}) {
-  const res = await fetch(API + path, {
-    ...opts,
-    headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+TOKEN, ...(opts.headers||{}) }
-  });
-  if (res.status === 401 || res.status === 403) { adminLogout(); return null; }
-  return res.json().catch(() => null);
+async function apiReq(path, opts={}) {
+  try {
+    const res = await fetch(API+path, {
+      ...opts,
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+TOKEN,...(opts.headers||{})}
+    });
+    if (res.status===401||res.status===403) { adminLogout(); return null; }
+    return await res.json();
+  } catch(e) { showToast('Server error: '+e.message, true); return null; }
 }
 
-// ── INIT ──────────────────────────────────────────────────────────────────────
-function showApp() {
-  document.getElementById('login-screen').style.display = 'none';
-  document.getElementById('app-screen').style.display = 'block';
+async function showApp() {
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app-screen').style.display='block';
+  if (adminUser) document.getElementById('admin-email-display').textContent = adminUser.email;
   loadUsers();
 }
 
 function showTab(tab) {
-  document.getElementById('page-users').style.display = tab === 'users' ? 'block' : 'none';
-  document.getElementById('page-usage').style.display = tab === 'usage' ? 'block' : 'none';
-  document.getElementById('tab-users').classList.toggle('active', tab === 'users');
-  document.getElementById('tab-usage').classList.toggle('active', tab === 'usage');
-  if (tab === 'usage') loadUsage();
+  document.getElementById('page-users').style.display = tab==='users'?'block':'none';
+  document.getElementById('page-usage').style.display = tab==='usage'?'block':'none';
+  document.getElementById('tab-users').classList.toggle('active', tab==='users');
+  document.getElementById('tab-usage').classList.toggle('active', tab==='usage');
+  if (tab==='usage') loadUsage();
 }
 
-// ── USERS ─────────────────────────────────────────────────────────────────────
 async function loadUsers() {
-  const users = await req('/api/admin/users');
+  document.getElementById('users-table').innerHTML='<div class="loading">Loading…</div>';
+  const users = await apiReq('/api/admin/users');
   if (!users) return;
-  allUsers = users;
-  renderUserStats(users);
-  renderUsersTable(users);
+  allUsers = Array.isArray(users) ? users : [];
+  renderStats(allUsers);
+  renderTable(allUsers);
 }
 
-function renderUserStats(users) {
-  const total   = users.length;
-  const mvp     = users.filter(u => u.tier === 'mvp' || u.tier === 'pro').length;
-  const starter = users.filter(u => u.tier === 'starter').length;
-  const expired = users.filter(u => u.expired).length;
-  const week    = users.filter(u => u.created_at && new Date(u.created_at) > new Date(Date.now()-7*86400000)).length;
-
+function renderStats(users) {
+  const mvp     = users.filter(u=>u.tier==='mvp'||u.tier==='pro').length;
+  const starter = users.filter(u=>u.tier==='starter').length;
+  const expired = users.filter(u=>u.expired).length;
+  const trials  = users.filter(u=>u.is_trial&&!u.expired).length;
+  const week    = users.filter(u=>u.created_at&&new Date(u.created_at)>new Date(Date.now()-7*86400000)).length;
   document.getElementById('user-stats').innerHTML = [
-    { label:'Total Users',   val: total,   sub:'all time',         color:'#fff' },
-    { label:'MVP Active',    val: mvp,     sub:'paid + active',    color:'#06d6a0' },
-    { label:'Starter',       val: starter, sub:'paid, no coach',   color:'#0ea5e9' },
-    { label:'Expired',       val: expired, sub:'need renewal',     color:'#f43f5e' },
-    { label:'New This Week', val: week,    sub:'signups',          color:'#fbbf24' },
-  ].map(s => `
-    <div class="stat-card">
-      <div class="stat-label">${s.label}</div>
-      <div class="stat-val" style="color:${s.color}">${s.val}</div>
-      <div class="stat-sub">${s.sub}</div>
-    </div>`).join('');
+    {label:'Total',         val:users.length, sub:'all users',    color:'#fff'},
+    {label:'MVP Active',    val:mvp,          sub:'full access',  color:'#06d6a0'},
+    {label:'Starter',       val:starter,      sub:'no coach',     color:'#0ea5e9'},
+    {label:'Trial',         val:trials,       sub:'7-day trial',  color:'#fbbf24'},
+    {label:'Expired',       val:expired,      sub:'need renewal', color:'#f43f5e'},
+    {label:'New This Week', val:week,         sub:'signups',      color:'rgba(255,255,255,.5)'},
+  ].map(s=>`<div class="stat-card"><div class="stat-label">${s.label}</div><div class="stat-val" style="color:${s.color}">${s.val}</div><div class="stat-sub">${s.sub}</div></div>`).join('');
 }
 
-function renderUsersTable(users) {
-  if (!users.length) { document.getElementById('users-table').innerHTML = '<div class="empty">No users found</div>'; return; }
-
-  const rows = users.map(u => {
-    const isExpired = u.expired;
-    const tierClass = isExpired ? 'tier-expired' : (u.tier === 'mvp' || u.tier === 'pro') ? 'tier-mvp' : u.tier === 'starter' ? 'tier-starter' : 'tier-basic';
-    const tierLabel = isExpired ? '⚠️ EXPIRED' : (u.tier === 'mvp' || u.tier === 'pro') ? '🏆 MVP' : u.tier === 'starter' ? '⭐ STARTER' : '🔒 BASIC';
-    const exp = u.billing_period_end ? new Date(u.billing_period_end).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '—';
-    const joined = u.created_at ? new Date(u.created_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '—';
-
-    return `<tr>
-      <td>
-        <div style="font-weight:700;font-size:13px;">${esc(u.name)}</div>
-        <div style="font-size:11px;color:rgba(255,255,255,.4);">${esc(u.email)}</div>
-      </td>
-      <td><span class="tier-badge ${tierClass}">${tierLabel}</span></td>
-      <td style="color:${isExpired?'#f43f5e':'rgba(255,255,255,.5)'};">${exp}</td>
-      <td style="color:rgba(255,255,255,.4);">${u.streak || 0} days</td>
-      <td style="color:rgba(255,255,255,.35);">${joined}</td>
-      <td>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          <button class="action-btn btn-mvp"     onclick="setTier(${u.id},'mvp',30,'${esc(u.email)}')">MVP 30d</button>
-          <button class="action-btn btn-mvp"     onclick="setTier(${u.id},'mvp',365,'${esc(u.email)}')">MVP 1yr</button>
-          <button class="action-btn btn-starter" onclick="setTier(${u.id},'starter',30,'${esc(u.email)}')">Starter 30d</button>
-          <button class="action-btn btn-cut"     onclick="setTier(${u.id},'basic',0,'${esc(u.email)}')">Cut Access</button>
-        </div>
-      </td>
-    </tr>`;
-  }).join('');
-
-  document.getElementById('users-table').innerHTML = `
-    <table>
-      <thead><tr>
-        <th>User</th><th>Tier</th><th>Expires</th><th>Streak</th><th>Joined</th><th>Actions</th>
-      </tr></thead>
-      <tbody>${rows}</tbody>
-    </table>`;
+function renderTable(users) {
+  const el = document.getElementById('users-table');
+  if (!users.length) { el.innerHTML='<div class="empty">No users found</div>'; return; }
+  el.innerHTML = `<table>
+    <thead><tr><th>User</th><th>Tier</th><th>Expires</th><th>Streak</th><th>Joined</th><th>Actions</th></tr></thead>
+    <tbody>${users.map(u => {
+      const isMvp = u.tier==='mvp'||u.tier==='pro';
+      const bc = u.expired?'badge-expired':u.is_trial?'badge-trial':isMvp?'badge-mvp':u.tier==='starter'?'badge-starter':'badge-basic';
+      const bl = u.expired?'⚠️ Expired':u.is_trial?'🔥 Trial':isMvp?'🏆 MVP':u.tier==='starter'?'⭐ Starter':'🔒 Basic';
+      const exp = u.billing_period_end?new Date(u.billing_period_end).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'—';
+      const joined = u.created_at?new Date(u.created_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'}):'—';
+      const em = esc(u.email);
+      return `<tr>
+        <td><div style="font-weight:700">${esc(u.name)}</div><div style="font-size:11px;color:rgba(255,255,255,.35)">${em}</div></td>
+        <td><span class="badge ${bc}">${bl}</span></td>
+        <td style="color:${u.expired?'#f43f5e':'rgba(255,255,255,.45)'};font-size:12px">${exp}</td>
+        <td style="color:rgba(255,255,255,.4)">${u.streak||0}d</td>
+        <td style="color:rgba(255,255,255,.3);font-size:12px">${joined}</td>
+        <td><div class="actions">
+          <button class="ab ab-mvp" onclick="setTier(${u.id},'mvp',30,'${em}')">MVP 30d</button>
+          <button class="ab ab-mvp" onclick="setTier(${u.id},'mvp',365,'${em}')">MVP 1yr</button>
+          <button class="ab ab-str" onclick="setTier(${u.id},'starter',30,'${em}')">Starter</button>
+          <button class="ab ab-cut" onclick="setTier(${u.id},'basic',0,'${em}')">✂️ Cut</button>
+        </div></td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
 }
 
-function filterUsers(query) {
-  const q = query.toLowerCase();
-  const filtered = allUsers.filter(u =>
-    u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
-  );
-  renderUsersTable(filtered);
+function filterUsers(q) {
+  const lq=q.toLowerCase();
+  renderTable(allUsers.filter(u=>(u.name||'').toLowerCase().includes(lq)||(u.email||'').toLowerCase().includes(lq)));
 }
 
 async function setTier(userId, tier, days, email) {
-  const label = tier === 'basic' ? 'Cut access' : `Set ${tier.toUpperCase()} for ${days} days`;
-  if (!confirm(`${label} for ${email}?`)) return;
-
-  const result = await req(`/api/admin/users/${userId}/tier`, {
-    method: 'POST',
-    body: JSON.stringify({ tier, days })
-  });
-
-  if (result) {
-    showToast(tier === 'basic' ? `✂️ Access cut for ${email}` : `✅ ${tier.toUpperCase()} activated for ${email}`);
+  if (!confirm(tier==='basic'?`Cut access for ${email}?`:`Set ${tier.toUpperCase()} (${days}d) for ${email}?`)) return;
+  const result = await apiReq(`/api/admin/users/${userId}/tier`,{method:'POST',body:JSON.stringify({tier,days})});
+  if (result && result.tier) {
+    showToast(tier==='basic'?`✂️ Access cut — ${email}`:`✅ ${tier.toUpperCase()} activated — ${email}`);
     loadUsers();
   } else {
-    showToast('Error — check server logs');
+    showToast('Failed — check Render logs', true);
   }
 }
 
-// ── USAGE ─────────────────────────────────────────────────────────────────────
 async function loadUsage() {
-  const data = await req('/api/admin/usage');
+  const data = await apiReq('/api/admin/usage');
   if (!data) return;
-
-  const t = data.totals || {};
+  const t = data.totals||{};
   document.getElementById('usage-stats').innerHTML = [
-    { label:'Total API Calls',  val: Number(t.calls||0).toLocaleString(),  sub:'all time',      color:'#fff' },
-    { label:'Total Tokens Used',val: Number(t.tokens||0).toLocaleString(), sub:'input+output',  color:'#0ea5e9' },
-    { label:'Est. Cost (USD)',   val: '$'+(Number(t.cost_usd||0).toFixed(2)), sub:'Claude API',  color:'#fbbf24' },
-  ].map(s => `
-    <div class="stat-card">
-      <div class="stat-label">${s.label}</div>
-      <div class="stat-val" style="color:${s.color}">${s.val}</div>
-      <div class="stat-sub">${s.sub}</div>
-    </div>`).join('');
+    {label:'Total Calls',   val:Number(t.calls||0).toLocaleString(),         sub:'all time',     color:'#fff'},
+    {label:'Tokens Used',   val:Number(t.tokens||0).toLocaleString(),        sub:'input+output', color:'#0ea5e9'},
+    {label:'Est. Cost USD', val:'$'+Number(t.cost_usd||0).toFixed(2),       sub:'Claude API',   color:'#fbbf24'},
+  ].map(s=>`<div class="stat-card"><div class="stat-label">${s.label}</div><div class="stat-val" style="color:${s.color}">${s.val}</div><div class="stat-sub">${s.sub}</div></div>`).join('');
 
-  // By user
-  if (!data.by_user.length) {
-    document.getElementById('usage-by-user').innerHTML = '<div class="empty">No usage data yet</div>';
-  } else {
-    const rows = data.by_user.map(u => `<tr>
-      <td><div style="font-weight:700">${esc(u.name)}</div><div style="font-size:11px;color:rgba(255,255,255,.4)">${esc(u.email)}</div></td>
-      <td><span class="tier-badge ${u.tier==='mvp'?'tier-mvp':u.tier==='starter'?'tier-starter':'tier-basic'}">${(u.tier||'basic').toUpperCase()}</span></td>
-      <td style="color:#0ea5e9">${Number(u.calls||0).toLocaleString()}</td>
-      <td style="color:rgba(255,255,255,.6)">${Number(u.tokens||0).toLocaleString()}</td>
-      <td style="color:#fbbf24">$${Number(u.cost_usd||0).toFixed(4)}</td>
-      <td style="color:rgba(255,255,255,.35)">${u.last_call ? new Date(u.last_call).toLocaleDateString('en-GB') : '—'}</td>
-    </tr>`).join('');
-    document.getElementById('usage-by-user').innerHTML = `
-      <table><thead><tr>
-        <th>User</th><th>Tier</th><th>Calls</th><th>Tokens</th><th>Cost</th><th>Last Call</th>
-      </tr></thead><tbody>${rows}</tbody></table>`;
-  }
+  const byUser = data.by_user||[];
+  document.getElementById('usage-by-user').innerHTML = !byUser.length
+    ? '<div class="empty">No usage data yet</div>'
+    : `<table><thead><tr><th>User</th><th>Tier</th><th>Calls</th><th>Tokens</th><th>Cost</th><th>Last Call</th></tr></thead><tbody>${
+        byUser.map(u=>`<tr>
+          <td><div style="font-weight:700">${esc(u.name)}</div><div style="font-size:11px;color:rgba(255,255,255,.35)">${esc(u.email)}</div></td>
+          <td><span class="badge ${u.tier==='mvp'?'badge-mvp':u.tier==='starter'?'badge-starter':'badge-basic'}">${(u.tier||'basic').toUpperCase()}</span></td>
+          <td style="color:#0ea5e9">${Number(u.calls||0).toLocaleString()}</td>
+          <td style="color:rgba(255,255,255,.6)">${Number(u.tokens||0).toLocaleString()}</td>
+          <td style="color:#fbbf24">$${Number(u.cost_usd||0).toFixed(4)}</td>
+          <td style="color:rgba(255,255,255,.3);font-size:12px">${u.last_call?new Date(u.last_call).toLocaleDateString('en-GB'):'—'}</td>
+        </tr>`).join('')
+      }</tbody></table>`;
 
-  // Recent
-  if (!data.recent.length) {
-    document.getElementById('usage-recent').innerHTML = '<div class="empty">No recent calls</div>';
-  } else {
-    const rows = data.recent.map(r => `<tr>
-      <td style="font-weight:600">${esc(r.name)}</td>
-      <td style="color:rgba(255,255,255,.5);font-size:12px">${esc(r.endpoint)}</td>
-      <td style="color:#0ea5e9">${Number(r.total_tokens||0).toLocaleString()}</td>
-      <td style="color:#fbbf24">$${Number(r.estimated_cost_usd||0).toFixed(5)}</td>
-      <td style="color:rgba(255,255,255,.35)">${new Date(r.created_at).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</td>
-    </tr>`).join('');
-    document.getElementById('usage-recent').innerHTML = `
-      <table><thead><tr>
-        <th>User</th><th>Endpoint</th><th>Tokens</th><th>Cost</th><th>Time</th>
-      </tr></thead><tbody>${rows}</tbody></table>`;
-  }
+  const recent = data.recent||[];
+  document.getElementById('usage-recent').innerHTML = !recent.length
+    ? '<div class="empty">No recent calls</div>'
+    : `<table><thead><tr><th>User</th><th>Endpoint</th><th>Tokens</th><th>Cost</th><th>Time</th></tr></thead><tbody>${
+        recent.map(r=>`<tr>
+          <td style="font-weight:600">${esc(r.name)}</td>
+          <td style="color:rgba(255,255,255,.4);font-size:12px">${esc(r.endpoint)}</td>
+          <td style="color:#0ea5e9">${Number(r.total_tokens||0).toLocaleString()}</td>
+          <td style="color:#fbbf24">$${Number(r.estimated_cost_usd||0).toFixed(5)}</td>
+          <td style="color:rgba(255,255,255,.3);font-size:12px">${new Date(r.created_at).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</td>
+        </tr>`).join('')
+      }</tbody></table>`;
 }
 
-// ── UTILS ─────────────────────────────────────────────────────────────────────
-function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 3000);
+function showToast(msg,isError){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast show'+(isError?' error':'');
+  setTimeout(()=>t.className='toast',3000);
 }
 
-// Auto-login if token exists
-if (TOKEN) showApp();
+// Auto-login check
+if (TOKEN) {
+  fetch(API+'/api/admin/users',{headers:{'Authorization':'Bearer '+TOKEN,'Content-Type':'application/json'}})
+    .then(r=>{ if(r.ok){r.json().then(()=>showApp());}else{localStorage.removeItem('meltos_admin_token');TOKEN=null;} })
+    .catch(()=>{ localStorage.removeItem('meltos_admin_token');TOKEN=null; });
+}
 </script>
 </body>
-</html>ad
+</html>

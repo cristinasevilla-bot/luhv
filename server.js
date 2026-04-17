@@ -1152,6 +1152,85 @@ app.get('/api/admin/sessions', adminAuth, async (req, res) => {
   res.json(rows);
 });
 
+// ── ADMIN INSIGHTS — goals, habits, coach conversations per user ──────────────
+app.get('/api/admin/insights', adminAuth, async (req, res) => {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+
+    // Goals per user with progress
+    const { rows: goals } = await db.query(`
+      SELECT g.*, u.name as user_name, u.email as user_email, u.tier
+      FROM goals g JOIN users u ON u.id = g.user_id
+      WHERE g.status = 'active'
+      ORDER BY u.name, g.created_at DESC
+    `);
+
+    // Habits with completion rate (last 7 days)
+    const { rows: habits } = await db.query(`
+      SELECT h.name, h.icon, u.name as user_name, u.email as user_email,
+             COUNT(hc.id) as completions_7d,
+             CASE WHEN h.target_type='check' THEN (
+               SELECT hc2.id IS NOT NULL FROM habit_completions hc2
+               WHERE hc2.habit_id=h.id AND hc2.user_id=h.user_id AND hc2.date=$1
+               LIMIT 1
+             ) ELSE false END as done_today
+      FROM habits h
+      JOIN users u ON u.id = h.user_id
+      LEFT JOIN habit_completions hc ON hc.habit_id = h.id
+        AND hc.date >= CURRENT_DATE - INTERVAL '7 days'
+      GROUP BY h.id, h.name, h.icon, h.target_type, h.user_id, u.name, u.email
+      ORDER BY u.name, completions_7d DESC
+    `, [today]);
+
+    // Last coach message per user
+    const { rows: lastCoach } = await db.query(`
+      SELECT DISTINCT ON (c.user_id)
+        c.user_id, c.content, c.created_at, u.name as user_name, u.email as user_email
+      FROM conversations c
+      JOIN users u ON u.id = c.user_id
+      WHERE c.role = 'assistant'
+      ORDER BY c.user_id, c.created_at DESC
+    `);
+
+    // Last user message per user (what they asked)
+    const { rows: lastUserMsg } = await db.query(`
+      SELECT DISTINCT ON (c.user_id)
+        c.user_id, c.content, c.created_at
+      FROM conversations c
+      WHERE c.role = 'user'
+      ORDER BY c.user_id, c.created_at DESC
+    `);
+
+    // Coach session responses (quiz answers — the KB calibration data)
+    const { rows: sessions } = await db.query(`
+      SELECT s.responses, s.lens, s.completed, u.name as user_name, u.email as user_email
+      FROM coach_sessions s
+      JOIN users u ON u.id = s.user_id
+      WHERE s.completed = true
+      ORDER BY s.updated_at DESC
+      LIMIT 20
+    `);
+
+    // Alignment stats from intentions
+    const { rows: alignment } = await db.query(`
+      SELECT u.name as user_name, u.email as user_email,
+             COUNT(*) as total,
+             SUM(CASE WHEN di.alignment='aligned' THEN 1 ELSE 0 END) as aligned,
+             SUM(CASE WHEN di.alignment='needs_adjustment' THEN 1 ELSE 0 END) as needs_adj,
+             SUM(CASE WHEN di.alignment='not_aligned' THEN 1 ELSE 0 END) as not_aligned
+      FROM daily_intentions di
+      JOIN users u ON u.id = di.user_id
+      GROUP BY u.id, u.name, u.email
+      ORDER BY total DESC
+    `);
+
+    res.json({ goals, habits, lastCoach, lastUserMsg, sessions, alignment });
+  } catch(e) {
+    console.error('Insights error:', e);
+    res.status(500).json({ error: 'Could not load insights', detail: e.message });
+  }
+});
+
 // ── DAILY INTENTION ───────────────────────────────────────────────────────────
 // SQL (run once):
 // CREATE TABLE IF NOT EXISTS daily_intentions (

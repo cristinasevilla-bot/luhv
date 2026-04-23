@@ -1208,9 +1208,14 @@ app.get('/api/admin/debug/status', adminAuth, async (req, res) => {
     const { rows: habitCount } = await db.query('SELECT COUNT(*) FROM habits');
     const { rows: goalCount } = await db.query('SELECT COUNT(*) FROM goals');
     const { rows: convCount } = await db.query('SELECT COUNT(*) FROM conversations');
-    const { rows: recentErrors } = await db.query(
-      `SELECT * FROM error_logs ORDER BY created_at DESC LIMIT 20`
-    ).catch(() => ({ rows: [] }));
+    
+    // error_logs may not exist yet — handle gracefully
+    let recentErrors = [];
+    try {
+      const { rows } = await db.query(`SELECT * FROM error_logs ORDER BY created_at DESC LIMIT 20`);
+      recentErrors = rows;
+    } catch(e) { recentErrors = []; }
+
     const { rows: recentActivity } = await db.query(`
       SELECT u.name, u.email, u.tier, u.updated_at
       FROM users u ORDER BY u.updated_at DESC LIMIT 10
@@ -2376,7 +2381,7 @@ app.post('/api/webhooks/square', express.raw({ type: 'application/json' }), asyn
     const eventType = event.type;
     console.log('Square webhook received:', eventType);
 
-    if (eventType === 'payment.completed' || eventType === 'order.completed') {
+    if (eventType === 'payment.completed' || eventType === 'payment.created' || eventType === 'order.completed') {
       const payment = event.data?.object?.payment || event.data?.object?.order;
       if (!payment) return res.json({ ok: true });
 

@@ -808,15 +808,21 @@ body{background:
   <div class="auth-box">
     <div class="auth-logo">MELTOS<span style="color:var(--teal);font-size:14px;vertical-align:super;margin-left:2px">by Luhv+</span></div>
     <div class="auth-sub">Your Personal Performance OS 🏆</div>
-    <div class="auth-tabs">
-      <div class="auth-tab active" onclick="setTab('login')">Sign In</div>
-      <div class="auth-tab" onclick="setTab('register')">Create Account</div>
-    </div>
+
+    <!-- SIGN IN -->
     <div id="login-form">
-      <div class="auth-field"><label>Email</label><input type="email" id="login-email" placeholder="you@email.com"></div>
+      <div class="auth-field"><label>Email</label><input type="email" id="login-email" placeholder="you@email.com" autocomplete="email"></div>
       <div class="auth-field"><label>Password</label><input type="password" id="login-pass" placeholder="••••••••"></div>
       <button class="auth-btn" onclick="login()" id="login-btn">Sign In 🏆</button>
     </div>
+
+    <!-- NEW USER — redirect to landing to pay first -->
+    <div style="margin-top:20px;padding:14px 16px;background:rgba(6,214,160,.05);border:1px solid rgba(6,214,160,.15);border-radius:14px;text-align:center;">
+      <div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:8px;line-height:1.6;">New to MELTOS? Choose a plan first —<br>your account is created after checkout.</div>
+      <a href="https://meltos.netlify.app/#pricing" target="_blank" style="display:inline-block;padding:10px 24px;background:linear-gradient(135deg,#06d6a0,#0ea5e9);border-radius:20px;color:#07111b;font-size:13px;font-weight:800;text-decoration:none;">See Plans →</a>
+    </div>
+
+    <!-- Hidden register form — kept for webhook-triggered account creation -->
     <div id="register-form" style="display:none">
       <div class="auth-field"><label>Your Name</label><input type="text" id="reg-name" placeholder="First name"></div>
       <div class="auth-field"><label>Email</label><input type="email" id="reg-email" placeholder="you@email.com"></div>
@@ -829,6 +835,7 @@ body{background:
       </div>
       <button class="auth-btn" onclick="register()" id="reg-btn">Let's Go 🔥</button>
     </div>
+
     <div class="auth-error" id="auth-error"></div>
   </div>
 </div>

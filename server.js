@@ -1200,35 +1200,37 @@ app.get('/api/admin/sessions', adminAuth, async (req, res) => {
 
 // ── DEBUG ENDPOINTS (admin only) ──────────────────────────────────────────────
 app.get('/api/admin/debug/status', adminAuth, async (req, res) => {
-  try {
-    const start = Date.now();
-    await db.query('SELECT 1');
-    const dbMs = Date.now() - start;
-    const { rows: userCount } = await db.query('SELECT COUNT(*) FROM users');
-    const { rows: habitCount } = await db.query('SELECT COUNT(*) FROM habits');
-    const { rows: goalCount } = await db.query('SELECT COUNT(*) FROM goals');
-    const { rows: convCount } = await db.query('SELECT COUNT(*) FROM conversations');
-    
-    // error_logs may not exist yet — handle gracefully
-    let recentErrors = [];
-    try {
-      const { rows } = await db.query(`SELECT * FROM error_logs ORDER BY created_at DESC LIMIT 20`);
-      recentErrors = rows;
-    } catch(e) { recentErrors = []; }
+  const safe = async (fn, fallback) => { try { return await fn(); } catch(e) { return fallback; } };
 
-    const { rows: recentActivity } = await db.query(`
-      SELECT u.name, u.email, u.tier, u.updated_at
-      FROM users u ORDER BY u.updated_at DESC LIMIT 10
-    `);
-    res.json({
-      server: { status: 'ok', uptime: Math.round(process.uptime()) + 's', node: process.version, memory: Math.round(process.memoryUsage().heapUsed/1024/1024) + 'MB' },
-      database: { status: 'ok', latency: dbMs + 'ms', users: userCount[0].count, habits: habitCount[0].count, goals: goalCount[0].count, conversations: convCount[0].count },
-      errors: recentErrors,
-      recentActivity
-    });
-  } catch(e) {
-    res.status(500).json({ error: e.message });
-  }
+  const start = Date.now();
+  await safe(() => db.query('SELECT 1'), null);
+  const dbMs = Date.now() - start;
+
+  const userCount  = await safe(async () => { const r = await db.query('SELECT COUNT(*) FROM users'); return r.rows[0].count; }, '?');
+  const habitCount = await safe(async () => { const r = await db.query('SELECT COUNT(*) FROM habits'); return r.rows[0].count; }, '?');
+  const goalCount  = await safe(async () => { const r = await db.query('SELECT COUNT(*) FROM goals'); return r.rows[0].count; }, '?');
+  const convCount  = await safe(async () => { const r = await db.query('SELECT COUNT(*) FROM conversations'); return r.rows[0].count; }, '?');
+  const recentErrors   = await safe(async () => { const r = await db.query('SELECT * FROM error_logs ORDER BY created_at DESC LIMIT 20'); return r.rows; }, []);
+  const recentActivity = await safe(async () => { const r = await db.query('SELECT name, email, tier, updated_at FROM users ORDER BY updated_at DESC LIMIT 10'); return r.rows; }, []);
+
+  res.json({
+    server: {
+      status: 'ok',
+      uptime: Math.round(process.uptime()) + 's',
+      node: process.version,
+      memory: Math.round(process.memoryUsage().heapUsed/1024/1024) + 'MB'
+    },
+    database: {
+      status: 'ok',
+      latency: dbMs + 'ms',
+      users: userCount,
+      habits: habitCount,
+      goals: goalCount,
+      conversations: convCount
+    },
+    errors: recentErrors,
+    recentActivity
+  });
 });
 
 app.get('/api/admin/debug/test-db', adminAuth, async (req, res) => {

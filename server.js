@@ -798,17 +798,35 @@ COACHING SESSION CONTEXT:
 // ── AUTH ──────────────────────────────────────────────────────────────────────
 app.post('/api/auth/register', async (req, res) => {
   const { name, email, password } = req.body;
-  const hash = await bcrypt.hash(password, 10);
-  try {
+  if (!name || !email || !password) return res.status(400).json({ error: 'All fields required' });
+
+  // Check if this email was pre-authorized via payment
+  const { rows: existing } = await db.query(
+    'SELECT id, tier, password_hash FROM users WHERE LOWER(email)=LOWER($1)', [email]
+  );
+
+  if (existing.length > 0) {
+    // Email already has an account
+    if (existing[0].password_hash) {
+      return res.status(400).json({ error: 'An account with this email already exists. Please sign in.' });
+    }
+    // Email pre-authorized by webhook but no password yet — complete registration
+    const hash = await bcrypt.hash(password, 10);
     const { rows } = await db.query(
-      'INSERT INTO users (name, email, password_hash) VALUES ($1,$2,$3) RETURNING id, name, email',
-      [name, email, hash]
+      `UPDATE users SET name=$1, password_hash=$2 WHERE LOWER(email)=LOWER($3)
+       RETURNING id, name, email, tier, is_admin, is_trial, billing_period_end`,
+      [name, hash, email]
     );
-    res.json({ token: sign({ id: rows[0].id }), user: rows[0] });
-  } catch (e) {
-    res.status(400).json({ error: 'Email already in use' });
+    const { password_hash, ...user } = rows[0];
+    return res.json({ token: sign({ id: user.id }), user });
   }
+
+  // Email not found — not pre-authorized
+  return res.status(403).json({
+    error: 'No active plan found for this email. Please choose a plan at meltos.netlify.app before creating your account.'
+  });
 });
+
 
 app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
@@ -1062,6 +1080,27 @@ const adminAuth = async (req, res, next) => {
   });
 };
 
+// Insights auth — full admins + read-only insight viewers (meltosbyluhv@gmail.com)
+const INSIGHTS_EMAILS = ['meltosbyluhv@gmail.com'];
+const insightsAuth = async (req, res, next) => {
+  auth(req, res, async () => {
+    try {
+      const { rows: [user] } = await db.query(
+        'SELECT is_admin, email FROM users WHERE id=$1', [req.user.id]
+      );
+      if (!user) return res.status(403).json({ error: 'Not authorized' });
+      const isAdmin = user.is_admin;
+      const isInsightViewer = INSIGHTS_EMAILS.includes((user.email||'').toLowerCase());
+      if (!isAdmin && !isInsightViewer) {
+        return res.status(403).json({ error: 'Not authorized' });
+      }
+      next();
+    } catch(e) {
+      res.status(500).json({ error: 'Could not verify access' });
+    }
+  });
+};
+
 app.get('/api/admin/stats', adminAuth, async (req, res) => {
   const [users, active, convs, streak, sessions] = await Promise.all([
     db.query('SELECT COUNT(*) FROM users'),
@@ -1153,7 +1192,7 @@ app.get('/api/admin/sessions', adminAuth, async (req, res) => {
 });
 
 // ── ADMIN INSIGHTS — goals, habits, coach conversations per user ──────────────
-app.get('/api/admin/insights', adminAuth, async (req, res) => {
+app.get('/api/admin/insights', insightsAuth, async (req, res) => {
   try {
     const today = new Date().toISOString().split('T')[0];
 
@@ -2354,8 +2393,16 @@ app.post('/api/webhooks/square', express.raw({ type: 'application/json' }), asyn
           const userName = rows[0].name || buyerEmail;
           console.log(`✅ PAYMENT: ${userName} (${buyerEmail}) → ${tier}${isTrial?' TRIAL':''} until ${expiresAt.toDateString()}`);
         } else {
-          // User not found — log so admin can activate manually
-          console.warn(`⚠️ PAYMENT received but no user found for email: ${buyerEmail} → ${tier} (${daysAccess}d)`);
+          // User not found — pre-create the row so they can register after payment
+          const { rows: newRows } = await db.query(
+            `INSERT INTO users (email, tier, billing_period_end, is_trial, name)
+             VALUES (LOWER($1), $2, $3, $4, $5)
+             ON CONFLICT (email) DO UPDATE
+               SET tier=$2, billing_period_end=$3, is_trial=$4
+             RETURNING id, email`,
+            [buyerEmail, tier, expiresAt.toISOString(), isTrial, buyerEmail.split('@')[0]]
+          );
+          console.log(`✅ PAYMENT (new user pre-created): ${buyerEmail} → ${tier}${isTrial?' TRIAL':''} until ${expiresAt.toDateString()}`);
         }
       } else {
         console.warn(`⚠️ PAYMENT received but could not extract buyer email. Raw title: "${rawTitle}", amount: ${amountCents}`);

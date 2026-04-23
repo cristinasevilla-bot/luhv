@@ -705,20 +705,18 @@ body{background:
       <div class="profile-section">
         <div class="profile-section-label">Subscription</div>
         <div style="display:flex;flex-direction:column;gap:8px">
-          <div onclick="closeProfile();openPaywall('upgrade')" style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-radius:12px;background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(14,165,233,.08));border:1px solid rgba(99,102,241,.25);cursor:pointer">
+          <div id="profile-plan-display" style="padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);">
+            <div style="font-size:10px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px">Current Plan</div>
+            <div id="profile-plan-name" style="font-size:14px;font-weight:700;color:#fff">Loading...</div>
+            <div id="profile-plan-expiry" style="font-size:11px;color:rgba(255,255,255,.4);margin-top:2px"></div>
+          </div>
+          <div onclick="closeProfile();openPaywall('manage')" style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-radius:12px;background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(14,165,233,.07));border:1px solid rgba(99,102,241,.2);cursor:pointer">
             <div>
-              <div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:2px">Plans &amp; Pricing</div>
-              <div style="font-size:11px;color:rgba(255,255,255,.45)">Starter · MVP · 7-day trial</div>
+              <div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:2px">Manage Plan</div>
+              <div style="font-size:11px;color:rgba(255,255,255,.4)">Upgrade · Downgrade · Renew</div>
             </div>
             <div style="font-size:16px;color:var(--purple)">⚡</div>
           </div>
-          <a href="https://checkout.square.site/merchant/MLVPYXMY7P2SN/checkout/NTMYWRLXWU4RSRUPMJC2GXV6" target="_blank" style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-radius:12px;background:rgba(6,214,160,.08);border:1px solid rgba(6,214,160,.2);cursor:pointer;text-decoration:none">
-            <div>
-              <div style="font-size:12px;font-weight:700;color:var(--teal);margin-bottom:2px">7-Day Trial — Full MVP Access</div>
-              <div style="font-size:11px;color:rgba(255,255,255,.45)">Full MVP access — coach, goals, everything</div>
-            </div>
-            <div style="font-size:13px;color:var(--teal);font-weight:700">$2 →</div>
-          </a>
         </div>
       </div>
 
@@ -1836,44 +1834,47 @@ function openPaywall(type) {
   var content = document.getElementById('paywall-content');
   if (!modal || !content) return;
 
-  content.innerHTML =
-    '<div style="text-align:center;margin-bottom:20px">' +
-      '<div style="font-size:32px;margin-bottom:8px">🏆</div>' +
-      '<div style="font-family:Bebas Neue,sans-serif;font-size:26px;letter-spacing:1px;margin-bottom:6px">CHOOSE YOUR PLAN</div>' +
-      '<div style="font-size:13px;color:var(--muted);line-height:1.6">Built on the Assess, Assign, Align method by Luhv+</div>' +
-    '</div>' +
+  var isManage = type === 'manage';
+  var currentTier = typeof userTier !== 'undefined' ? userTier : 'basic';
 
-    // 7-DAY TRIAL
-    '<a href="https://checkout.square.site/merchant/MLVPYXMY7P2SN/checkout/NTMYWRLXWU4RSRUPMJC2GXV6" target="_blank" style="display:block;text-decoration:none;margin-bottom:10px">' +
-      '<div style="background:linear-gradient(135deg,rgba(6,214,160,.15),rgba(6,214,160,.06));border:1px solid rgba(6,214,160,.35);border-radius:16px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between">' +
-        '<div>' +
-          '<div style="font-size:10px;color:var(--teal);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:4px">7-Day Trial — Full MVP Access — $2</div>' +
-          '<div style="font-size:12px;color:rgba(255,255,255,.6)">Full MVP access for 7 days — coach, goals, assignments, everything</div>' +
+  var header = isManage
+    ? '<div style="text-align:center;margin-bottom:20px"><div style="font-size:32px;margin-bottom:8px">⚡</div><div style="font-family:Bebas Neue,sans-serif;font-size:26px;letter-spacing:1px;margin-bottom:6px">MANAGE YOUR PLAN</div><div style="font-size:13px;color:var(--muted)">Current plan: <strong style="color:#fff">' + currentTier.toUpperCase() + '</strong></div></div>'
+    : '<div style="text-align:center;margin-bottom:20px"><div style="font-size:32px;margin-bottom:8px">🏆</div><div style="font-family:Bebas Neue,sans-serif;font-size:26px;letter-spacing:1px;margin-bottom:6px">UPGRADE YOUR PLAN</div><div style="font-size:13px;color:var(--muted);line-height:1.6">Unlock full access to the AI Coach and all features</div></div>';
+
+  // Trial — only show if not already paid
+  var trialHtml = currentTier === 'basic'
+    ? '<a href="https://square.link/u/Oj9nU0MG" target="_blank" style="display:block;text-decoration:none;margin-bottom:10px">' +
+        '<div style="background:linear-gradient(135deg,rgba(251,191,36,.12),rgba(251,191,36,.06));border:1px solid rgba(251,191,36,.3);border-radius:16px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between">' +
+          '<div><div style="font-size:10px;color:#fbbf24;text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:4px">🔥 Try first</div>' +
+          '<div style="font-size:13px;font-weight:700;color:#fff">7-Day Trial — Full MVP Access</div>' +
+          '<div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:2px">Full access for 7 days — cancel anytime</div></div>' +
+          '<div style="font-size:18px;font-weight:800;color:#fbbf24">$2 →</div>' +
         '</div>' +
-        '<div style="font-size:18px;font-weight:800;color:var(--teal)">$2 →</div>' +
-      '</div>' +
-    '</a>' +
+      '</a>'
+    : '';
 
-    // STARTER
-    '<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:14px 16px;margin-bottom:10px">' +
-      '<div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:8px">Starter</div>' +
-      '<div style="font-size:12px;color:rgba(255,255,255,.55);margin-bottom:12px;line-height:1.6">Dashboard · Roadmap · Tasks · Inspire · Ranking</div>' +
-      '<div style="display:flex;gap:8px">' +
-        '<a href="https://square.link/u/N1xNrkES" target="_blank" style="flex:1;text-decoration:none;padding:10px;border:none;border-radius:10px;background:rgba(255,255,255,.07);color:#fff;font-size:12px;font-weight:700;cursor:pointer;text-align:center;display:block">$9.99 / month</a>' +
-        '<a href="https://square.link/u/VDdzk7Am" target="_blank" style="flex:1;text-decoration:none;padding:10px;border:1px solid rgba(14,165,233,.3);border-radius:10px;background:rgba(14,165,233,.08);color:var(--blue);font-size:12px;font-weight:700;cursor:pointer;text-align:center;display:block">$99 / year <span style="font-size:10px;opacity:.7">save $20</span></a>' +
-      '</div>' +
-    '</div>' +
+  // Starter
+  var starterHtml = '<div style="background:rgba(255,255,255,.04);border:1px solid ' + (currentTier==='starter'?'rgba(14,165,233,.4)':'rgba(255,255,255,.1)') + ';border-radius:16px;padding:14px 16px;margin-bottom:10px;position:relative">' +
+    (currentTier==='starter' ? '<div style="position:absolute;top:-10px;right:14px;background:#0ea5e9;color:#fff;font-size:9px;font-weight:700;padding:3px 10px;border-radius:99px">CURRENT PLAN</div>' : '') +
+    '<div style="font-size:10px;color:var(--blue);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:8px">⭐ Starter</div>' +
+    '<div style="font-size:12px;color:rgba(255,255,255,.6);margin-bottom:12px;line-height:1.6">Dashboard · Roadmap · Tasks · Inspire · Ranking — No AI Coach</div>' +
+    '<div style="display:flex;gap:8px">' +
+      '<a href="https://square.link/u/N1xNrkES" target="_blank" style="flex:1;text-decoration:none;padding:10px;border:1px solid rgba(14,165,233,.3);border-radius:10px;background:rgba(14,165,233,.08);color:var(--blue);font-size:12px;font-weight:700;text-align:center;display:block">$9.99 / month</a>' +
+      '<a href="https://square.link/u/VDdzk7Am" target="_blank" style="flex:1;text-decoration:none;padding:10px;border:1px solid rgba(14,165,233,.2);border-radius:10px;background:rgba(14,165,233,.05);color:var(--blue);font-size:12px;font-weight:700;text-align:center;display:block">$99 / year <span style="font-size:10px;opacity:.6">save $20</span></a>' +
+    '</div></div>';
 
-    // MVP
-    '<div style="background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(14,165,233,.07));border:1px solid rgba(99,102,241,.3);border-radius:16px;padding:14px 16px;position:relative;margin-bottom:4px">' +
-      '<div style="position:absolute;top:-10px;right:14px;background:linear-gradient(90deg,var(--purple),var(--blue));color:#fff;font-size:9px;font-weight:700;padding:3px 10px;border-radius:99px">MOST POPULAR</div>' +
-      '<div style="font-size:10px;color:var(--purple);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:8px">MVP</div>' +
-      '<div style="font-size:12px;color:rgba(255,255,255,.7);margin-bottom:12px;line-height:1.6">Everything in Starter + unlimited AI Coach · decision checks · weekly reviews</div>' +
-      '<div style="display:flex;gap:8px">' +
-        '<a href="https://square.link/u/prFufr1m" target="_blank" style="flex:1;text-decoration:none;padding:10px;border:none;border-radius:10px;background:rgba(99,102,241,.2);color:#fff;font-size:12px;font-weight:700;cursor:pointer;text-align:center;display:block">$19.99 / month</a>' +
-        '<a href="https://square.link/u/fdKovMff" target="_blank" style="flex:1;text-decoration:none;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--purple),var(--blue));color:#fff;font-size:12px;font-weight:700;cursor:pointer;text-align:center;display:block">$200 / year <span style="font-size:10px;opacity:.8">save $40</span></a>' +
-      '</div>' +
-    '</div>';
+  // MVP
+  var mvpHtml = '<div style="background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(14,165,233,.07));border:1px solid ' + (currentTier==='mvp'?'rgba(6,214,160,.4)':'rgba(99,102,241,.3)') + ';border-radius:16px;padding:14px 16px;position:relative;margin-bottom:4px">' +
+    (currentTier==='mvp' ? '<div style="position:absolute;top:-10px;right:14px;background:#06d6a0;color:#07111b;font-size:9px;font-weight:700;padding:3px 10px;border-radius:99px">CURRENT PLAN</div>' : '<div style="position:absolute;top:-10px;right:14px;background:linear-gradient(90deg,var(--purple),var(--blue));color:#fff;font-size:9px;font-weight:700;padding:3px 10px;border-radius:99px">MOST POPULAR</div>') +
+    '<div style="font-size:10px;color:var(--teal);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:8px">🏆 MVP</div>' +
+    '<div style="font-size:12px;color:rgba(255,255,255,.7);margin-bottom:12px;line-height:1.6">Everything in Starter + unlimited AI Coach · decision checks · weekly reviews</div>' +
+    '<div style="display:flex;gap:8px">' +
+      '<a href="https://square.link/u/prFufr1m" target="_blank" style="flex:1;text-decoration:none;padding:10px;border:none;border-radius:10px;background:rgba(99,102,241,.2);color:#fff;font-size:12px;font-weight:700;text-align:center;display:block">$19.99 / month</a>' +
+      '<a href="https://square.link/u/fdKovMff" target="_blank" style="flex:1;text-decoration:none;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--purple),var(--blue));color:#fff;font-size:12px;font-weight:700;text-align:center;display:block">$200 / year <span style="font-size:10px;opacity:.8">save $40</span></a>' +
+    '</div></div>';
+
+  content.innerHTML = header + trialHtml + starterHtml + mvpHtml +
+    '<p style="font-size:11px;color:rgba(255,255,255,.25);text-align:center;margin-top:14px;line-height:1.6;">After payment, your plan activates automatically using the email you paid with.</p>';
 
   modal.style.display = 'flex';
 }
@@ -2027,11 +2028,32 @@ var PEAK_OPTIONS = [
 function openProfile() {
   var modal = document.getElementById('profile-modal');
   if (!modal) return;
-  // Fill user info
   var initials = USER ? USER.name.split(' ').map(function(n){return n[0];}).join('').toUpperCase().slice(0,2) : '?';
   document.getElementById('profile-avatar-big').textContent = initials;
   document.getElementById('profile-name').textContent = USER?.name?.toUpperCase() || 'MVP';
   document.getElementById('profile-email').textContent = USER?.email || '';
+
+  // Show current plan
+  var planName = document.getElementById('profile-plan-name');
+  var planExpiry = document.getElementById('profile-plan-expiry');
+  var tierLabels = { basic:'🔒 Basic (Free)', starter:'⭐ Starter', mvp:'🏆 MVP' };
+  if (planName) planName.textContent = tierLabels[userTier] || '🔒 Basic';
+  if (planExpiry) {
+    api('/api/billing/status').then(function(data) {
+      if (!data) return;
+      if (data.is_trial && data.days_left !== null) {
+        planExpiry.textContent = '🔥 Trial — ' + data.days_left + ' days left';
+        planExpiry.style.color = data.days_left <= 2 ? '#f43f5e' : '#fbbf24';
+      } else if (data.billing_period_end) {
+        planExpiry.textContent = 'Renews ' + new Date(data.billing_period_end).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+        planExpiry.style.color = 'rgba(255,255,255,.4)';
+      } else {
+        planExpiry.textContent = 'No active subscription';
+        planExpiry.style.color = 'rgba(255,255,255,.3)';
+      }
+    }).catch(function(){});
+  }
+
   // Fill peak options
   var current = getPeakHourPref() || '';
   var optsEl = document.getElementById('profile-peak-opts');

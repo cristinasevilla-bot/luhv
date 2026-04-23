@@ -49,67 +49,7 @@ app.get('/health', (req, res) => {
   res.status(200).json({ ok: true });
 });
 
-// ── DEBUG ENDPOINTS (admin only) ──────────────────────────────────────────────
-app.get('/api/admin/debug/status', adminAuth, async (req, res) => {
-  try {
-    const start = Date.now();
-    await db.query('SELECT 1');
-    const dbMs = Date.now() - start;
-    const { rows: userCount } = await db.query('SELECT COUNT(*) FROM users');
-    const { rows: habitCount } = await db.query('SELECT COUNT(*) FROM habits');
-    const { rows: goalCount } = await db.query('SELECT COUNT(*) FROM goals');
-    const { rows: convCount } = await db.query('SELECT COUNT(*) FROM conversations');
-    const { rows: recentErrors } = await db.query(
-      `SELECT * FROM error_logs ORDER BY created_at DESC LIMIT 20`
-    ).catch(() => ({ rows: [] }));
-    const { rows: recentActivity } = await db.query(`
-      SELECT u.name, u.email, u.tier, u.updated_at
-      FROM users u ORDER BY u.updated_at DESC LIMIT 10
-    `);
-    res.json({
-      server: { status: 'ok', uptime: Math.round(process.uptime()) + 's', node: process.version, memory: Math.round(process.memoryUsage().heapUsed/1024/1024) + 'MB' },
-      database: { status: 'ok', latency: dbMs + 'ms', users: userCount[0].count, habits: habitCount[0].count, goals: goalCount[0].count, conversations: convCount[0].count },
-      errors: recentErrors,
-      recentActivity
-    });
-  } catch(e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-app.post('/api/admin/debug/error-log', adminAuth, async (req, res) => {
-  // Receive frontend error logs
-  const { message, stack, user_email, page, context } = req.body;
-  try {
-    await db.query(
-      `INSERT INTO error_logs (message, stack, user_email, page, context, created_at)
-       VALUES ($1,$2,$3,$4,$5,NOW())
-       ON CONFLICT DO NOTHING`,
-      [message, stack, user_email, page, JSON.stringify(context||{})]
-    ).catch(() => {}); // table may not exist yet
-    res.json({ ok: true });
-  } catch(e) { res.json({ ok: true }); }
-});
-
-app.get('/api/admin/debug/test-db', adminAuth, async (req, res) => {
-  try {
-    const tests = [];
-    const t = async (name, fn) => { try { const r = await fn(); tests.push({ name, ok: true, result: r }); } catch(e) { tests.push({ name, ok: false, error: e.message }); } };
-    await t('DB connection', async () => { await db.query('SELECT 1'); return 'ok'; });
-    await t('Users table', async () => { const r = await db.query('SELECT COUNT(*) FROM users'); return r.rows[0].count + ' users'; });
-    await t('Habits table', async () => { const r = await db.query('SELECT COUNT(*) FROM habits'); return r.rows[0].count + ' habits'; });
-    await t('Goals table', async () => { const r = await db.query('SELECT COUNT(*) FROM goals'); return r.rows[0].count + ' goals'; });
-    await t('Conversations table', async () => { const r = await db.query('SELECT COUNT(*) FROM conversations'); return r.rows[0].count + ' messages'; });
-    await t('is_admin column', async () => { await db.query('SELECT is_admin FROM users LIMIT 1'); return 'ok'; });
-    await t('is_trial column', async () => { await db.query('SELECT is_trial FROM users LIMIT 1'); return 'ok'; });
-    await t('Anthropic key', async () => { return process.env.ANTHROPIC_API_KEY ? 'set (' + process.env.ANTHROPIC_API_KEY.slice(0,8) + '...)' : 'MISSING'; });
-    await t('JWT secret', async () => { return process.env.JWT_SECRET ? 'set' : 'MISSING'; });
-    await t('Square webhook', async () => { return process.env.SQUARE_WEBHOOK_SIG ? 'sig set' : 'no sig (ok for testing)'; });
-    res.json({ tests });
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
-
-// Frontend error logging — no auth needed so it works before login too
+// Frontend error logging — no auth needed
 app.post('/api/log-error', async (req, res) => {
   const { message, stack, user_email, page } = req.body;
   console.error(`[FRONTEND ERROR] ${user_email||'anon'} @ ${page||'?'}: ${message}`);
@@ -1256,6 +1196,52 @@ app.get('/api/admin/sessions', adminAuth, async (req, res) => {
     ORDER BY s.created_at DESC LIMIT 100
   `);
   res.json(rows);
+});
+
+// ── DEBUG ENDPOINTS (admin only) ──────────────────────────────────────────────
+app.get('/api/admin/debug/status', adminAuth, async (req, res) => {
+  try {
+    const start = Date.now();
+    await db.query('SELECT 1');
+    const dbMs = Date.now() - start;
+    const { rows: userCount } = await db.query('SELECT COUNT(*) FROM users');
+    const { rows: habitCount } = await db.query('SELECT COUNT(*) FROM habits');
+    const { rows: goalCount } = await db.query('SELECT COUNT(*) FROM goals');
+    const { rows: convCount } = await db.query('SELECT COUNT(*) FROM conversations');
+    const { rows: recentErrors } = await db.query(
+      `SELECT * FROM error_logs ORDER BY created_at DESC LIMIT 20`
+    ).catch(() => ({ rows: [] }));
+    const { rows: recentActivity } = await db.query(`
+      SELECT u.name, u.email, u.tier, u.updated_at
+      FROM users u ORDER BY u.updated_at DESC LIMIT 10
+    `);
+    res.json({
+      server: { status: 'ok', uptime: Math.round(process.uptime()) + 's', node: process.version, memory: Math.round(process.memoryUsage().heapUsed/1024/1024) + 'MB' },
+      database: { status: 'ok', latency: dbMs + 'ms', users: userCount[0].count, habits: habitCount[0].count, goals: goalCount[0].count, conversations: convCount[0].count },
+      errors: recentErrors,
+      recentActivity
+    });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/admin/debug/test-db', adminAuth, async (req, res) => {
+  try {
+    const tests = [];
+    const t = async (name, fn) => { try { const r = await fn(); tests.push({ name, ok: true, result: r }); } catch(e) { tests.push({ name, ok: false, error: e.message }); } };
+    await t('DB connection', async () => { await db.query('SELECT 1'); return 'ok'; });
+    await t('Users table', async () => { const r = await db.query('SELECT COUNT(*) FROM users'); return r.rows[0].count + ' users'; });
+    await t('Habits table', async () => { const r = await db.query('SELECT COUNT(*) FROM habits'); return r.rows[0].count + ' habits'; });
+    await t('Goals table', async () => { const r = await db.query('SELECT COUNT(*) FROM goals'); return r.rows[0].count + ' goals'; });
+    await t('Conversations table', async () => { const r = await db.query('SELECT COUNT(*) FROM conversations'); return r.rows[0].count + ' messages'; });
+    await t('is_admin column', async () => { await db.query('SELECT is_admin FROM users LIMIT 1'); return 'ok'; });
+    await t('is_trial column', async () => { await db.query('SELECT is_trial FROM users LIMIT 1'); return 'ok'; });
+    await t('Anthropic key', async () => { return process.env.ANTHROPIC_API_KEY ? 'set (' + process.env.ANTHROPIC_API_KEY.slice(0,8) + '...)' : 'MISSING'; });
+    await t('JWT secret', async () => { return process.env.JWT_SECRET ? 'set' : 'MISSING'; });
+    await t('Square webhook', async () => { return process.env.SQUARE_WEBHOOK_SIG ? 'sig set' : 'no sig (ok for testing)'; });
+    res.json({ tests });
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 // ── ADMIN INSIGHTS — goals, habits, coach conversations per user ──────────────
@@ -2605,4 +2591,3 @@ app.get('/api/dev/my-status', auth, async (req, res) => {
 runMigrations().then(() => {
   app.listen(PORT, '0.0.0.0', () => console.log('Luhv+ API running on port ' + PORT));
 });
-

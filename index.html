@@ -1776,6 +1776,37 @@ let chatHistory = [];
 let allQuotes = [];
 let quoteIdx = 0;
 
+// Global error catcher — sends JS errors to server for admin debugging
+window.addEventListener('error', function(e) {
+  try {
+    fetch(API + '/api/log-error', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: e.message,
+        stack: e.error ? e.error.stack : '',
+        user_email: USER ? USER.email : 'not logged in',
+        page: window.location.pathname
+      })
+    }).catch(function(){});
+  } catch(err) {}
+});
+
+window.addEventListener('unhandledrejection', function(e) {
+  try {
+    fetch(API + '/api/log-error', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: 'Unhandled Promise: ' + (e.reason?.message || String(e.reason)),
+        stack: e.reason?.stack || '',
+        user_email: USER ? USER.email : 'not logged in',
+        page: window.location.pathname
+      })
+    }).catch(function(){});
+  } catch(err) {}
+});
+
 // Wake-up ping — ignore CORS errors, just wakes Render
 setTimeout(function(){ fetch('https://luhv.onrender.com/health').catch(function(){}); }, 100);
 

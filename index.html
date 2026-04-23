@@ -2100,12 +2100,16 @@ async function selectPeakHour(value) {
 }
 
 function logout() {
-  if (!confirm('Sign out?')) return;
   TOKEN = null; USER = null;
   localStorage.removeItem('luhv_token');
   localStorage.removeItem('luhv_user');
+  localStorage.removeItem('luhv_chat');
   document.getElementById('app-screen').style.display  = 'none';
   document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-pass').value = '';
+  document.getElementById('auth-error').textContent = '';
+  closeProfile();
 }
 
 var DEV_EMAILS = ['cristina.sevilla@digitaimind.com'];

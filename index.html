@@ -202,7 +202,11 @@ body{background:
 .add-btn{background:rgba(14,165,233,.06)}
 .help-btn{bottom:96px}
 
-.decision-modal{position:fixed;inset:0;z-index:1500;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.7);backdrop-filter:blur(4px)}
+/* DIARY MODAL */
+#diary-modal{align-items:flex-end;justify-content:center}
+.diary-mood-btn{transition:all .2s}
+
+
 .decision-modal-box{background:linear-gradient(180deg,#0d1520,#080f18);border-radius:28px 28px 0 0;padding:28px 24px 40px;width:100%;max-width:100%;box-sizing:border-box}
 .decision-modal-handle{width:36px;height:4px;border-radius:99px;background:rgba(255,255,255,.15);margin:0 auto 20px}
 
@@ -1382,6 +1386,12 @@ body{background:
               <option value="check">✓ Daily check</option>
               <option value="count">🔢 Daily target</option>
             </select>
+            <select id="habit-frequency-input" style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:var(--light);font-size:14px;outline:none;">
+              <option value="daily">⚡ Daily</option>
+              <option value="weekly">📅 Weekly</option>
+            </select>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:10px">
             <input id="habit-target-input" type="number" min="1" max="100" placeholder="Target (e.g. 8)"
               style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:var(--light);font-size:14px;outline:none;display:none;" />
           </div>
@@ -1545,6 +1555,80 @@ body{background:
       <div id="inspire-saved-panel" style="display:none"><div id="inspire-saved-list"></div></div>
     </div>
 
+  </div>
+
+  <!-- ───────────────────────── JOURNAL / DIARY PAGE ─────────────────────── -->
+  <div class="page" id="page-diary" style="overflow-y:auto;padding-bottom:100px;background:var(--black)">
+
+    <!-- HEADER -->
+    <div style="position:sticky;top:0;z-index:20;background:rgba(8,12,18,.97);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.06)">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px 10px">
+        <div>
+          <div style="font-size:10px;color:var(--purple);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:2px">Daily Log</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px">📔 JOURNAL</div>
+        </div>
+        <button onclick="openDiaryNewEntry()" style="padding:8px 16px;border-radius:20px;border:none;background:linear-gradient(135deg,var(--purple),var(--blue));color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">+ New Entry</button>
+      </div>
+      <!-- Date navigation -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:0 20px 12px">
+        <button id="diary-prev-btn" onclick="navigateDiary(-1)" style="width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:var(--light);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">←</button>
+        <div style="text-align:center">
+          <div id="diary-date-display" style="font-size:14px;font-weight:700;color:#fff"></div>
+          <div id="diary-date-sub" style="font-size:10px;color:var(--muted);margin-top:1px"></div>
+        </div>
+        <button id="diary-next-btn" onclick="navigateDiary(1)" style="width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:var(--light);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">→</button>
+      </div>
+    </div>
+
+    <!-- DAY ENTRY VIEW -->
+    <div id="diary-day-view" style="padding:16px 20px"></div>
+
+    <!-- HISTORY STRIP — mini calendar dots -->
+    <div style="padding:0 20px 8px">
+      <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:8px">Last 30 Days</div>
+      <div id="diary-history-strip" style="display:flex;gap:4px;flex-wrap:wrap"></div>
+    </div>
+
+  </div>
+
+  <!-- DIARY WRITE MODAL -->
+  <div id="diary-modal" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.85);backdrop-filter:blur(6px);align-items:flex-end;justify-content:center">
+    <div style="background:linear-gradient(180deg,#0d1520,#080f18);border-radius:24px 24px 0 0;padding:24px 20px 48px;width:100%;max-width:100%;box-sizing:border-box;max-height:90vh;overflow-y:auto">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div>
+          <div style="font-size:10px;color:var(--purple);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:2px">Journal Entry</div>
+          <div id="diary-modal-date" style="font-size:16px;font-weight:700;color:#fff"></div>
+        </div>
+        <button onclick="closeDiaryModal()" style="width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button>
+      </div>
+
+      <!-- Mood selector -->
+      <div style="margin-bottom:14px">
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:8px">How are you feeling?</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap" id="diary-mood-row">
+          <button class="diary-mood-btn" data-mood="peak" onclick="selectDiaryMood('peak')" style="padding:6px 12px;border-radius:20px;border:1px solid rgba(6,214,160,.3);background:rgba(6,214,160,.08);color:var(--teal);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">🔥 Peak</button>
+          <button class="diary-mood-btn" data-mood="focused" onclick="selectDiaryMood('focused')" style="padding:6px 12px;border-radius:20px;border:1px solid rgba(251,191,36,.3);background:rgba(251,191,36,.06);color:#fbbf24;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">🎯 Focused</button>
+          <button class="diary-mood-btn" data-mood="neutral" onclick="selectDiaryMood('neutral')" style="padding:6px 12px;border-radius:20px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">😐 Neutral</button>
+          <button class="diary-mood-btn" data-mood="reflective" onclick="selectDiaryMood('reflective')" style="padding:6px 12px;border-radius:20px;border:1px solid rgba(14,165,233,.3);background:rgba(14,165,233,.06);color:var(--blue);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">🌊 Reflective</button>
+          <button class="diary-mood-btn" data-mood="low" onclick="selectDiaryMood('low')" style="padding:6px 12px;border-radius:20px;border:1px solid rgba(244,63,94,.3);background:rgba(244,63,94,.06);color:#f43f5e;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">😔 Low</button>
+        </div>
+      </div>
+
+      <!-- Entry textarea -->
+      <div style="margin-bottom:14px">
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:6px">Your entry</div>
+        <textarea id="diary-entry-text" rows="8" placeholder="What happened today? What did you learn? What are you proud of?" style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px 16px;color:#fff;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;resize:none;box-sizing:border-box;line-height:1.6"></textarea>
+      </div>
+
+      <!-- Win of the day -->
+      <div style="margin-bottom:18px">
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:6px">Win of the day 🏆</div>
+        <input id="diary-win-input" type="text" placeholder="One thing you accomplished today..." style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px 14px;color:#fff;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;box-sizing:border-box">
+      </div>
+
+      <button onclick="saveDiaryEntry()" style="width:100%;padding:14px;border:none;border-radius:14px;background:linear-gradient(135deg,var(--purple),var(--blue));color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">Save Entry 📔</button>
+      <div id="diary-save-msg" style="margin-top:10px;font-size:12px;text-align:center;min-height:14px;color:var(--muted)"></div>
+    </div>
   </div>
 
   <div class="page" id="page-focus" style="overflow-y:auto;padding-bottom:100px">
@@ -1719,7 +1803,7 @@ body{background:
     <div class="ni" id="ni-roadmap" onclick="switchPage('roadmap')"><span class="nico">🗺️</span><span class="nlbl">Roadmap</span></div>
     <div class="ni" id="ni-focus" onclick="switchPage('focus')"><span class="nico">⏱️</span><span class="nlbl">Focus</span></div>
     <div class="ni" id="ni-ai" onclick="switchPage('ai')"><span class="nico">⚡</span><span class="nlbl">Coach</span></div>
-    <div class="ni" id="ni-ranking" onclick="switchPage('ranking')"><span class="nico">🏆</span><span class="nlbl">Ranking</span></div>
+    <div class="ni" id="ni-diary" onclick="switchPage('diary')"><span class="nico">📔</span><span class="nlbl">Journal</span></div>
     <div class="ni" id="ni-journal" onclick="switchPage('journal')"><span class="nico">✨</span><span class="nlbl">Inspire</span></div>
     </div>
 </div>
@@ -2737,34 +2821,37 @@ async function loadTodayWeeklyDashboard() {
     var top3Wrap = document.createElement('div');
     top3Wrap.style.cssText = 'margin-bottom:10px';
     
-    var top3Header = document.createElement('div');
-    top3Header.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:6px';
-    top3Header.innerHTML = '<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#fbbf24">⚡ Focus on these today</div>';
-    top3Wrap.appendChild(top3Header);
+    // Split by frequency
+    var dailyTop3 = top3.filter(function(h){ return !h.frequency || h.frequency === 'daily'; });
+    var weeklyTop3 = top3.filter(function(h){ return h.frequency === 'weekly'; });
 
-    top3.forEach(function(h, i) {
-      var cat = CAT[h._cat] || CAT.other;
-      var row = document.createElement('div');
-      row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;margin-bottom:4px;background:' + cat.bg + ';border:1px solid ' + cat.border + ';cursor:pointer';
-      
-      var rank = document.createElement('div');
-      rank.style.cssText = 'width:18px;height:18px;border-radius:50%;background:' + cat.color + ';color:#040810;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0';
-      rank.textContent = i + 1;
-      
-      var name = document.createElement('div');
-      name.style.cssText = 'font-size:11px;font-weight:600;color:var(--light);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
-      name.innerHTML = (h.icon || '⚡') + ' ' + h.name;
+    function renderFocusGroup(items, label, color, icon) {
+      if (!items.length) return;
+      var header = document.createElement('div');
+      header.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:6px;margin-top:' + (top3Wrap.children.length > 0 ? '10px' : '0');
+      header.innerHTML = '<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:' + color + '">' + icon + ' ' + label + '</div>';
+      top3Wrap.appendChild(header);
+      items.forEach(function(h, i) {
+        var cat = CAT[h._cat] || CAT.other;
+        var row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;margin-bottom:4px;background:' + cat.bg + ';border:1px solid ' + cat.border + ';cursor:pointer';
+        var rank = document.createElement('div');
+        rank.style.cssText = 'width:18px;height:18px;border-radius:50%;background:' + cat.color + ';color:#040810;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0';
+        rank.textContent = i + 1;
+        var name = document.createElement('div');
+        name.style.cssText = 'font-size:11px;font-weight:600;color:var(--light);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+        name.innerHTML = (h.icon || '⚡') + ' ' + h.name;
+        var pct = Math.round(h._consistency * 100);
+        var streak = document.createElement('div');
+        streak.style.cssText = 'font-size:9px;color:' + cat.color + ';font-weight:700;flex-shrink:0';
+        streak.textContent = pct + '% streak';
+        row.appendChild(rank); row.appendChild(name); row.appendChild(streak);
+        top3Wrap.appendChild(row);
+      });
+    }
 
-      var pct = Math.round(h._consistency * 100);
-      var streak = document.createElement('div');
-      streak.style.cssText = 'font-size:9px;color:' + cat.color + ';font-weight:700;flex-shrink:0';
-      streak.textContent = pct + '% streak';
-
-      row.appendChild(rank);
-      row.appendChild(name);
-      row.appendChild(streak);
-      top3Wrap.appendChild(row);
-    });
+    renderFocusGroup(dailyTop3, 'Daily Goals', '#fbbf24', '⚡');
+    renderFocusGroup(weeklyTop3, 'Weekly Goals', '#0ea5e9', '📅');
 
     matrixEl.appendChild(top3Wrap);
   }
@@ -3436,14 +3523,26 @@ async function loadHabits() {
   if (!habits?.length) { list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--muted);font-size:13px">No habits yet!</div>'; renderStreakChart([]); return; }
   const colors = ['b','t','y','p'];
   list.innerHTML = '';
-  habits.forEach((h, i) => {
+
+  var dailyHabits  = habits.filter(function(h){ return !h.frequency || h.frequency === 'daily'; });
+  var weeklyHabits = habits.filter(function(h){ return h.frequency === 'weekly'; });
+
+  function addSectionHeader(label, color, icon) {
+    var hdr = document.createElement('div');
+    hdr.style.cssText = 'font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:' + color + ';padding:4px 2px 4px;display:flex;align-items:center;gap:4px;margin-top:4px';
+    hdr.innerHTML = '<span>' + icon + '</span><span>' + label + '</span>';
+    list.appendChild(hdr);
+  }
+
+  function renderHabitItem(h, i) {
     var div = document.createElement('div');
     div.className = 'hitem' + (h.done ? ' done' : '');
     var isCount = h.target_type === 'count';
     var val = parseInt(h.today_value)||0, tgt = parseInt(h.daily_target)||1;
     var pct = Math.min(100, Math.round((val/tgt)*100));
+    var freqBadge = h.frequency === 'weekly' ? '<span style="font-size:9px;background:rgba(14,165,233,.12);color:var(--blue);border-radius:6px;padding:1px 5px;margin-left:4px">weekly</span>' : '';
     var inner = '<div class="hico ' + colors[i%4] + '">' + (h.icon||'⚡') + '</div>' +
-      '<div class="hinfo"><div class="hn">' + h.name + '</div><div class="hs">' + (h.time||'') + (isCount ? ' · '+val+'/'+tgt : '') + '</div></div>';
+      '<div class="hinfo"><div class="hn">' + h.name + freqBadge + '</div><div class="hs">' + (h.time||'') + (isCount ? ' · '+val+'/'+tgt : '') + '</div></div>';
     if (isCount) {
       inner += '<button onclick="incrementHabit(event,\'' + h.id + '\')" style="width:32px;height:32px;border-radius:50%;border:none;background:rgba(14,165,233,.15);color:var(--blue);font-size:18px;cursor:pointer;flex-shrink:0">+</button>';
       div.style.flexDirection = 'column'; div.style.gap = '6px';
@@ -3452,11 +3551,21 @@ async function loadHabits() {
         '<div style="height:100%;border-radius:99px;width:'+pct+'%;background:'+(h.done?'var(--teal)':'var(--blue)')+';transition:width .3s"></div></div>';
     } else {
       inner += '<div class="hchk">' + (h.done?'✓ DONE':'TAP') + '</div>';
-      div.onclick = () => toggleHabit(div, h.id);
+      (function(hEl, hId){ hEl.onclick = () => toggleHabit(hEl, hId); })(div, h.id);
     }
     div.innerHTML = inner;
     list.appendChild(div);
-  });
+  }
+
+  if (dailyHabits.length > 0) {
+    addSectionHeader('Daily Goals', '#fbbf24', '⚡');
+    dailyHabits.forEach(function(h, i){ renderHabitItem(h, i); });
+  }
+  if (weeklyHabits.length > 0) {
+    addSectionHeader('Weekly Goals', '#0ea5e9', '📅');
+    weeklyHabits.forEach(function(h, i){ renderHabitItem(h, i); });
+  }
+
   var doneCount = habits.filter(h => h.done).length;
   document.getElementById('stat-habits').textContent = doneCount;
   var lbl = document.getElementById('habits-progress-label');
@@ -3594,23 +3703,44 @@ async function addHabit() {
   var iconEl   = document.getElementById('habit-icon-input');
   var typeEl   = document.getElementById('habit-type-input');
   var targetEl = document.getElementById('habit-target-input');
+  var freqEl   = document.getElementById('habit-frequency-input');
   var msgEl    = document.getElementById('habit-form-msg');
   var name     = nameEl?.value?.trim();
   if (!name) { msgEl.textContent = 'Please enter a habit name.'; msgEl.style.color = '#fbbf24'; return; }
   var targetType   = typeEl?.value || 'check';
   var dailyTarget  = targetType === 'count' ? (parseInt(targetEl?.value) || 1) : 1;
+  var frequency    = freqEl?.value || 'daily';
   try {
     msgEl.textContent = 'Adding habit...'; msgEl.style.color = 'var(--muted)';
     var result = await api('/api/habits', {
       method: 'POST',
-      body: JSON.stringify({ name: name, time: timeEl?.value?.trim() || null, icon: iconEl?.value || '⚡', target_type: targetType, daily_target: dailyTarget })
+      body: JSON.stringify({ name: name, time: timeEl?.value?.trim() || null, icon: iconEl?.value || '⚡', target_type: targetType, daily_target: dailyTarget, frequency: frequency })
     });
     if (!result || result.error) { msgEl.textContent = result?.error || 'Could not add habit.'; msgEl.style.color = '#f87171'; return; }
     nameEl.value = ''; if (timeEl) timeEl.value = ''; if (targetEl) targetEl.value = '';
+    if (freqEl) freqEl.value = 'daily';
     msgEl.textContent = 'Habit added!'; msgEl.style.color = '#06d6a0';
     await loadHabitsPage();
     await loadHabits();
   } catch(e) { msgEl.textContent = 'Could not add habit.'; msgEl.style.color = '#f87171'; }
+}
+
+// Helper: add habit from coach (used by coach task parser)
+async function addHabitFromCoach(taskObj) {
+  try {
+    var result = await api('/api/habits', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: taskObj.name,
+        icon: taskObj.icon || '⚡',
+        target_type: taskObj.target ? 'count' : 'check',
+        daily_target: taskObj.target || 1,
+        time: taskObj.time || null,
+        frequency: taskObj.frequency || 'daily'
+      })
+    });
+    return result && !result.error;
+  } catch(e) { return false; }
 }
 
 function addSwipeToHabit(div, habitId, isCount) {
@@ -3988,10 +4118,80 @@ function addMsg(text, role) {
       });
     };
     d.appendChild(copyBtn);
+
+    // Detect task lists in the response and offer "Add to My Tasks"
+    var parsedTasks = detectCoachTasks(text);
+    if (parsedTasks.length >= 2) {
+      var addTasksBtn = document.createElement('button');
+      addTasksBtn.innerHTML = '➕ Add to My Tasks (' + parsedTasks.length + ')';
+      addTasksBtn.style.cssText = 'margin-top:6px;padding:7px 14px;border-radius:10px;border:1px solid rgba(6,214,160,.35);background:rgba(6,214,160,.1);color:var(--teal);font-size:12px;font-weight:700;cursor:pointer;font-family:"DM Sans",sans-serif;align-self:flex-start;display:block;width:auto;transition:all .2s';
+      var tasksCopy = parsedTasks.slice();
+      addTasksBtn.onclick = function() { addCoachTasksToList(tasksCopy, addTasksBtn); };
+      d.appendChild(addTasksBtn);
+    }
   } else {
     d.innerHTML = '<div class="mb">'+ct+'</div>';
   }
   w.appendChild(d); w.scrollTop = w.scrollHeight;
+}
+
+// Detect numbered/bulleted task lists in coach response
+function detectCoachTasks(text) {
+  var tasks = [];
+  var lines = text.split('\n');
+  var taskPattern = /^[\s]*(?:\d+[\.\)]\s+|\*\s+|-\s+|•\s+)(.*)/;
+  var dayPattern = /^(?:day|week|semana|día)\s*\d+/i;
+  var iconMap = {
+    meditat: '🧘', read: '📚', book: '📚', exercise: '💪', gym: '💪',
+    run: '🏃', water: '💧', drink: '💧', write: '✍️', journal: '✍️',
+    focus: '🎯', review: '🔍', plan: '📋', call: '📞', email: '📧',
+    meeting: '🤝', network: '🤝', sleep: '⏰', wake: '⏰', nutrition: '🥗',
+    learn: '🧠', study: '🧠', leadership: '🏆', reflect: '🌊'
+  };
+  function guessIcon(name) {
+    var n = name.toLowerCase();
+    for (var k in iconMap) { if (n.includes(k)) return iconMap[k]; }
+    return '⚡';
+  }
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i];
+    var m = taskPattern.exec(line);
+    if (m) {
+      var taskText = m[1].replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1').trim();
+      // Skip pure day/week headers
+      if (dayPattern.test(taskText)) continue;
+      // Remove leading "Day X:" prefixes within task text
+      taskText = taskText.replace(/^(?:day|week)\s*\d+\s*[:–-]\s*/i, '').trim();
+      if (taskText.length < 5 || taskText.length > 120) continue;
+      tasks.push({ name: taskText, icon: guessIcon(taskText), frequency: 'daily' });
+    }
+  }
+  // Deduplicate
+  var seen = {};
+  return tasks.filter(function(t) {
+    if (seen[t.name]) return false;
+    seen[t.name] = true; return true;
+  }).slice(0, 20);
+}
+
+async function addCoachTasksToList(tasks, btn) {
+  if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Adding tasks...'; }
+  var added = 0;
+  for (var i = 0; i < tasks.length; i++) {
+    var ok = await addHabitFromCoach(tasks[i]);
+    if (ok) added++;
+  }
+  if (btn) {
+    btn.innerHTML = '✓ Added ' + added + ' task' + (added !== 1 ? 's' : '') + ' to Roadmap!';
+    btn.style.background = 'rgba(6,214,160,.18)';
+    btn.style.borderColor = 'rgba(6,214,160,.5)';
+  }
+  await loadHabits();
+  showToast(added + ' task' + (added !== 1 ? 's' : '') + ' added to Roadmap ✓', 3000);
+  setTimeout(function() {
+    switchPage('roadmap');
+    setTimeout(function(){ switchRoadmapTab('habits'); }, 150);
+  }, 1200);
 }
 
 function hideTyping() {
@@ -4008,12 +4208,15 @@ function showTyping() {
 }
 function removeTyping() { const t = document.getElementById('ti'); if (t) t.remove(); }
 
-var VALID_PAGES = ['home','roadmap','focus','ai','journal'];
+var VALID_PAGES = ['home','roadmap','focus','ai','journal','diary'];
 function switchPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.ni').forEach(n => n.classList.remove('active'));
-  document.getElementById('page-' + name).classList.add('active');
-  document.getElementById('ni-' + name).classList.add('active');
+  var pageEl = document.getElementById('page-' + name);
+  var navEl = document.getElementById('ni-' + name);
+  if (!pageEl) { console.warn('switchPage: no page for', name); return; }
+  pageEl.classList.add('active');
+  if (navEl) navEl.classList.add('active');
   if (name === 'journal') { loadJournal(); loadGoals(); loadLineChart(); loadEnergyTracker(); if (TOKEN) loadPeakReport(); }
   if (name === 'roadmap') { switchRoadmapTab('habits'); refreshVisionStrips(); }
   if (name === 'home') {
@@ -4023,8 +4226,6 @@ function switchPage(name) {
     loadEffectivenessScore();
     loadLineChart();
   }
-  // Decision FAB — only on roadmap
-  // decision-fab removed
   // Help button — hide on coach
   var helpBtn = document.getElementById('help-btn');
   if (helpBtn) helpBtn.style.display = name === 'ai' ? 'none' : 'flex';
@@ -4037,17 +4238,17 @@ function switchPage(name) {
     var savedChat = localStorage.getItem('luhv_chat');
     var histBar = document.getElementById('coach-history-bar');
     if (savedChat && chatHistory.length === 0) {
-      // Show "load previous" button instead of auto-loading
       if (histBar) histBar.style.display = 'block';
     } else {
       if (histBar) histBar.style.display = 'none';
     }
   }
+  if (name === 'diary') {
+    initDiaryPage();
+  }
   if (name === 'journal') {
     setTimeout(function() {
-      // Default to board tab
       switchVBTab('board');
-      // Preload feed in background
       var quizDoms = getQuizDomains();
       if (quizDoms.length > 0 && currentInspireDomain === 'all') {
         currentInspireDomain = quizDoms[0];
@@ -5197,12 +5398,211 @@ function closeGuideIfOutside(e) {
 }
 
 // Keep these as stubs so nothing breaks
-function startTour() { openGuideModal(); }
-function endTour() { closeGuideModal(); }
-function tourNext() { closeGuideModal(); }
+// ── JOURNAL / DIARY ───────────────────────────────────────────────────────────
+var diaryCurrentDate = new Date().toISOString().split('T')[0];
+var selectedDiaryMood = null;
+
+var DIARY_MOOD_CONFIG = {
+  peak:       { label: '🔥 Peak',       color: '#06d6a0', border: 'rgba(6,214,160,.35)',  bg: 'rgba(6,214,160,.1)' },
+  focused:    { label: '🎯 Focused',    color: '#fbbf24', border: 'rgba(251,191,36,.35)', bg: 'rgba(251,191,36,.08)' },
+  neutral:    { label: '😐 Neutral',    color: '#6b7280', border: 'rgba(107,114,128,.35)',bg: 'rgba(107,114,128,.07)' },
+  reflective: { label: '🌊 Reflective', color: '#0ea5e9', border: 'rgba(14,165,233,.35)', bg: 'rgba(14,165,233,.08)' },
+  low:        { label: '😔 Low',        color: '#f43f5e', border: 'rgba(244,63,94,.35)',  bg: 'rgba(244,63,94,.07)' }
+};
+
+function getDiaryStore() {
+  try { return JSON.parse(localStorage.getItem('luhv_diary') || '{}'); } catch(e) { return {}; }
+}
+
+function saveDiaryStore(data) {
+  try { localStorage.setItem('luhv_diary', JSON.stringify(data)); } catch(e) {}
+}
+
+function formatDiaryDate(dateStr) {
+  var d = new Date(dateStr + 'T12:00:00');
+  var opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+  return d.toLocaleDateString('en-US', opts);
+}
+
+function initDiaryPage() {
+  diaryCurrentDate = new Date().toISOString().split('T')[0];
+  renderDiaryDay();
+  renderDiaryHistoryStrip();
+}
+
+function navigateDiary(dir) {
+  var d = new Date(diaryCurrentDate + 'T12:00:00');
+  d.setDate(d.getDate() + dir);
+  var today = new Date().toISOString().split('T')[0];
+  var newDate = d.toISOString().split('T')[0];
+  if (newDate > today) return; // Can't navigate to future
+  diaryCurrentDate = newDate;
+  renderDiaryDay();
+}
+
+function renderDiaryDay() {
+  var today = new Date().toISOString().split('T')[0];
+  var isToday = diaryCurrentDate === today;
+  var displayEl = document.getElementById('diary-date-display');
+  var subEl     = document.getElementById('diary-date-sub');
+  var nextBtn   = document.getElementById('diary-next-btn');
+  if (displayEl) displayEl.textContent = formatDiaryDate(diaryCurrentDate);
+  if (subEl) subEl.textContent = isToday ? 'Today' : '';
+  if (nextBtn) nextBtn.style.opacity = isToday ? '0.3' : '1';
+  if (nextBtn) nextBtn.disabled = isToday;
+
+  var store = getDiaryStore();
+  var entry = store[diaryCurrentDate];
+  var view = document.getElementById('diary-day-view');
+  if (!view) return;
+
+  if (!entry) {
+    view.innerHTML = '<div style="text-align:center;padding:48px 20px">' +
+      '<div style="font-size:52px;margin-bottom:12px">📔</div>' +
+      '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:24px;letter-spacing:1px;margin-bottom:8px;color:rgba(255,255,255,.7)">' + (isToday ? 'NO ENTRY YET' : 'NO ENTRY') + '</div>' +
+      '<div style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:20px">' + (isToday ? 'How was your day? Document it.' : 'Nothing written for this day.') + '</div>' +
+      (isToday ? '<button onclick="openDiaryNewEntry()" style="padding:12px 28px;border:none;border-radius:14px;background:linear-gradient(135deg,var(--purple),var(--blue));color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:\'DM Sans\',sans-serif">Write Today\'s Entry →</button>' : '') +
+      '</div>';
+    return;
+  }
+
+  var mood = entry.mood ? DIARY_MOOD_CONFIG[entry.mood] : null;
+  var html = '';
+
+  if (mood) {
+    html += '<div style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;background:' + mood.bg + ';border:1px solid ' + mood.border + ';font-size:13px;font-weight:700;color:' + mood.color + ';margin-bottom:14px">' + mood.label + '</div>';
+  }
+
+  if (entry.win) {
+    html += '<div style="background:linear-gradient(135deg,rgba(251,191,36,.1),rgba(251,191,36,.04));border:1px solid rgba(251,191,36,.25);border-radius:14px;padding:14px 16px;margin-bottom:12px">' +
+      '<div style="font-size:9px;color:#fbbf24;text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:5px">🏆 Win of the day</div>' +
+      '<div style="font-size:14px;font-weight:600;color:var(--light)">' + escapeHtml(entry.win) + '</div>' +
+      '</div>';
+  }
+
+  if (entry.text) {
+    html += '<div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:16px;margin-bottom:12px">' +
+      '<div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:8px">Entry</div>' +
+      '<div style="font-size:14px;color:var(--light);line-height:1.7;white-space:pre-wrap">' + escapeHtml(entry.text) + '</div>' +
+      '</div>';
+  }
+
+  html += '<div style="display:flex;gap:8px;margin-top:8px">' +
+    '<button onclick="openDiaryNewEntry(true)" style="flex:1;padding:10px;border:1px solid rgba(99,102,241,.3);border-radius:12px;background:rgba(99,102,241,.08);color:var(--purple);font-size:13px;font-weight:700;cursor:pointer;font-family:\'DM Sans\',sans-serif">✏️ Edit</button>' +
+    '<button onclick="deleteDiaryEntry()" style="padding:10px 16px;border:1px solid rgba(244,63,94,.2);border-radius:12px;background:rgba(244,63,94,.06);color:#f43f5e;font-size:13px;cursor:pointer;font-family:\'DM Sans\',sans-serif">🗑</button>' +
+    '</div>';
+
+  view.innerHTML = html;
+}
+
+function renderDiaryHistoryStrip() {
+  var strip = document.getElementById('diary-history-strip');
+  if (!strip) return;
+  var store = getDiaryStore();
+  strip.innerHTML = '';
+  var today = new Date();
+  for (var i = 29; i >= 0; i--) {
+    var d = new Date(today);
+    d.setDate(today.getDate() - i);
+    var dateStr = d.toISOString().split('T')[0];
+    var entry = store[dateStr];
+    var isSelected = dateStr === diaryCurrentDate;
+    var dot = document.createElement('div');
+    var moodColor = entry && entry.mood && DIARY_MOOD_CONFIG[entry.mood] ? DIARY_MOOD_CONFIG[entry.mood].color : 'rgba(255,255,255,.06)';
+    dot.style.cssText = 'width:12px;height:12px;border-radius:50%;cursor:pointer;background:' + moodColor + ';' +
+      (isSelected ? 'box-shadow:0 0 0 2px #fff,0 0 0 3px ' + moodColor + ';transform:scale(1.3)' : '') +
+      ';transition:all .2s';
+    dot.title = formatDiaryDate(dateStr) + (entry ? ' — ' + (entry.mood || '') : ' — no entry');
+    (function(ds) { dot.onclick = function() { diaryCurrentDate = ds; renderDiaryDay(); renderDiaryHistoryStrip(); }; })(dateStr);
+    strip.appendChild(dot);
+  }
+}
+
+function selectDiaryMood(mood) {
+  selectedDiaryMood = mood;
+  document.querySelectorAll('.diary-mood-btn').forEach(function(btn) {
+    var isSelected = btn.dataset.mood === mood;
+    var cfg = DIARY_MOOD_CONFIG[btn.dataset.mood];
+    if (!cfg) return;
+    btn.style.borderColor = isSelected ? cfg.color : 'rgba(255,255,255,.12)';
+    btn.style.background = isSelected ? cfg.bg : 'rgba(255,255,255,.04)';
+    btn.style.boxShadow = isSelected ? '0 0 10px ' + cfg.color + '44' : 'none';
+  });
+}
+
+function openDiaryNewEntry(isEdit) {
+  var modal = document.getElementById('diary-modal');
+  if (!modal) return;
+  var modalDateEl = document.getElementById('diary-modal-date');
+  if (modalDateEl) modalDateEl.textContent = formatDiaryDate(diaryCurrentDate);
+  selectedDiaryMood = null;
+
+  // Pre-fill if editing
+  if (isEdit) {
+    var store = getDiaryStore();
+    var entry = store[diaryCurrentDate];
+    if (entry) {
+      document.getElementById('diary-entry-text').value = entry.text || '';
+      document.getElementById('diary-win-input').value = entry.win || '';
+      if (entry.mood) selectDiaryMood(entry.mood);
+    }
+  } else {
+    document.getElementById('diary-entry-text').value = '';
+    document.getElementById('diary-win-input').value = '';
+    document.querySelectorAll('.diary-mood-btn').forEach(function(btn) {
+      btn.style.borderColor = '';
+      btn.style.background = '';
+      btn.style.boxShadow = '';
+    });
+  }
+
+  document.getElementById('diary-save-msg').textContent = '';
+  modal.style.display = 'flex';
+  setTimeout(function() { document.getElementById('diary-entry-text').focus(); }, 200);
+}
+
+function closeDiaryModal() {
+  var modal = document.getElementById('diary-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function saveDiaryEntry() {
+  var text = document.getElementById('diary-entry-text').value.trim();
+  var win  = document.getElementById('diary-win-input').value.trim();
+  if (!text && !win && !selectedDiaryMood) {
+    document.getElementById('diary-save-msg').textContent = 'Add at least a mood, a win, or some text.';
+    document.getElementById('diary-save-msg').style.color = '#fbbf24';
+    return;
+  }
+  var store = getDiaryStore();
+  store[diaryCurrentDate] = {
+    text: text,
+    win: win,
+    mood: selectedDiaryMood,
+    savedAt: new Date().toISOString()
+  };
+  saveDiaryStore(store);
+  closeDiaryModal();
+  renderDiaryDay();
+  renderDiaryHistoryStrip();
+  showToast('Entry saved ✓', 2000);
+}
+
+function deleteDiaryEntry() {
+  if (!confirm('Delete this entry?')) return;
+  var store = getDiaryStore();
+  delete store[diaryCurrentDate];
+  saveDiaryStore(store);
+  renderDiaryDay();
+  renderDiaryHistoryStrip();
+  showToast('Entry deleted');
+}
+
+function escapeHtml(str) {
+  return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 
 
-</script>
 <!-- GOAL LINK MODAL -->
 <div id="goal-link-modal" class="goal-modal" style="display:none">
   <div class="goal-modal-box">

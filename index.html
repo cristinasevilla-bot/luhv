@@ -816,16 +816,11 @@ body{background:
       <div class="auth-field"><label>Email</label><input type="email" id="login-email" placeholder="you@email.com" autocomplete="email"></div>
       <div class="auth-field"><label>Password</label><input type="password" id="login-pass" placeholder="••••••••"></div>
       <button class="auth-btn" onclick="login()" id="login-btn">Sign In 🏆</button>
+    <p style="margin-top:16px; text-align:center; font-size:13px; color:var(--muted);">Already paid? <a href="#" id="show-register-link" style="color:var(--teal); text-decoration:none;">Create your account →</a></p>
     </div>
 
-    <!-- NEW USER — redirect to landing to pay first -->
-    <div style="margin-top:20px;padding:14px 16px;background:rgba(6,214,160,.05);border:1px solid rgba(6,214,160,.15);border-radius:14px;text-align:center;">
-      <div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:8px;line-height:1.6;">New to MELTOS? Choose a plan first —<br>your account is created after checkout.</div>
-      <a href="https://meltos.netlify.app/#pricing" target="_blank" style="display:inline-block;padding:10px 24px;background:linear-gradient(135deg,#06d6a0,#0ea5e9);border-radius:20px;color:#07111b;font-size:13px;font-weight:800;text-decoration:none;">See Plans →</a>
-    </div>
-
-    <!-- Hidden register form — kept for webhook-triggered account creation -->
-    <div id="register-form" style="display:none">
+    <!-- Register form (shown via JS toggle or ?registered=true param) -->
+      <div id="register-form" style="display:none">
       <div class="auth-field"><label>Your Name</label><input type="text" id="reg-name" placeholder="First name"></div>
       <div class="auth-field"><label>Email</label><input type="email" id="reg-email" placeholder="you@email.com"></div>
       <div class="auth-field"><label>Password</label><input type="password" id="reg-pass" placeholder="Min 8 characters"></div>
@@ -839,6 +834,7 @@ body{background:
     </div>
 
     <div class="auth-error" id="auth-error"></div>
+    <p style="margin-top:12px; text-align:center; font-size:13px; color:var(--muted);">Already have an account? <a href="#" id="show-login-link" style="color:var(--teal); text-decoration:none;">Sign in →</a></p>
   </div>
 </div>
 
@@ -5367,6 +5363,25 @@ function skipGoalLink() {
   document.getElementById('goal-link-modal').style.display = 'none';
 }
 
+(function() {
+  var params = new URLSearchParams(window.location.search);
+  if (params.get('registered') === 'true' && !TOKEN) {
+    document.getElementById('login-form').style.display = 'none';
+    document.getElementById('register-form').style.display = 'block';
+  }
+  document.addEventListener('click', function(e) {
+    if (e.target && e.target.id === 'show-register-link') {
+      e.preventDefault();
+      document.getElementById('login-form').style.display = 'none';
+      document.getElementById('register-form').style.display = 'block';
+    }
+    if (e.target && e.target.id === 'show-login-link') {
+      e.preventDefault();
+      document.getElementById('register-form').style.display = 'none';
+      document.getElementById('login-form').style.display = 'block';
+    }
+  });
+})();
 if (TOKEN && USER) initApp();
 </script>
 

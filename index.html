@@ -353,6 +353,17 @@ body{background:
 .profile-peak-opt{padding:11px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);font-size:13px;cursor:pointer;transition:all .2s;text-align:left;color:#fff;font-family:"DM Sans",sans-serif;display:flex;align-items:center;justify-content:space-between}
 .profile-peak-opt.selected{border-color:#fbbf24;background:rgba(251,191,36,.1);color:#fbbf24}
 .profile-logout{width:100%;padding:14px;border:none;border-radius:14px;background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.2);color:#f43f5e;font-size:14px;font-weight:700;cursor:pointer;font-family:"DM Sans",sans-serif;margin-top:8px}
+.cp-fields{display:none;flex-direction:column;gap:10px;margin-top:10px}
+.cp-fields.open{display:flex}
+.cp-field{display:flex;flex-direction:column;gap:5px}
+.cp-field label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;font-weight:700}
+.cp-field input{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:11px 14px;color:#fff;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .2s}
+.cp-field input:focus{border-color:var(--blue)}
+.cp-field input::placeholder{color:var(--muted)}
+.cp-save{width:100%;padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity .2s}
+.cp-save:hover{opacity:.9}
+.cp-save:disabled{opacity:.5;cursor:not-allowed}
+.cp-msg{font-size:12px;text-align:center;min-height:16px;margin-top:4px}
 
 /* ── RESPONSIVE — TODOS LOS MÓDULOS ─────────────────────────────────────────── */
 /* ═══════════════════════════════════════════════════════
@@ -720,6 +731,30 @@ body{background:
             </div>
             <div style="font-size:16px;color:var(--purple)">⚡</div>
           </div>
+        </div>
+      </div>
+
+      <div class="profile-section">
+        <div class="profile-section-label">Security</div>
+        <div class="profile-option" onclick="toggleChangePassword()" id="cp-toggle-row">
+          <span class="profile-option-label">🔑 Change Password</span>
+          <span class="profile-option-value" id="cp-toggle-arrow">→</span>
+        </div>
+        <div class="cp-fields" id="cp-fields">
+          <div class="cp-field">
+            <label>Current Password</label>
+            <input type="password" id="cp-current" placeholder="••••••••" autocomplete="current-password">
+          </div>
+          <div class="cp-field">
+            <label>New Password</label>
+            <input type="password" id="cp-new" placeholder="Min 8 characters" autocomplete="new-password">
+          </div>
+          <div class="cp-field">
+            <label>Confirm New Password</label>
+            <input type="password" id="cp-confirm" placeholder="Repeat new password" autocomplete="new-password">
+          </div>
+          <button class="cp-save" id="cp-save-btn" onclick="changePassword()">Update Password</button>
+          <div class="cp-msg" id="cp-msg"></div>
         </div>
       </div>
 
@@ -2222,6 +2257,58 @@ function logout() {
   document.getElementById('login-pass').value = '';
   document.getElementById('auth-error').textContent = '';
   closeProfile();
+}
+
+function toggleChangePassword() {
+  var fields = document.getElementById('cp-fields');
+  var arrow  = document.getElementById('cp-toggle-arrow');
+  var isOpen = fields.classList.contains('open');
+  fields.classList.toggle('open', !isOpen);
+  arrow.textContent = isOpen ? '→' : '↓';
+  if (isOpen) {
+    document.getElementById('cp-current').value = '';
+    document.getElementById('cp-new').value = '';
+    document.getElementById('cp-confirm').value = '';
+    document.getElementById('cp-msg').textContent = '';
+  }
+}
+
+async function changePassword() {
+  var current = document.getElementById('cp-current').value.trim();
+  var newPass  = document.getElementById('cp-new').value.trim();
+  var confirm  = document.getElementById('cp-confirm').value.trim();
+  var msg      = document.getElementById('cp-msg');
+  var btn      = document.getElementById('cp-save-btn');
+
+  msg.style.color = 'var(--red)';
+  if (!current || !newPass || !confirm) { msg.textContent = 'Please fill in all fields.'; return; }
+  if (newPass.length < 8) { msg.textContent = 'New password must be at least 8 characters.'; return; }
+  if (newPass !== confirm) { msg.textContent = 'Passwords do not match.'; return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Updating...';
+  msg.textContent = '';
+
+  try {
+    var data = await api('/api/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ current_password: current, new_password: newPass })
+    });
+    if (data.success) {
+      msg.style.color = 'var(--teal)';
+      msg.textContent = '✓ Password updated successfully!';
+      document.getElementById('cp-current').value = '';
+      document.getElementById('cp-new').value = '';
+      document.getElementById('cp-confirm').value = '';
+      setTimeout(function() { toggleChangePassword(); }, 2000);
+    } else {
+      msg.textContent = data.error || 'Something went wrong.';
+    }
+  } catch(e) {
+    msg.textContent = 'Connection error — please try again.';
+  }
+  btn.disabled = false;
+  btn.textContent = 'Update Password';
 }
 
 var DEV_EMAILS = ['cristina.sevilla@digitaimind.com'];

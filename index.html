@@ -16,7 +16,6 @@
 :root{--black:#0a0a0f;--blue:#0ea5e9;--teal:#06d6a0;--yellow:#fbbf24;--purple:#6366f1;--red:#f43f5e;--card:#111827;--border:rgba(14,165,233,0.15);--muted:#6b7280;--light:#e5e7eb}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{background:var(--black);font-family:'DM Sans',sans-serif;color:#fff;min-height:100vh;display:flex;justify-content:center;align-items:flex-start}
-
 /* AUTH */
 #auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;width:100%;box-sizing:border-box}
 .auth-box{width:100%;max-width:380px}
@@ -811,17 +810,19 @@ body{background:
     <div class="auth-logo">MELTOS<span style="color:var(--teal);font-size:14px;vertical-align:super;margin-left:2px">by Luhv+</span></div>
     <div class="auth-sub">Your Personal Performance OS 🏆</div>
 
+        <div class="auth-tabs">
+      <div class="auth-tab active" onclick="setTab('login')">Sign in</div>
+      <div class="auth-tab" onclick="setTab('register')">Sign up</div>
+    </div>
     <!-- SIGN IN -->
     <div id="login-form">
       <div class="auth-field"><label>Email</label><input type="email" id="login-email" placeholder="you@email.com" autocomplete="email"></div>
       <div class="auth-field"><label>Password</label><input type="password" id="login-pass" placeholder="••••••••"></div>
       <button class="auth-btn" onclick="login()" id="login-btn">Sign In 🏆</button>
-    <p style="margin-top:16px; text-align:center; font-size:13px; color:var(--muted);">Already paid? <a href="#" id="show-register-link" style="color:var(--teal); text-decoration:none;">Create your account →</a></p>
     </div>
 
-    <!-- Register form (shown via JS toggle or ?registered=true param) -->
+    <!-- Register form -->
       <div id="register-form" style="display:none">
-      <div class="auth-field"><label>Your Name</label><input type="text" id="reg-name" placeholder="First name"></div>
       <div class="auth-field"><label>Email</label><input type="email" id="reg-email" placeholder="you@email.com"></div>
       <div class="auth-field"><label>Password</label><input type="password" id="reg-pass" placeholder="Min 8 characters"></div>
       <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:16px;padding:12px;background:rgba(255,255,255,.03);border-radius:10px;border:1px solid rgba(255,255,255,.08);">
@@ -5366,19 +5367,16 @@ function skipGoalLink() {
 (function() {
   var params = new URLSearchParams(window.location.search);
   if (params.get('registered') === 'true' && !TOKEN) {
-    document.getElementById('login-form').style.display = 'none';
-    document.getElementById('register-form').style.display = 'block';
+
+    setTab('register');
   }
   document.addEventListener('click', function(e) {
-    if (e.target && e.target.id === 'show-register-link') {
       e.preventDefault();
-      document.getElementById('login-form').style.display = 'none';
-      document.getElementById('register-form').style.display = 'block';
+      setTab('register');
     }
     if (e.target && e.target.id === 'show-login-link') {
       e.preventDefault();
-      document.getElementById('register-form').style.display = 'none';
-      document.getElementById('login-form').style.display = 'block';
+      setTab('login');
     }
   });
 })();

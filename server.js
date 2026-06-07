@@ -844,6 +844,27 @@ app.post('/api/auth/login', async (req, res) => {
   res.json({ token: sign({ id: user.id }), user });
 });
 
+// ── CHANGE PASSWORD ───────────────────────────────────────────────────────────
+app.post('/api/auth/change-password', auth, async (req, res) => {
+  const { current_password, new_password } = req.body;
+  if (!current_password || !new_password)
+    return res.status(400).json({ error: 'Both current and new password are required' });
+  if (new_password.length < 8)
+    return res.status(400).json({ error: 'New password must be at least 8 characters' });
+  try {
+    const { rows } = await db.query('SELECT password_hash FROM users WHERE id=$1', [req.user.id]);
+    if (!rows[0]) return res.status(404).json({ error: 'User not found' });
+    const valid = await bcrypt.compare(current_password, rows[0].password_hash);
+    if (!valid) return res.status(401).json({ error: 'Current password is incorrect' });
+    const hash = await bcrypt.hash(new_password, 10);
+    await db.query('UPDATE users SET password_hash=$1 WHERE id=$2', [hash, req.user.id]);
+    res.json({ success: true });
+  } catch (e) {
+    console.error('change-password error:', e);
+    res.status(500).json({ error: 'Could not update password' });
+  }
+});
+
 // ── QUOTES ────────────────────────────────────────────────────────────────────
 app.get('/api/quotes', async (req, res) => {
   const { rows } = await db.query('SELECT * FROM quotes ORDER BY created_at DESC');

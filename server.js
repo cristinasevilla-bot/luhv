@@ -803,45 +803,92 @@ COACHING SESSION CONTEXT:
 });
 
 // ── AUTH ──────────────────────────────────────────────────────────────────────
+
+function hasActivePaidAccess(user) {
+  if (!user) return false;
+  const tier = (user.tier || 'basic').toLowerCase();
+  if (!['starter', 'mvp', 'pro'].includes(tier)) return false;
+  if (!user.billing_period_end) return false;
+  return new Date(user.billing_period_end) > new Date();
+}
+
+function activeAccessError() {
+  return 'No active paid plan found for this email. Please complete payment with the same email before signing up or signing in.';
+}
 app.post('/api/auth/register', async (req, res) => {
-  const { name, email, password } = req.body;
-  if (!name || !email || !password) return res.status(400).json({ error: 'All fields required' });
+  try {
+    const { name, email, password } = req.body;
+    const cleanEmail = String(email || '').toLowerCase().trim();
+    const cleanName = String(name || cleanEmail.split('@')[0] || '').trim();
 
-  // Check if this email was pre-authorized via payment
-  const { rows: existing } = await db.query(
-    'SELECT id, tier, password_hash FROM users WHERE LOWER(email)=LOWER($1)', [email]
-  );
+    if (!cleanName || !cleanEmail || !password) {
+      return res.status(400).json({ error: 'All fields required' });
+    }
+    if (String(password).length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    }
 
-  if (existing.length > 0) {
-    // Email already has an account
-    if (existing[0].password_hash) {
+    // Registration is only allowed after Square has pre-authorized this email.
+    const { rows: existing } = await db.query(
+      `SELECT id, tier, password_hash, billing_period_end, is_trial
+       FROM users
+       WHERE LOWER(email)=LOWER($1)`,
+      [cleanEmail]
+    );
+
+    const existingUser = existing[0];
+    if (!existingUser || !hasActivePaidAccess(existingUser)) {
+      return res.status(403).json({ error: activeAccessError(), code: 'payment_required' });
+    }
+
+    if (existingUser.password_hash) {
       return res.status(400).json({ error: 'An account with this email already exists. Please sign in.' });
     }
-    // Email pre-authorized by webhook but no password yet — complete registration
+
+    // Email was created/activated by Square webhook; complete account creation.
     const hash = await bcrypt.hash(password, 10);
     const { rows } = await db.query(
-      `UPDATE users SET name=$1, password_hash=$2 WHERE LOWER(email)=LOWER($3)
+      `UPDATE users
+       SET name=$1, password_hash=$2
+       WHERE LOWER(email)=LOWER($3)
        RETURNING id, name, email, tier, is_admin, is_trial, billing_period_end`,
-      [name, hash, email]
+      [cleanName, hash, cleanEmail]
     );
-    const { password_hash, ...user } = rows[0];
-    return res.json({ token: sign({ id: user.id }), user });
-  }
 
-  // Email not found — not pre-authorized
-  return res.status(403).json({
-    error: 'No active plan found for this email. Please choose a plan at meltos.netlify.app before creating your account.'
-  });
+    const user = rows[0];
+    return res.json({ token: sign({ id: user.id }), user });
+  } catch (e) {
+    console.error('register error:', e);
+    return res.status(500).json({ error: 'Could not create account' });
+  }
 });
 
 
 app.post('/api/auth/login', async (req, res) => {
-  const { email, password } = req.body;
-  const { rows } = await db.query('SELECT * FROM users WHERE LOWER(email)=LOWER($1)', [email]);
-  if (!rows[0] || !(await bcrypt.compare(password, rows[0].password_hash)))
-    return res.status(401).json({ error: 'Invalid credentials' });
-  const { password_hash, ...user } = rows[0];
-  res.json({ token: sign({ id: user.id }), user });
+  try {
+    const { email, password } = req.body;
+    const cleanEmail = String(email || '').toLowerCase().trim();
+
+    const { rows } = await db.query('SELECT * FROM users WHERE LOWER(email)=LOWER($1)', [cleanEmail]);
+    const dbUser = rows[0];
+
+    if (!dbUser || !dbUser.password_hash || !(await bcrypt.compare(password || '', dbUser.password_hash))) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    if (!hasActivePaidAccess(dbUser)) {
+      if (dbUser.billing_period_end && new Date(dbUser.billing_period_end) <= new Date()) {
+        await db.query("UPDATE users SET tier='basic', token_balance=0, is_trial=false WHERE id=$1", [dbUser.id]);
+      }
+      return res.status(403).json({ error: activeAccessError(), code: 'subscription_required' });
+    }
+
+    const { password_hash, ...user } = dbUser;
+    res.json({ token: sign({ id: user.id }), user });
+  } catch (e) {
+    console.error('login error:', e);
+    res.status(500).json({ error: 'Could not sign in' });
+  }
 });
 
 // ── CHANGE PASSWORD ───────────────────────────────────────────────────────────
@@ -2384,23 +2431,23 @@ async function runMigrations() {
 const crypto = require('crypto');
 
 app.post('/api/webhooks/square', express.raw({ type: 'application/json' }), async (req, res) => {
-  // Always respond 200 first so Square doesn't keep retrying on our processing errors
-  res.json({ ok: true });
-  
   try {
-    // Verify signature if key is set — but only warn, don't reject
+    const rawBody = Buffer.isBuffer(req.body) ? req.body : Buffer.from(JSON.stringify(req.body || {}));
+
+    // Verify signature if key is set — reject mismatches in production.
     const signature = req.headers['x-square-hmacsha256-signature'];
     const sigKey = process.env.SQUARE_WEBHOOK_SIGNATURE;
     if (sigKey && signature) {
       const hmac = crypto.createHmac('sha256', sigKey);
-      hmac.update(req.body);
+      hmac.update(rawBody);
       const expected = hmac.digest('base64');
       if (expected !== signature) {
-        console.warn('⚠️ Square webhook signature mismatch — processing anyway');
+        console.warn('⚠️ Square webhook signature mismatch');
+        return res.status(401).json({ error: 'Invalid Square signature' });
       }
     }
 
-    const event = JSON.parse(req.body.toString());
+    const event = Buffer.isBuffer(req.body) ? JSON.parse(rawBody.toString()) : req.body;
     const eventType = event.type;
     console.log('Square webhook received:', eventType);
 
@@ -2501,10 +2548,10 @@ app.post('/api/webhooks/square', express.raw({ type: 'application/json' }), asyn
       }
     }
 
-    res.json({ ok: true });
+    return res.json({ ok: true });
   } catch(e) {
     console.error('Square webhook error:', e);
-    res.status(500).json({ error: 'Webhook processing failed' });
+    return res.status(500).json({ error: 'Webhook processing failed' });
   }
 });
 

@@ -1929,20 +1929,25 @@ setTimeout(function(){ fetch('https://luhv.onrender.com/health').catch(function(
 
 
 // ── TIER & BILLING ─────────────────────────────────────────────────────────
-var userTier = 'mvp';      // payments not enforced — everyone has full access
-var tokenBalance = 999999;
+var userTier = 'basic';
+var tokenBalance = 0;
 var tokenPacks = [];
 
 async function loadBillingStatus() {
-  // Payments not enforced yet — give everyone full access
-  userTier = 'mvp';
-  tokenBalance = 999999;
-  updateTierUI();
-
-  // But still check for trial expiry warning
   try {
     var data = await api('/api/billing/status');
-    if (!data || data.error) return;
+    if (!data || data.error || data.expired || data.tier === 'basic') {
+      userTier = 'basic';
+      tokenBalance = 0;
+      updateTierUI();
+      showTrialBanner('Payment or active subscription required to access MELTOS.', true);
+      return;
+    }
+
+    userTier = data.tier || 'basic';
+    tokenBalance = data.token_balance || tokenBalance || 0;
+    updateTierUI();
+
     if (data.is_trial && data.days_left !== null) {
       if (data.days_left <= 1) {
         showTrialBanner('⚡ Your trial ends today — upgrade to keep your Coach and progress.', true);
@@ -1950,7 +1955,11 @@ async function loadBillingStatus() {
         showTrialBanner('Your 7-day trial expires in ' + data.days_left + ' days. Upgrade to keep access.', false);
       }
     }
-  } catch(e) {}
+  } catch(e) {
+    userTier = 'basic';
+    tokenBalance = 0;
+    updateTierUI();
+  }
 }
 
 function showTrialBanner(msg, urgent) {
@@ -1966,15 +1975,22 @@ function showTrialBanner(msg, urgent) {
 }
 
 function updateTierUI() {
-  // Payments not enforced — everyone gets full access
   var coachGate  = document.getElementById('coach-upgrade-gate');
   var coachChat  = document.getElementById('chat-msgs');
   var coachInput = document.querySelector('.cinrow');
-  if (coachGate)  coachGate.style.display  = 'none';
-  if (coachChat)  coachChat.style.opacity   = '1';
-  if (coachInput) coachInput.style.display  = '';
+  var hasActivePlan = userTier === 'starter' || userTier === 'mvp' || userTier === 'pro';
+  var hasCoach = userTier === 'mvp' || userTier === 'pro';
+
+  if (coachGate)  coachGate.style.display  = hasCoach ? 'none' : 'block';
+  if (coachChat)  coachChat.style.opacity   = hasActivePlan ? '1' : '.35';
+  if (coachInput) coachInput.style.display  = hasCoach ? '' : 'none';
+
   var balEl = document.getElementById('token-balance-display');
-  if (balEl) balEl.textContent = '🏆 MVP — full access';
+  if (balEl) {
+    if (!hasActivePlan) balEl.textContent = '🔒 Payment required';
+    else if (hasCoach) balEl.textContent = '🏆 MVP — full access';
+    else balEl.textContent = '⭐ Starter — active';
+  }
 }
 
 function openPaywall(type) {

@@ -79,6 +79,162 @@ app.use((req, res, next) => {
   next();
 });
 
+const crypto = require('crypto');
+
+app.post('/api/webhooks/square', express.raw({ type: 'application/json' }), async (req, res) => {
+  try {
+    const rawBody = Buffer.isBuffer(req.body) ? req.body : Buffer.from(JSON.stringify(req.body || {}));
+
+    // Verify signature if key is set — reject mismatches in production.
+    const signature = req.headers['x-square-hmacsha256-signature'];
+    const sigKey = process.env.SQUARE_WEBHOOK_SIGNATURE;
+    if (sigKey && signature) {
+      const hmac = crypto.createHmac('sha256', sigKey);
+      hmac.update(rawBody);
+      const expected = hmac.digest('base64');
+      if (expected !== signature) {
+        console.warn('⚠️ Square webhook signature mismatch');
+        return res.status(401).json({ error: 'Invalid Square signature' });
+      }
+    }
+
+    const event = Buffer.isBuffer(req.body) ? JSON.parse(rawBody.toString()) : req.body;
+    const eventType = event.type;
+    console.log('Square event:', eventType);
+
+    if (eventType === 'payment.completed' || eventType === 'payment.created' || eventType === 'order.completed') {
+      const payment = event.data?.object?.payment || event.data?.object?.order;
+      if (!payment) return res.json({ ok: true });
+
+      // Extract buyer email
+      // Square sends email in multiple possible locations
+      const order = event.data?.object?.order || event.data?.object?.payment;
+      
+      // Check custom fields first (the "Email" required field we added)
+      let buyerEmail = null;
+      const customFields = order?.custom_fields || payment?.custom_fields || [];
+      if (Array.isArray(customFields)) {
+        const emailField = customFields.find(f => 
+          f.label?.toLowerCase().includes('email') || f.title?.toLowerCase().includes('email')
+        );
+        if (emailField) buyerEmail = emailField.string_value || emailField.value;
+      }
+      
+      // Fallback to other Square email fields
+      if (!buyerEmail) {
+        buyerEmail = payment.buyer_email_address || 
+                     payment.receipt_email ||
+                     order?.fulfillments?.[0]?.pickup_details?.recipient?.email_address ||
+                     event.data?.object?.order?.net_amounts?.customer_email;
+      }
+      
+      // Also try to find via Square customer API using access token
+      if (!buyerEmail && payment.customer_id && process.env.SQUARE_ACCESS_TOKEN) {
+        try {
+          const custResp = await fetch(
+            'https://connect.squareup.com/v2/customers/' + payment.customer_id,
+            { headers: { 'Authorization': 'Bearer ' + process.env.SQUARE_ACCESS_TOKEN, 'Content-Type': 'application/json' } }
+          );
+          const custData = await custResp.json();
+          buyerEmail = custData?.customer?.email_address;
+        } catch(ce) { console.warn('Could not fetch customer:', ce.message); }
+      }
+
+      const amountMoney = payment.amount_money || order?.total_money;
+      const squareCustomerId = payment.customer_id || order?.customer_id || null;
+      const squareOrderId = payment.order_id || order?.id || null;
+
+      // Extract plan from product name, note or reference_id
+      const rawTitle = (
+        event.data?.object?.order?.line_items?.[0]?.name ||
+        payment.note || 
+        payment.reference_id || 
+        ''
+      ).toLowerCase();
+
+      // Also check amount as fallback
+      const amountCents = payment.amount_money?.amount || order?.total_money?.amount || 0;
+
+      // Diagnostic logs
+      console.log('Square email found:', buyerEmail);
+      console.log('Square amount:', amountMoney);
+      console.log('Square order id:', squareOrderId);
+
+      let tier = 'starter';
+      let daysAccess = 30;
+      let isTrial = false;
+
+      if (rawTitle.includes('trial') || rawTitle.includes('7 day') || rawTitle.includes('7-day') || amountCents <= 250) {
+        tier = 'mvp'; daysAccess = 7; isTrial = true;
+      } else if (rawTitle.includes('mvp') && (rawTitle.includes('annual') || rawTitle.includes('yearly'))) { 
+        tier = 'mvp'; daysAccess = 365; 
+      } else if (rawTitle.includes('mvp')) { 
+        tier = 'mvp'; daysAccess = 30; 
+      } else if (rawTitle.includes('starter') && (rawTitle.includes('annual') || rawTitle.includes('yearly'))) { 
+        tier = 'starter'; daysAccess = 365; 
+      } else if (rawTitle.includes('starter')) { 
+        tier = 'starter'; daysAccess = 30;
+      } else if (rawTitle.includes('pro')) {
+        tier = 'mvp'; daysAccess = 30;
+      }
+
+      const billingEnd = new Date();
+      billingEnd.setDate(billingEnd.getDate() + daysAccess);
+
+      if (buyerEmail) {
+        const email = buyerEmail;
+        const name = email.split('@')[0];
+
+        await db.query(
+          `INSERT INTO users (
+            name,
+            email,
+            tier,
+            token_balance,
+            billing_period_end,
+            is_trial,
+            square_customer_id,
+            square_order_id,
+            subscription_status,
+            payment_provider,
+            created_at
+          )
+          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'active','square',NOW())
+          ON CONFLICT (email)
+          DO UPDATE SET
+            tier = EXCLUDED.tier,
+            token_balance = EXCLUDED.token_balance,
+            billing_period_end = EXCLUDED.billing_period_end,
+            is_trial = EXCLUDED.is_trial,
+            square_customer_id = EXCLUDED.square_customer_id,
+            square_order_id = EXCLUDED.square_order_id,
+            subscription_status = 'active',
+            payment_provider = 'square'`,
+          [
+            name,
+            email.toLowerCase().trim(),
+            tier,
+            tier === 'mvp' ? 999999 : 0,
+            billingEnd.toISOString(),
+            isTrial,
+            squareCustomerId || null,
+            squareOrderId || null
+          ]
+        );
+
+        console.log(`✅ PAYMENT: ${email} → ${tier}${isTrial?' TRIAL':''} until ${billingEnd.toDateString()}`);
+      } else {
+        console.warn(`⚠️ PAYMENT received but could not extract buyer email. Raw title: "${rawTitle}", amount: ${amountCents}`);
+      }
+    }
+
+    return res.json({ ok: true });
+  } catch(e) {
+    console.error('Square webhook error:', e);
+    return res.status(500).json({ error: 'Webhook processing failed' });
+  }
+});
+
 app.use(express.json());
 
 const generalLimiter = rateLimit({
@@ -2428,133 +2584,6 @@ async function runMigrations() {
 
 
 // ── SQUARE WEBHOOK ────────────────────────────────────────────────────────────
-const crypto = require('crypto');
-
-app.post('/api/webhooks/square', express.raw({ type: 'application/json' }), async (req, res) => {
-  try {
-    const rawBody = Buffer.isBuffer(req.body) ? req.body : Buffer.from(JSON.stringify(req.body || {}));
-
-    // Verify signature if key is set — reject mismatches in production.
-    const signature = req.headers['x-square-hmacsha256-signature'];
-    const sigKey = process.env.SQUARE_WEBHOOK_SIGNATURE;
-    if (sigKey && signature) {
-      const hmac = crypto.createHmac('sha256', sigKey);
-      hmac.update(rawBody);
-      const expected = hmac.digest('base64');
-      if (expected !== signature) {
-        console.warn('⚠️ Square webhook signature mismatch');
-        return res.status(401).json({ error: 'Invalid Square signature' });
-      }
-    }
-
-    const event = Buffer.isBuffer(req.body) ? JSON.parse(rawBody.toString()) : req.body;
-    const eventType = event.type;
-    console.log('Square webhook received:', eventType);
-
-    if (eventType === 'payment.completed' || eventType === 'payment.created' || eventType === 'order.completed') {
-      const payment = event.data?.object?.payment || event.data?.object?.order;
-      if (!payment) return res.json({ ok: true });
-
-      // Extract buyer email
-      // Square sends email in multiple possible locations
-      const order = event.data?.object?.order || event.data?.object?.payment;
-      
-      // Check custom fields first (the "Email" required field we added)
-      let buyerEmail = null;
-      const customFields = order?.custom_fields || payment?.custom_fields || [];
-      if (Array.isArray(customFields)) {
-        const emailField = customFields.find(f => 
-          f.label?.toLowerCase().includes('email') || f.title?.toLowerCase().includes('email')
-        );
-        if (emailField) buyerEmail = emailField.string_value || emailField.value;
-      }
-      
-      // Fallback to other Square email fields
-      if (!buyerEmail) {
-        buyerEmail = payment.buyer_email_address || 
-                     payment.receipt_email ||
-                     order?.fulfillments?.[0]?.pickup_details?.recipient?.email_address ||
-                     event.data?.object?.order?.net_amounts?.customer_email;
-      }
-      
-      // Also try to find via Square customer API using access token
-      if (!buyerEmail && payment.customer_id && process.env.SQUARE_ACCESS_TOKEN) {
-        try {
-          const custResp = await fetch(
-            'https://connect.squareup.com/v2/customers/' + payment.customer_id,
-            { headers: { 'Authorization': 'Bearer ' + process.env.SQUARE_ACCESS_TOKEN, 'Content-Type': 'application/json' } }
-          );
-          const custData = await custResp.json();
-          buyerEmail = custData?.customer?.email_address;
-        } catch(ce) { console.warn('Could not fetch customer:', ce.message); }
-      }
-
-      // Extract plan from product name, note or reference_id
-      const rawTitle = (
-        event.data?.object?.order?.line_items?.[0]?.name ||
-        payment.note || 
-        payment.reference_id || 
-        ''
-      ).toLowerCase();
-
-      // Also check amount as fallback
-      const amountCents = payment.amount_money?.amount || order?.total_money?.amount || 0;
-
-      let tier = 'starter';
-      let daysAccess = 30;
-      let isTrial = false;
-
-      if (rawTitle.includes('trial') || rawTitle.includes('7 day') || rawTitle.includes('7-day') || amountCents <= 250) {
-        tier = 'mvp'; daysAccess = 7; isTrial = true;
-      } else if (rawTitle.includes('mvp') && (rawTitle.includes('annual') || rawTitle.includes('yearly'))) { 
-        tier = 'mvp'; daysAccess = 365; 
-      } else if (rawTitle.includes('mvp')) { 
-        tier = 'mvp'; daysAccess = 30; 
-      } else if (rawTitle.includes('starter') && (rawTitle.includes('annual') || rawTitle.includes('yearly'))) { 
-        tier = 'starter'; daysAccess = 365; 
-      } else if (rawTitle.includes('starter')) { 
-        tier = 'starter'; daysAccess = 30;
-      } else if (rawTitle.includes('pro')) {
-        tier = 'mvp'; daysAccess = 30;
-      }
-
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + daysAccess);
-
-      if (buyerEmail) {
-        const { rows } = await db.query(
-          `UPDATE users SET tier=$1, billing_period_end=$2, is_trial=$3
-           WHERE LOWER(email)=LOWER($4) RETURNING id, name, email`,
-          [tier, expiresAt.toISOString(), isTrial, buyerEmail]
-        );
-
-        if (rows.length > 0) {
-          const userName = rows[0].name || buyerEmail;
-          console.log(`✅ PAYMENT: ${userName} (${buyerEmail}) → ${tier}${isTrial?' TRIAL':''} until ${expiresAt.toDateString()}`);
-        } else {
-          // User not found — pre-create the row so they can register after payment
-          const { rows: newRows } = await db.query(
-            `INSERT INTO users (email, tier, billing_period_end, is_trial, name)
-             VALUES (LOWER($1), $2, $3, $4, $5)
-             ON CONFLICT (email) DO UPDATE
-               SET tier=$2, billing_period_end=$3, is_trial=$4
-             RETURNING id, email`,
-            [buyerEmail, tier, expiresAt.toISOString(), isTrial, buyerEmail.split('@')[0]]
-          );
-          console.log(`✅ PAYMENT (new user pre-created): ${buyerEmail} → ${tier}${isTrial?' TRIAL':''} until ${expiresAt.toDateString()}`);
-        }
-      } else {
-        console.warn(`⚠️ PAYMENT received but could not extract buyer email. Raw title: "${rawTitle}", amount: ${amountCents}`);
-      }
-    }
-
-    return res.json({ ok: true });
-  } catch(e) {
-    console.error('Square webhook error:', e);
-    return res.status(500).json({ error: 'Webhook processing failed' });
-  }
-});
-
 // ── CHECK ACCESS MIDDLEWARE ────────────────────────────────────────────────────
 async function checkTier(req, res, next) {
   try {

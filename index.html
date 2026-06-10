@@ -408,30 +408,6 @@ body{background:
 }
 
 async function register() {
-if (data?.token) {
-  TOKEN = data.token;
-  USER = data.user;
-
-  localStorage.setItem('luhv_token', TOKEN);
-  localStorage.setItem('luhv_user', JSON.stringify(USER));
-
-  initApp();
-} else {
-
-  // User has not paid → send to pricing page
-  if (
-    data?.code === 'payment_required' ||
-    data?.code === 'subscription_required'
-  ) {
-    document.getElementById('auth-error').textContent =
-      'No active plan found. Redirecting to pricing...';
-
-    setTimeout(() => {
-      window.location.href = 'https://meltos.netlify.app/';
-    }, 1500);
-
-    return;
-  }
 
   document.getElementById('auth-error').textContent =
     data?.error || 'Something went wrong';

@@ -2154,31 +2154,34 @@ async function login() {
 }
 
 async function register() {
-  const btn = document.getElementById('reg-btn');
-  const consent = document.getElementById('reg-consent');
-  if (!consent || !consent.checked) {
-    document.getElementById('auth-error').textContent = 'Please accept the Terms and Privacy Policy to continue.';
+if (data?.token) {
+  TOKEN = data.token;
+  USER = data.user;
+
+  localStorage.setItem('luhv_token', TOKEN);
+  localStorage.setItem('luhv_user', JSON.stringify(USER));
+
+  initApp();
+} else {
+
+  // User has not paid → send to pricing page
+  if (
+    data?.code === 'payment_required' ||
+    data?.code === 'subscription_required'
+  ) {
+    document.getElementById('auth-error').textContent =
+      'No active plan found. Redirecting to pricing...';
+
+    setTimeout(() => {
+      window.location.href = 'https://meltos.netlify.app/';
+    }, 1500);
+
     return;
   }
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>Creating account...';
-  try {
-    const data = await api('/api/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({ name: (document.getElementById('reg-name')?.value || document.getElementById('reg-email').value).trim(), email: document.getElementById('reg-email').value.toLowerCase().trim(), password: document.getElementById('reg-pass').value })
-    });
-    if (data?.token) {
-      TOKEN = data.token; USER = data.user;
-      localStorage.setItem('luhv_token', TOKEN);
-      localStorage.setItem('luhv_user', JSON.stringify(USER));
-      initApp();
-    } else {
-      document.getElementById('auth-error').textContent = data?.error || 'Something went wrong';
-    }
-  } catch(e) {
-    document.getElementById('auth-error').textContent = 'Connection error — please try again';
-  }
-  btn.disabled = false; btn.innerHTML = "Let's Go 🔥";
+
+  document.getElementById('auth-error').textContent =
+    data?.error || 'Something went wrong';
+}
 }
 
 var PEAK_OPTIONS = [
@@ -2695,13 +2698,33 @@ function buildDomainCard(domain) {
   return wrapper;
 }
 
-async function logMetric(metricId, domainId) {
-  var input = document.getElementById('metric-val-' + metricId);
-  var val = parseFloat(input?.value);
-  if (isNaN(val)) return;
-  await api('/api/domains/metrics/' + metricId + '/log', { method: 'POST', body: JSON.stringify({ value: val }) });
-  input.value = '';
-  loadDomainsPage();
+if (data?.token) {
+  TOKEN = data.token;
+  USER = data.user;
+
+  localStorage.setItem('luhv_token', TOKEN);
+  localStorage.setItem('luhv_user', JSON.stringify(USER));
+
+  initApp();
+} else {
+
+  // User has not paid → send to pricing page
+  if (
+    data?.code === 'payment_required' ||
+    data?.code === 'subscription_required'
+  ) {
+    document.getElementById('auth-error').textContent =
+      'No active plan found. Redirecting to pricing...';
+
+    setTimeout(() => {
+      window.location.href = 'https://meltos.netlify.app/';
+    }, 1500);
+
+    return;
+  }
+
+  document.getElementById('auth-error').textContent =
+    data?.error || 'Something went wrong';
 }
 
 async function deleteDomain(id) {

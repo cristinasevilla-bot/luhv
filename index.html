@@ -2134,54 +2134,110 @@ async function login() {
   const btn = document.getElementById('login-btn');
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span>Signing in...';
+
   try {
     const data = await api('/api/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email: document.getElementById('login-email').value.toLowerCase().trim(), password: document.getElementById('login-pass').value })
+      body: JSON.stringify({
+        email: document.getElementById('login-email').value.toLowerCase().trim(),
+        password: document.getElementById('login-pass').value
+      })
     });
+
     if (data?.token) {
-      TOKEN = data.token; USER = data.user;
+      TOKEN = data.token;
+      USER = data.user;
+
       localStorage.setItem('luhv_token', TOKEN);
       localStorage.setItem('luhv_user', JSON.stringify(USER));
+
       initApp();
     } else {
-      document.getElementById('auth-error').textContent = data?.error || 'Invalid email or password';
+      if (
+        data?.code === 'payment_required' ||
+        data?.code === 'subscription_required'
+      ) {
+        document.getElementById('auth-error').textContent =
+          'No active plan found. Redirecting to pricing...';
+
+        setTimeout(() => {
+          window.location.href = 'https://meltos.netlify.app/';
+        }, 1500);
+
+        return;
+      }
+
+      document.getElementById('auth-error').textContent =
+        data?.error || 'Invalid email or password';
     }
-  } catch(e) {
-    document.getElementById('auth-error').textContent = 'Connection error — please try again';
+  } catch (e) {
+    document.getElementById('auth-error').textContent =
+      'Connection error — please try again';
   }
-  btn.disabled = false; btn.innerHTML = 'Sign In 🏆';
+
+  btn.disabled = false;
+  btn.innerHTML = 'Sign In 🏆';
 }
 
 async function register() {
-if (data?.token) {
-  TOKEN = data.token;
-  USER = data.user;
+  const btn = document.getElementById('reg-btn');
+  const consent = document.getElementById('reg-consent');
 
-  localStorage.setItem('luhv_token', TOKEN);
-  localStorage.setItem('luhv_user', JSON.stringify(USER));
-
-  initApp();
-} else {
-
-  // User has not paid → send to pricing page
-  if (
-    data?.code === 'payment_required' ||
-    data?.code === 'subscription_required'
-  ) {
+  if (!consent || !consent.checked) {
     document.getElementById('auth-error').textContent =
-      'No active plan found. Redirecting to pricing...';
-
-    setTimeout(() => {
-      window.location.href = 'https://meltos.netlify.app/';
-    }, 1500);
-
+      'Please accept the Terms and Privacy Policy to continue.';
     return;
   }
 
-  document.getElementById('auth-error').textContent =
-    data?.error || 'Something went wrong';
-}
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Creating account...';
+
+  try {
+    const data = await api('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: (
+          document.getElementById('reg-name')?.value ||
+          document.getElementById('reg-email').value
+        ).trim(),
+        email: document.getElementById('reg-email').value.toLowerCase().trim(),
+        password: document.getElementById('reg-pass').value
+      })
+    });
+
+    if (data?.token) {
+      TOKEN = data.token;
+      USER = data.user;
+
+      localStorage.setItem('luhv_token', TOKEN);
+      localStorage.setItem('luhv_user', JSON.stringify(USER));
+
+      initApp();
+    } else {
+      if (
+        data?.code === 'payment_required' ||
+        data?.code === 'subscription_required'
+      ) {
+        document.getElementById('auth-error').textContent =
+          'No active plan found. Redirecting to pricing...';
+
+        setTimeout(() => {
+          window.location.href = 'https://meltos.netlify.app/';
+        }, 1500);
+
+        return;
+      }
+
+      document.getElementById('auth-error').textContent =
+        data?.error || 'Something went wrong';
+    }
+  } catch (e) {
+    document.getElementById('auth-error').textContent =
+      'Connection error — please try again';
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = "Let's Go 🔥";
 }
 
 var PEAK_OPTIONS = [

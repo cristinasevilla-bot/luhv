@@ -384,7 +384,58 @@ body{background:
 /* Inspire skeleton pulse */
 @keyframes inspirePulse{0%,100%{opacity:.4}50%{opacity:.8}}
 .inspire-skel{animation:inspirePulse 1.4s ease-in-out infinite}
-/* ============================================
+/* ============================================async function login() {
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Signing in...';
+  try {
+    const data = await api('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email: document.getElementById('login-email').value.toLowerCase().trim(), password: document.getElementById('login-pass').value })
+    });
+    if (data?.token) {
+      TOKEN = data.token; USER = data.user;
+      localStorage.setItem('luhv_token', TOKEN);
+      localStorage.setItem('luhv_user', JSON.stringify(USER));
+      initApp();
+    } else {
+      document.getElementById('auth-error').textContent = data?.error || 'Invalid email or password';
+    }
+  } catch(e) {
+    document.getElementById('auth-error').textContent = 'Connection error — please try again';
+  }
+  btn.disabled = false; btn.innerHTML = 'Sign In 🏆';
+}
+
+async function register() {
+if (data?.token) {
+  TOKEN = data.token;
+  USER = data.user;
+
+  localStorage.setItem('luhv_token', TOKEN);
+  localStorage.setItem('luhv_user', JSON.stringify(USER));
+
+  initApp();
+} else {
+
+  // User has not paid → send to pricing page
+  if (
+    data?.code === 'payment_required' ||
+    data?.code === 'subscription_required'
+  ) {
+    document.getElementById('auth-error').textContent =
+      'No active plan found. Redirecting to pricing...';
+
+    setTimeout(() => {
+      window.location.href = 'https://meltos.netlify.app/';
+    }, 1500);
+
+    return;
+  }
+
+  document.getElementById('auth-error').textContent =
+    data?.error || 'Something went wrong';
+}
    RESPONSIVE — MELTOS  (base is now 100% wide)
    These media queries ADD constraints as screen grows
    ============================================ */
@@ -3406,7 +3457,7 @@ async function obNext() {
           } else if (result && result.welcomeMessage) {
             addMsg(result.welcomeMessage, 'a');
           }
-        } catch(ce) {
+        } catch(ce) 
           hideTyping();
           if (result && result.welcomeMessage) addMsg(result.welcomeMessage, 'a');
         }
@@ -3450,8 +3501,7 @@ async function obNext() {
       }, 300);
     } catch(e) {
       console.error('Onboarding error:', e);
-      document.getElementById('onboarding-modal').style.display = 'none';
-      // Even if server fails, still try to suggest tasks locally
+      document.getElementById('onboarding-modal').style.display = 'none';      // Even if server fails, still try to suggest tasks locally
       if (obAnswers.goal_90days && obAnswers.goal_90days.trim().length > 2) {
         setTimeout(async function() {
           try { await suggestTasksForGoal(obAnswers.goal_90days); } catch(se) {}

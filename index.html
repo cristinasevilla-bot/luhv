@@ -3379,7 +3379,7 @@ async function obNext() {
           } else if (result && result.welcomeMessage) {
             addMsg(result.welcomeMessage, 'a');
           }
-        } catch(ce) 
+        } } catch(ce) {
           hideTyping();
           if (result && result.welcomeMessage) addMsg(result.welcomeMessage, 'a');
         }

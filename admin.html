@@ -76,6 +76,7 @@ tr:hover td { background:rgba(255,255,255,.015); }
 #page-usage    { display:none; }
 #page-insights { display:none; }
 #page-debug    { display:none; }
+#page-reset    { display:none; }
 .progress-bar { height:6px; background:rgba(255,255,255,.08); border-radius:4px; overflow:hidden; margin-top:4px; }
 .progress-fill { height:100%; border-radius:4px; background:linear-gradient(90deg,#06d6a0,#0ea5e9); }
 .user-section { margin-bottom:28px; padding:16px; background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.06); border-radius:12px; }
@@ -126,6 +127,7 @@ tr:hover td { background:rgba(255,255,255,.015); }
     <button class="tab" onclick="showTab('usage')" id="tab-usage">📊 AI Usage &amp; Cost</button>
     <button class="tab" onclick="showTab('insights')" id="tab-insights">🔍 User Insights</button>
     <button class="tab" onclick="showTab('debug')" id="tab-debug">🛠️ Debug</button>
+    <button class="tab" onclick="showTab('reset')" id="tab-reset">🔑 Reset Password</button>
   </div>
 
   <div class="content">
@@ -200,6 +202,19 @@ tr:hover td { background:rgba(255,255,255,.015); }
         <div id="debug-activity" style="padding:16px"><div class="loading">Loading...</div></div>
       </div>
 
+    </div>
+
+    <div id="page-reset" style="display:none">
+      <div class="table-wrap" style="max-width:480px">
+        <div class="table-top"><h3>🔑 Reset Password</h3></div>
+        <div style="padding:20px">
+          <p style="font-size:13px;color:rgba(255,255,255,.45);margin-bottom:18px">Force-reset the password for a paid user who is locked out. Enter their email and the new temporary password.</p>
+          <div class="field" style="margin-bottom:14px"><label style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.4);display:block;margin-bottom:5px">User Email</label><input type="email" id="reset-email" placeholder="user@email.com" style="width:100%;padding:11px 13px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#fff;font-size:14px;font-family:inherit;outline:none"></div>
+          <div class="field" style="margin-bottom:18px"><label style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.4);display:block;margin-bottom:5px">New Password (min 8 chars)</label><input type="password" id="reset-newpass" placeholder="••••••••" style="width:100%;padding:11px 13px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#fff;font-size:14px;font-family:inherit;outline:none"></div>
+          <button onclick="adminResetPassword()" style="width:100%;padding:13px;background:linear-gradient(135deg,#f43f5e,#e11d48);border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">🔒 Reset Password</button>
+          <div id="reset-result" style="margin-top:14px;font-size:13px;text-align:center;min-height:18px"></div>
+        </div>
+      </div>
     </div>
     </div>
   </div>
@@ -286,13 +301,48 @@ function showTab(tab) {
   document.getElementById('page-usage').style.display = tab==='usage'?'block':'none';
   document.getElementById('page-insights').style.display = tab==='insights'?'block':'none';
   document.getElementById('page-debug').style.display = tab==='debug'?'block':'none';
+  document.getElementById('page-reset').style.display = tab==='reset' ? 'block' : 'none';
   document.getElementById('tab-users').classList.toggle('active', tab==='users');
   document.getElementById('tab-usage').classList.toggle('active', tab==='usage');
   document.getElementById('tab-insights').classList.toggle('active', tab==='insights');
   document.getElementById('tab-debug').classList.toggle('active', tab==='debug');
+  document.getElementById('tab-reset').classList.toggle('active', tab==='reset');
   if (tab==='usage') loadUsage();
   if (tab==='insights') loadInsights();
   if (tab==='debug') loadDebugStatus();
+}
+
+async function adminResetPassword() {
+  var email = document.getElementById('reset-email').value.trim();
+  var newPass = document.getElementById('reset-newpass').value;
+  var resultEl = document.getElementById('reset-result');
+  resultEl.textContent = '';
+  resultEl.style.color = '';
+  if (!email || !newPass) {
+    resultEl.textContent = 'Both email and password are required.';
+    resultEl.style.color = '#f43f5e';
+    return;
+  }
+  try {
+    var r = await fetch(API + '/api/admin/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + adminToken },
+      body: JSON.stringify({ email: email, new_password: newPass })
+    });
+    var data = await r.json();
+    if (r.ok && data.ok) {
+      resultEl.textContent = 'Password reset for ' + email + '. User: ' + (data.user ? data.user.name : '') + ' (tier: ' + (data.user ? data.user.tier : '') + ')';
+      resultEl.style.color = '#06d6a0';
+      document.getElementById('reset-email').value = '';
+      document.getElementById('reset-newpass').value = '';
+    } else {
+      resultEl.textContent = 'Error: ' + (data.error || 'Unknown error');
+      resultEl.style.color = '#f43f5e';
+    }
+  } catch(e) {
+    resultEl.textContent = 'Network error: ' + e.message;
+    resultEl.style.color = '#f43f5e';
+  }
 }
 
 async function loadUsers() {

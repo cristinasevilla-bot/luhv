@@ -854,6 +854,7 @@ body{background:
       <div class="auth-field"><label>Email</label><input type="email" id="login-email" placeholder="you@email.com" autocomplete="email"></div>
       <div class="auth-field"><label>Password</label><input type="password" id="login-pass" placeholder="••••••••"></div>
       <button class="auth-btn" onclick="login()" id="login-btn">Sign In 🏆</button>
+      <div style="text-align:center;margin-top:10px"><a href="#" onclick="showForgot();return false" style="font-size:12px;color:rgba(255,255,255,.4);text-decoration:none;">Forgot your password?</a></div>
     </div>
 
     <!-- Register form -->
@@ -870,6 +871,15 @@ body{background:
       <button class="auth-btn" onclick="register()" id="reg-btn">Let's Go 🔥</button>
     </div>
 
+
+    <!-- Forgot password form -->
+    <div id="forgot-form" style="display:none">
+      <div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:14px;text-align:center">Enter your email and choose a new password.<br>Only works if you have an active paid plan.</div>
+      <div class="auth-field"><label>Email</label><input type="email" id="fp-email" placeholder="you@email.com" autocomplete="email"></div>
+      <div class="auth-field"><label>New Password (min 8 chars)</label><input type="password" id="fp-newpass" placeholder="••••••••"></div>
+      <button class="auth-btn" onclick="forgotPassword()">Reset Password 🔒</button>
+      <div style="text-align:center;margin-top:10px"><a href="#" onclick="hideForgot();return false" style="font-size:12px;color:rgba(255,255,255,.35);text-decoration:none;">← Back to Sign In</a></div>
+    </div>
     <div class="auth-error" id="auth-error"></div>
     <p style="margin-top:12px; text-align:center; font-size:13px; color:var(--muted);">Already have an account? <a href="#" id="show-login-link" style="color:var(--teal); text-decoration:none;">Sign in →</a></p>
   </div>
@@ -2128,6 +2138,54 @@ function setTab(t) {
   document.getElementById('login-form').style.display    = t === 'login'    ? 'block' : 'none';
   document.getElementById('register-form').style.display = t === 'register' ? 'block' : 'none';
   document.getElementById('auth-error').textContent = '';
+}
+
+function showForgot() {
+  document.getElementById('login-form') && (document.getElementById('login-form').style.display = 'none');
+  document.getElementById('register-form') && (document.getElementById('register-form').style.display = 'none');
+  document.getElementById('forgot-form').style.display = 'block';
+  document.getElementById('auth-error').textContent = '';
+}
+
+function hideForgot() {
+  document.getElementById('forgot-form').style.display = 'none';
+  setTab('login');
+}
+
+async function forgotPassword() {
+  var email = document.getElementById('fp-email').value.trim();
+  var newPass = document.getElementById('fp-newpass').value;
+  var errEl = document.getElementById('auth-error');
+  errEl.textContent = '';
+  if (!email || !newPass) {
+    errEl.textContent = 'Please enter your email and a new password.';
+    return;
+  }
+  var btn = document.querySelector('#forgot-form .auth-btn');
+  btn.disabled = true; btn.textContent = 'Resetting...';
+  try {
+    var r = await fetch(API + '/api/auth/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, new_password: newPass })
+    });
+    var data = await r.json();
+    if (r.ok && data.ok) {
+      errEl.style.color = '#06d6a0';
+      errEl.textContent = 'Password updated! You can now sign in.';
+      document.getElementById('fp-email').value = '';
+      document.getElementById('fp-newpass').value = '';
+      setTimeout(hideForgot, 2000);
+    } else {
+      errEl.style.color = '';
+      errEl.textContent = data.error || 'Could not reset password. Check your email.';
+    }
+  } catch(e) {
+    errEl.style.color = '';
+    errEl.textContent = 'Network error. Please try again.';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Reset Password 🔒';
+  }
 }
 
 async function login() {

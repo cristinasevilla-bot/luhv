@@ -1068,6 +1068,35 @@ app.post('/api/auth/change-password', auth, async (req, res) => {
   }
 });
 
+// ── FORGOT PASSWORD (self-service, no email required) ────────────────────────
+// User provides their email + new password. We verify the email exists and
+// has paid access, then reset. No token/email flow needed for now.
+app.post('/api/auth/forgot-password', async (req, res) => {
+  const { email, new_password } = req.body;
+  if (!email || !new_password)
+    return res.status(400).json({ error: 'Email and new password are required' });
+  if (String(new_password).length < 8)
+    return res.status(400).json({ error: 'New password must be at least 8 characters' });
+  try {
+    const cleanEmail = String(email || '').toLowerCase().trim();
+    const { rows } = await db.query(
+      'SELECT id, tier, billing_period_end FROM users WHERE LOWER(email)=LOWER($1)',
+      [cleanEmail]
+    );
+    if (!rows.length)
+      return res.status(404).json({ error: 'No account found with that email' });
+    const user = rows[0];
+    if (!hasActivePaidAccess(user))
+      return res.status(403).json({ error: 'No active paid plan found for this email. Please contact support.' });
+    const hash = await bcrypt.hash(new_password, 10);
+    await db.query('UPDATE users SET password_hash=$1 WHERE id=$2', [hash, user.id]);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('forgot-password error:', e);
+    res.status(500).json({ error: 'Could not reset password' });
+  }
+});
+
 // ── QUOTES ────────────────────────────────────────────────────────────────────
 app.get('/api/quotes', async (req, res) => {
   const { rows } = await db.query('SELECT * FROM quotes ORDER BY created_at DESC');

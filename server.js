@@ -1990,6 +1990,37 @@ app.get('/api/peak-report', auth, async (req, res) => {
 });
 
 
+
+// ── ADMIN RESET PASSWORD ────────────────────────────────────────────────────
+// Force reset password for paid users with login issues
+// Protected: requires admin JWT
+app.post('/api/admin/reset-password', adminAuth, async (req, res) => {
+  const { email, new_password } = req.body;
+  if (!email || !new_password) {
+    return res.status(400).json({ error: 'email and new_password are required' });
+  }
+  if (String(new_password).length < 8) {
+    return res.status(400).json({ error: 'New password must be at least 8 characters' });
+  }
+  try {
+    const cleanEmail = String(email || '').toLowerCase().trim();
+    const { rows: existing } = await db.query(
+      'SELECT id, name, tier, billing_period_end FROM users WHERE LOWER(email)=LOWER($1)',
+      [cleanEmail]
+    );
+    if (!existing.length) {
+      return res.status(404).json({ error: 'No user found with that email' });
+    }
+    const user = existing[0];
+    const hash = await bcrypt.hash(new_password, 10);
+    await db.query('UPDATE users SET password_hash=$1 WHERE id=$2', [hash, user.id]);
+    console.log(`[ADMIN] Password reset for ${cleanEmail} by admin (tier: ${user.tier})`);
+    res.json({ ok: true, message: `Password reset successfully for ${cleanEmail}`, user: { id: user.id, name: user.name, tier: user.tier } });
+  } catch (e) {
+    console.error('admin reset-password error:', e);
+    res.status(500).json({ error: 'Could not reset password' });
+  }
+});
 // ── LIFE DOMAINS ──────────────────────────────────────────────────────────────
 
 // Get all domains with their metrics

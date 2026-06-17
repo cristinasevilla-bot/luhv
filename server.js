@@ -90,7 +90,7 @@ app.post('/api/webhooks/square', express.raw({ type: 'application/json' }), asyn
     const sigKey = process.env.SQUARE_WEBHOOK_SIGNATURE;
     if (sigKey && signature) {
       const hmac = crypto.createHmac('sha256', sigKey);
-      hmac.update(rawBody);
+      hmac.update('https://luhv.onrender.com/api/webhooks/square' + rawBody.toString());
       const expected = hmac.digest('base64');
       if (expected !== signature) {
         console.warn('⚠️ Square webhook signature mismatch');
@@ -226,9 +226,9 @@ app.post('/api/webhooks/square', express.raw({ type: 'application/json' }), asyn
       } else {
         console.warn(`⚠️ PAYMENT received but could not extract buyer email. Raw title: "${rawTitle}", amount: ${amountCents}`);
       }
-    }
 
-    return res.json({ ok: true });
+
+      turn res.json({ ok: true });
   } catch(e) {
     console.error('Square webhook error:', e);
     return res.status(500).json({ error: 'Webhook processing failed' });

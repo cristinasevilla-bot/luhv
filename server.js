@@ -104,7 +104,7 @@ app.post('/api/webhooks/square', express.raw({ type: 'application/json' }), asyn
 
     if (eventType === 'payment.completed' || eventType === 'payment.created' || eventType === 'order.completed') {
       const payment = event.data?.object?.payment || event.data?.object?.order;
-      if (!payment) return res.json({ ok: true });
+      if (!payment) rereturn res.json({ ok: true });
 
       // Extract buyer email
       // Square sends email in multiple possible locations
@@ -228,7 +228,7 @@ app.post('/api/webhooks/square', express.raw({ type: 'application/json' }), asyn
       }
 
 
-      turn res.json({ ok: true });
+      return res.json({ ok: true });
   } catch(e) {
     console.error('Square webhook error:', e);
     return res.status(500).json({ error: 'Webhook processing failed' });
@@ -684,7 +684,7 @@ app.post('/api/coach/session', auth, checkTier, coachAuth, async (req, res) => {
       const step     = phase.steps[0];
       const question = step.coachPrompt(user.name, {});
 
-      return res.json({
+      rereturn res.json({
         question,
         phase:      phase.id,
         phaseName:  phase.name,
@@ -762,7 +762,7 @@ Use the Luhv+ voice and energy. End with "Lock in. Show up. Win. 🏆"
 
       const totalSteps = SESSION_PHASES.reduce((acc, p) => acc + p.steps.length, 0);
 
-      return res.json({
+      rereturn res.json({
         question:   aiRes.content[0].text,
         phase:      'complete',
         phaseName:  'Session Complete',
@@ -839,7 +839,7 @@ Keep it warm, under 5 sentences, Luhv+ voice.
 app.get('/api/coach/session', auth, checkTier, async (req, res) => {
   try {
     const session = await getActiveSession(req.user.id);
-    if (!session) return res.json({ hasActiveSession: false });
+    if (!session) rereturn res.json({ hasActiveSession: false });
 
     const phaseObj = SESSION_PHASES.find(p => p.id === session.phase);
     const totalSteps = SESSION_PHASES.reduce((acc, p) => acc + p.steps.length, 0);
@@ -1012,7 +1012,7 @@ app.post('/api/auth/register', async (req, res) => {
     );
 
     const user = rows[0];
-    return res.json({ token: sign({ id: user.id }), user });
+    rereturn res.json({ token: sign({ id: user.id }), user });
   } catch (e) {
     console.error('register error:', e);
     return res.status(500).json({ error: 'Could not create account' });
@@ -1163,7 +1163,7 @@ app.post('/api/habits', auth, async (req, res) => {
     [req.user.id, name]
   );
   if (existing.length > 0) {
-    return res.json({ ...existing[0], duplicate: true });
+    rereturn res.json({ ...existing[0], duplicate: true });
   }
   const { rows } = await db.query(
     'INSERT INTO habits (user_id, name, time, icon, target_type, daily_target) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *',
@@ -2368,7 +2368,7 @@ app.patch('/api/domains/:id', auth, async (req, res) => {
 // Create checkout session for subscription upgrade
 app.post('/api/billing/subscribe', auth, async (req, res) => {
   // Square handles payments via checkout links — return info
-  return res.json({ checkout_url: null, message: 'Use the Square checkout links in the app' });
+  rereturn res.json({ checkout_url: null, message: 'Use the Square checkout links in the app' });
   try {
     const { tier } = req.body;
     if (!TIERS[tier]) return res.status(400).json({ error: 'Invalid tier' });
@@ -2403,7 +2403,7 @@ app.post('/api/billing/subscribe', auth, async (req, res) => {
 // Create checkout session for token pack purchase
 app.post('/api/billing/buy-tokens', auth, async (req, res) => {
   // STRIPE_DISABLED
-  return res.json({ checkout_url: null, message: 'Payments coming soon' });
+  rereturn res.json({ checkout_url: null, message: 'Payments coming soon' });
   try {
     const { pack_id } = req.body;
     const pack = TOKEN_PACKS.find(p => p.id === pack_id);
@@ -2438,7 +2438,7 @@ app.post('/api/billing/buy-tokens', auth, async (req, res) => {
 // Stripe webhook — handles subscription activated + token purchases
 app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   // STRIPE_DISABLED
-  return res.json({ received: true });
+  rereturn res.json({ received: true });
   let event;
   try {
     event = stripe.webhooks.constructEvent(req.body, req.headers['stripe-signature'], STRIPE_WEBHOOK_SECRET);
@@ -2507,7 +2507,7 @@ app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), asyn
 // Cancel subscription
 app.post('/api/billing/cancel', auth, async (req, res) => {
   // STRIPE_DISABLED
-  return res.json({ success: false, message: 'Payments coming soon' });
+  rereturn res.json({ success: false, message: 'Payments coming soon' });
   try {
     const { rows: [user] } = await db.query('SELECT stripe_subscription_id FROM users WHERE id=$1', [req.user.id]);
     if (!user.stripe_subscription_id) return res.status(400).json({ error: 'No active subscription' });
@@ -2686,7 +2686,7 @@ app.get('/api/billing/status', auth, async (req, res) => {
     const expired = user?.billing_period_end && new Date(user.billing_period_end) < new Date();
     if (expired) {
       await db.query("UPDATE users SET tier='basic', is_trial=false WHERE id=$1", [req.user.id]);
-      return res.json({ tier: 'basic', expired: true, is_trial: false, billing_period_end: null });
+      rereturn res.json({ tier: 'basic', expired: true, is_trial: false, billing_period_end: null });
     }
 
     let tier = user?.tier || 'basic';

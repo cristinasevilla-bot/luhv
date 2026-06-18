@@ -8,14 +8,14 @@ const Anthropic = require('@anthropic-ai/sdk');
 const stripe = null;
 const STRIPE_WEBHOOK_SECRET = null;
 
-// ── TIER CONFIG ───────────────────────────────────────────────────────────────
+// ── TIER CONFIG ──────────────────────────────────────────────────────────────
 const TIERS = {
   basic: {
     name: 'Basic (Free)',
     monthly_tokens: 0,
     coach_access: false
   },
-  starter: {
+  starter: 
     name: 'Starter',
     monthly_tokens: 0,
     coach_access: false   // Starter: dashboard, roadmap, tasks, inspire — NO coach
@@ -261,7 +261,14 @@ app.use((req, res, next) => {
 // ── DATABASE ──────────────────────────────────────────────────────────────────
 const db = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
+  ssl: { rejectUnauthorized: false },
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000,
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 10000
+});
+db.on('error', (err) => {
+    console.error('PostgreSQL pool error:', err.message);
 });
 
 // ── ANTHROPIC ─────────────────────────────────────────────────────────────────

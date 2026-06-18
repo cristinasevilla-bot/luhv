@@ -15,7 +15,7 @@ const TIERS = {
     monthly_tokens: 0,
     coach_access: false
   },
-  starter: 
+  starter:  {
     name: 'Starter',
     monthly_tokens: 0,
     coach_access: false   // Starter: dashboard, roadmap, tasks, inspire — NO coach

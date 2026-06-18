@@ -994,7 +994,7 @@ app.post('/api/auth/register', async (req, res) => {
 
     const existingUser = existing[0];
     if (!existingUser || !hasActivePaidAccess(existingUser)) {
-      return res.status(403).json({ error: activeAccessError(), code: 'payment_required' });
+      return res.status(403).json({ error: activeAccessError(), code: 'awaiting_webhook', hint: 'Si acabas de pagar, tu acceso puede tardar hasta 30 segundos en activarse. Por favor intenta de nuevo.' });
     }
 
     if (existingUser.password_hash) {
@@ -1036,7 +1036,7 @@ app.post('/api/auth/login', async (req, res) => {
       if (dbUser.billing_period_end && new Date(dbUser.billing_period_end) <= new Date()) {
         await db.query("UPDATE users SET tier='basic', token_balance=0, is_trial=false WHERE id=$1", [dbUser.id]);
       }
-      return res.status(403).json({ error: activeAccessError(), code: 'subscription_required' });
+      return res.status(403).json({ error: activeAccessError(), code: 'awaiting_webhook', hint: 'Si acabas de pagar, tu acceso puede tardar hasta 30 segundos en activarse. Por favor intenta de nuevo.' });
     }
 
     const { password_hash, ...user } = dbUser;

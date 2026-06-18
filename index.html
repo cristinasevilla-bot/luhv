@@ -2189,7 +2189,7 @@ async function forgotPassword() {
   }
 }
 
-async function login() {
+function startPaymentPolling(email) {  if (!email) return;
   const btn = document.getElementById('login-btn');
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span>Signing in...';
@@ -2213,14 +2213,14 @@ async function login() {
       initApp();
     } else {
       if (
-        data?.code === 'payment_required' ||
+        data?.code === 'awaiting_webhook' || data?.code === 'payment_required' ||
         data?.code === 'subscription_required'
       ) {
         document.getElementById('auth-error').textContent =
-          'No active plan found. Redirecting to pricing...';
+          '⏳ Tu pago está siendo procesado... Acceso disponible en breve.';
 
         setTimeout(() => {
-          window.location.href = 'https://meltos.netlify.app/';
+          const _e2 = (document.getElementById('login-email') || document.getElementById('reg-email'))?.value || ''; if (_e2 && typeof startPaymentPolling === 'function') { startPaymentPolling(_e2); } else { window.location.href = 'https://meltos.netlify.app/'; }
         }, 1500);
 
         return;
@@ -2274,14 +2274,14 @@ async function register() {
       initApp();
     } else {
       if (
-        data?.code === 'payment_required' ||
+        data?.code === 'awaiting_webhook' || data?.code === 'payment_required' ||
         data?.code === 'subscription_required'
       ) {
         document.getElementById('auth-error').textContent =
-          'No active plan found. Redirecting to pricing...';
+          '⏳ Tu pago está siendo procesado... Acceso disponible en breve.';
 
         setTimeout(() => {
-          window.location.href = 'https://meltos.netlify.app/';
+          const _e2 = (document.getElementById('login-email') || document.getElementById('reg-email'))?.value || ''; if (_e2 && typeof startPaymentPolling === 'function') { startPaymentPolling(_e2); } else { window.location.href = 'https://meltos.netlify.app/'; }
         }, 1500);
 
         return;

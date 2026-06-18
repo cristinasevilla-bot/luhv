@@ -226,9 +226,10 @@ app.post('/api/webhooks/square', express.raw({ type: 'application/json' }), asyn
       } else {
         console.warn(`⚠️ PAYMENT received but could not extract buyer email. Raw title: "${rawTitle}", amount: ${amountCents}`);
       }
+    }
 
 
-      return res.json({ ok: true });
+        return res.json({ ok: true });
   } catch(e) {
     console.error('Square webhook error:', e);
     return res.status(500).json({ error: 'Webhook processing failed' });

@@ -8,6 +8,31 @@ const Anthropic = require('@anthropic-ai/sdk');
 const stripe = null;
 const STRIPE_WEBHOOK_SECRET = null;
 
+// — EMAIL via Resend ————————————————————————
+async function sendEmail(to, name, type, tier) {
+  try {
+    const key = process.env.RESEND_API_KEY;
+    if (!key) return console.warn('RESEND_API_KEY not set, skipping email');
+    const firstName = (name || to.split('@')[0]).split(' ')[0];
+    let subject, html;
+    if (type === 'access_granted') {
+      subject = '🎉 Tu acceso a luhv está listo';
+      html = `<h2>Hola ${firstName},</h2><p>Tu pago ha sido procesado y ya tienes acceso al plan <strong>${tier}</strong> de luhv.</p><p>Entra en <a href='https://luhv.onrender.com'>luhv.onrender.com</a> y regístrate con este correo.</p>`;
+    } else {
+      subject = '✅ Bienvenida a luhv';
+      html = `<h2>Hola ${firstName},</h2><p>Tu cuenta en luhv ha sido creada correctamente.</p><p>Accede en <a href='https://luhv.onrender.com'>luhv.onrender.com</a>.</p>`;
+    }
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: 'luhv <noreply@digitaimind.com>', to: [to], subject, html })
+    });
+    console.log(`📧 Email sent (${type}) to ${to}`);
+  } catch (e) {
+    console.error('Email error:', e.message);
+  }
+}
+
 // ── TIER CONFIG ──────────────────────────────────────────────────────────────
 const TIERS = {
   basic: {
@@ -223,6 +248,7 @@ app.post('/api/webhooks/square', express.raw({ type: 'application/json' }), asyn
         );
 
         console.log(`✅ PAYMENT: ${email} → ${tier}${isTrial?' TRIAL':''} until ${billingEnd.toDateString()}`);
+        sendEmail(email, name, 'access_granted', tier).catch(() => {});
       } else {
         console.warn(`⚠️ PAYMENT received but could not extract buyer email. Raw title: "${rawTitle}", amount: ${amountCents}`);
       }
@@ -1020,6 +1046,7 @@ app.post('/api/auth/register', async (req, res) => {
     );
 
     const user = rows[0];
+    sendEmail(cleanEmail, cleanName, 'welcome').catch(() => {});
     return res.json({ token: sign({ id: user.id }), user });
   } catch (e) {
     console.error('register error:', e);

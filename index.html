@@ -2188,8 +2188,11 @@ async function forgotPassword() {
     btn.disabled = false; btn.textContent = 'Reset Password 🔒';
   }
 }
-
-function startPaymentPolling(email) {  if (!email) return;
+function login() {
+    startPaymentPolling(document.getElementById('login-email').value.toLowerCase().trim());
+  }
+  
+async function startPaymentPolling(email) {  if (!email) return;
   const btn = document.getElementById('login-btn');
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span>Signing in...';

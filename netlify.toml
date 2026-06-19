@@ -1,0 +1,23 @@
+# netlify.toml
+# Configuración de build para Meltos by Luhv+
+# El comando de build valida el JS antes de publicar.
+# Si hay errores de sintaxis o faltan funciones críticas, el deploy se CANCELA.
+
+[build]
+  # Instala acorn (parser JS) y ejecuta el validador.
+    # Si el script falla (exit 1), Netlify cancela el deploy automáticamente.
+      command = "npm install acorn --no-save && node scripts/validate-html.js"
+
+        # Carpeta que se publica (la raíz del proyecto tiene los HTML)
+          publish = "."
+
+          [build.environment]
+            NODE_VERSION = "18"
+
+            # Cabeceras de seguridad opcionales (buena práctica)
+            [[headers]]
+              for = "/*"
+                [headers.values]
+                    X-Frame-Options = "DENY"
+                        X-Content-Type-Options = "nosniff"
+                            Referrer-Policy = "strict-origin-when-cross-origin"

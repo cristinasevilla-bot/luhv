@@ -165,8 +165,18 @@ tr:hover td { background:rgba(255,255,255,.015); }
         <div class="table-top"><h3>Recent AI Calls</h3></div>
         <div id="usage-recent"><div class="loading">Loading…</div></div>
       </div>
+    </div>
 
     <div id="page-debug" style="display:none">
+
+      <!-- PAYMENT HEALTH -->
+      <div class="table-wrap" style="margin-bottom:16px">
+        <div class="table-top" style="justify-content:space-between">
+          <h3>💳 Payment Health</h3>
+          <button class="btn-refresh" onclick="loadDebugPayments()">↻ Refresh</button>
+        </div>
+        <div id="debug-payments" style="padding:16px"><div class="loading">Loading...</div></div>
+      </div>
 
       <!-- SERVER STATUS -->
       <div class="table-wrap" style="margin-bottom:16px">
@@ -186,12 +196,20 @@ tr:hover td { background:rgba(255,255,255,.015); }
         <div id="debug-tests" style="padding:16px"><div class="empty">Click "Run Tests" to check all connections and config</div></div>
       </div>
 
-      <!-- RECENT ERRORS -->
+      <!-- RECENT ERRORS (from server error_logs) -->
       <div class="table-wrap" style="margin-bottom:16px">
         <div class="table-top">
           <h3>Recent Frontend Errors</h3>
         </div>
         <div id="debug-errors" style="padding:16px"><div class="empty">No errors logged yet</div></div>
+      </div>
+
+      <!-- LIVE JS ERRORS (captured in this admin page session) -->
+      <div class="table-wrap" style="margin-bottom:16px">
+        <div class="table-top">
+          <h3>Live JS Errors (this session)</h3>
+        </div>
+        <div id="debug-live-errors" style="padding:16px"><div class="empty">No frontend errors logged ✅</div></div>
       </div>
 
       <!-- RECENT ACTIVITY -->
@@ -215,7 +233,6 @@ tr:hover td { background:rgba(255,255,255,.015); }
           <div id="reset-result" style="margin-top:14px;font-size:13px;text-align:center;min-height:18px"></div>
         </div>
       </div>
-    </div>
     </div>
   </div>
 </div>
@@ -309,7 +326,7 @@ function showTab(tab) {
   document.getElementById('tab-reset').classList.toggle('active', tab==='reset');
   if (tab==='usage') loadUsage();
   if (tab==='insights') loadInsights();
-  if (tab==='debug') loadDebugStatus();
+  if (tab==='debug') { loadDebugStatus(); loadDebugPayments(); }
 }
 
 async function adminResetPassword() {
@@ -655,6 +672,67 @@ async function loadDebugStatus() {
       }</tbody></table>`;
 }
 
+async function loadDebugPayments() {
+  const box = document.getElementById('debug-payments');
+  box.innerHTML = '<div class="loading">Loading...</div>';
+  const data = await apiReq('/api/admin/debug/payments');
+  if (!data) { box.innerHTML = '<div class="empty">Could not load payment health</div>'; return; }
+
+  const c = data.config || {};
+  const cfgRow = (ok, label, detail) => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 13px;border-radius:10px;background:${ok?'rgba(6,214,160,.06)':'rgba(244,63,94,.08)'};border:1px solid ${ok?'rgba(6,214,160,.15)':'rgba(244,63,94,.25)'}">
+      <span style="font-size:13px;font-weight:600;color:#fff">${ok?'✅':'❌'} ${esc(label)}</span>
+      <span style="font-size:12px;color:${ok?'#06d6a0':'#f43f5e'}">${esc(detail)}</span>
+    </div>`;
+
+  const unprov = data.unprovisioned || [];
+  const awaiting = data.awaitingSignup || [];
+  const recent = data.recentPaid || [];
+
+  const fmt = d => d ? new Date(d).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
+  const ctxOf = e => { try { const o = typeof e.context==='string'?JSON.parse(e.context):e.context; return [o.eventType, o.squareOrderId, o.amountCents!=null?('$'+(o.amountCents/100)):''].filter(Boolean).join(' · '); } catch(_) { return ''; } };
+
+  box.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+      ${cfgRow(c.signature_key, 'Square signature key', c.signature_key?'set':'MISSING → webhook 503, nadie entra')}
+      ${cfgRow(c.access_token,  'Square access token', c.access_token?'set':'MISSING → no se lee el email')}
+      ${cfgRow(true, 'Webhook URL', String(c.webhook_url||'?'))}
+    </div>
+
+    <div style="margin:0 0 6px;font-size:13px;font-weight:700;color:${unprov.length?'#f43f5e':'#06d6a0'}">
+      ${unprov.length?('⚠️ '+unprov.length+' pago(s) sin email — cliente pagó pero NO tiene acceso'):'✅ No hay pagos sin procesar'}
+    </div>
+    ${unprov.length ? `<table><thead><tr><th>Detalle</th><th>Cuándo</th></tr></thead><tbody>${
+      unprov.map(e => `<tr>
+        <td style="font-size:12px;color:#f43f5e">${esc(e.message||'')}<div style="color:rgba(255,255,255,.4);font-size:11px">${esc(ctxOf(e))}</div></td>
+        <td style="color:rgba(255,255,255,.4);font-size:11px">${fmt(e.created_at)}</td>
+      </tr>`).join('')
+    }</tbody></table>` : ''}
+
+    <div style="margin:16px 0 6px;font-size:13px;font-weight:700;color:rgba(255,255,255,.6)">
+      ⏳ Pagaron pero aún no se han registrado (${awaiting.length})
+    </div>
+    ${awaiting.length ? `<table><thead><tr><th>Email</th><th>Plan</th><th>Acceso hasta</th></tr></thead><tbody>${
+      awaiting.map(u => `<tr>
+        <td style="font-size:12px">${esc(u.email)}</td>
+        <td><span class="badge ${u.tier==='mvp'?'badge-mvp':u.tier==='starter'?'badge-starter':'badge-basic'}">${(u.tier||'').toUpperCase()}</span></td>
+        <td style="color:rgba(255,255,255,.4);font-size:11px">${fmt(u.billing_period_end)}</td>
+      </tr>`).join('')
+    }</tbody></table>` : '<div class="empty">Nadie en espera</div>'}
+
+    <div style="margin:16px 0 6px;font-size:13px;font-weight:700;color:rgba(255,255,255,.6)">
+      ✅ Últimos accesos provisionados por Square (${recent.length})
+    </div>
+    ${recent.length ? `<table><thead><tr><th>Email</th><th>Plan</th><th>Cuándo</th></tr></thead><tbody>${
+      recent.map(u => `<tr>
+        <td style="font-size:12px">${esc(u.email)}</td>
+        <td><span class="badge ${u.tier==='mvp'?'badge-mvp':u.tier==='starter'?'badge-starter':'badge-basic'}">${(u.tier||'').toUpperCase()}${u.is_trial?' · TRIAL':''}</span></td>
+        <td style="color:rgba(255,255,255,.4);font-size:11px">${fmt(u.created_at)}</td>
+      </tr>`).join('')
+    }</tbody></table>` : '<div class="empty">Aún ningún pago de Square registrado</div>'}
+  `;
+}
+
 async function loadDebugTests() {
   document.getElementById('debug-tests').innerHTML = '<div class="loading">Running tests...</div>';
   const data = await apiReq('/api/admin/debug/test-db');
@@ -687,6 +765,113 @@ if (TOKEN) {
     .then(r=>{ if(r.ok){r.json().then(()=>showApp());}else{localStorage.removeItem('meltos_admin_token');TOKEN=null;} })
     .catch(()=>{ localStorage.removeItem('meltos_admin_token');TOKEN=null; });
 }
+</script>
+
+<!-- ── LIVE FRONTEND ERROR CAPTURER ─────────────────────────────────────────
+     Captures uncaught JS errors, unhandled promise rejections, failed resource
+     loads and console.error/warn from THIS admin page, into the
+     "Live JS Errors" panel. Last 100 kept in sessionStorage. -->
+<script>
+(function(){
+  if (window.__debugLoggerInstalled) return;
+  window.__debugLoggerInstalled = true;
+
+  const STORE_KEY = '__meltos_debug_errors';
+  let errors = [];
+  try { errors = JSON.parse(sessionStorage.getItem(STORE_KEY) || '[]'); } catch(e){ errors = []; }
+
+  function persist(){
+    try { sessionStorage.setItem(STORE_KEY, JSON.stringify(errors.slice(-100))); } catch(e){}
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function renderErrors(){
+    const el = document.getElementById('debug-live-errors');
+    if (!el) return;
+    if (errors.length === 0){
+      el.innerHTML = '<div class="empty">No frontend errors logged ✅</div>';
+      return;
+    }
+    const rows = errors.slice().reverse().map(e => {
+      const color = e.level === 'error' ? '#ff6b6b' : (e.level === 'warn' ? '#ffd166' : '#9aa');
+      const time = new Date(e.ts).toLocaleTimeString();
+      const loc = e.source ? `${e.source}${e.line?':'+e.line:''}${e.col?':'+e.col:''}` : '';
+      return `<div style="border-left:3px solid ${color};padding:6px 10px;margin:6px 0;background:rgba(255,255,255,0.03);border-radius:4px;font-family:monospace;font-size:12px;">
+        <div style="display:flex;justify-content:space-between;gap:8px;">
+          <span style="color:${color};font-weight:600;text-transform:uppercase;">${e.level}</span>
+          <span style="color:#888;">${time}</span>
+        </div>
+        <div style="color:#ddd;margin-top:2px;white-space:pre-wrap;word-break:break-word;">${escapeHtml(e.message)}</div>
+        ${loc ? `<div style="color:#777;margin-top:2px;">${escapeHtml(loc)}</div>`:''}
+        ${e.stack ? `<details style="margin-top:4px;"><summary style="cursor:pointer;color:#888;">stack</summary><pre style="white-space:pre-wrap;color:#999;margin:4px 0 0;">${escapeHtml(e.stack)}</pre></details>`:''}
+      </div>`;
+    }).join('');
+    el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="color:#aaa;font-size:13px;">${errors.length} mensaje(s) capturado(s)</span>
+        <button id="debug-clear-errors" style="background:#2a2a2a;border:1px solid #444;color:#ccc;padding:3px 10px;border-radius:4px;cursor:pointer;font-size:12px;">🗑 Limpiar</button>
+      </div>${rows}`;
+    const clearBtn = document.getElementById('debug-clear-errors');
+    if (clearBtn) clearBtn.onclick = () => { errors = []; persist(); renderErrors(); };
+  }
+
+  function addEntry(level, message, extra){
+    errors.push(Object.assign({ level, message, ts: Date.now() }, extra||{}));
+    if (errors.length > 100) errors = errors.slice(-100);
+    persist();
+    const pd = document.getElementById('page-debug');
+    if (pd && getComputedStyle(pd).display !== 'none') renderErrors();
+  }
+
+  // 1) Uncaught JS errors + failed resource loads
+  window.addEventListener('error', function(ev){
+    if (ev.message){
+      addEntry('error', ev.message, {
+        source: ev.filename, line: ev.lineno, col: ev.colno,
+        stack: ev.error && ev.error.stack ? ev.error.stack : ''
+      });
+    } else if (ev.target && (ev.target.src || ev.target.href)){
+      addEntry('error', 'Recurso no cargado: ' + (ev.target.src || ev.target.href), {});
+    }
+  }, true);
+
+  // 2) Unhandled promise rejections
+  window.addEventListener('unhandledrejection', function(ev){
+    const r = ev.reason;
+    addEntry('error', 'Promesa rechazada: ' + (r && r.message ? r.message : String(r)), {
+      stack: r && r.stack ? r.stack : ''
+    });
+  });
+
+  // 3) Intercept console.error / console.warn
+  ['error','warn'].forEach(function(level){
+    const orig = console[level].bind(console);
+    console[level] = function(...args){
+      try {
+        const msg = args.map(a => {
+          if (a instanceof Error) return a.message;
+          if (typeof a === 'object') { try { return JSON.stringify(a); } catch(e){ return String(a); } }
+          return String(a);
+        }).join(' ');
+        const stack = args.find(a => a instanceof Error);
+        addEntry(level, msg, { stack: stack && stack.stack ? stack.stack : '' });
+      } catch(e){}
+      orig(...args);
+    };
+  });
+
+  window.MeltosDebug = {
+    log: (msg) => addEntry('info', String(msg)),
+    render: renderErrors,
+    clear: () => { errors = []; persist(); renderErrors(); },
+    getAll: () => errors.slice()
+  };
+
+  document.addEventListener('DOMContentLoaded', renderErrors);
+  renderErrors();
+})();
 </script>
 </body>
 </html>

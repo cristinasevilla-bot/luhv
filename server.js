@@ -33,6 +33,58 @@ async function sendEmail(to, name, type, tier) {
   }
 }
 
+// ── SQUARE EMAIL HELPERS ──────────────────────────────────────────────────────
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Deep-scan any Square object (payment / order) for the first value that looks
+// like an email. Resilient to Square's many payload shapes (custom_fields,
+// fulfillment recipients, buyer_email_address, tenders, etc.).
+function deepFindEmail(obj, depth = 0) {
+  if (!obj || depth > 6) return null;
+  if (typeof obj === 'string') return EMAIL_RE.test(obj.trim()) ? obj.trim() : null;
+  if (Array.isArray(obj)) {
+    for (const item of obj) {
+      const found = deepFindEmail(item, depth + 1);
+      if (found) return found;
+    }
+    return null;
+  }
+  if (typeof obj === 'object') {
+    // Prefer keys that clearly mean email so we don't grab a stray address.
+    for (const key of Object.keys(obj)) {
+      if (/email/i.test(key)) {
+        const found = deepFindEmail(obj[key], depth + 1);
+        if (found) return found;
+      }
+    }
+    for (const key of Object.keys(obj)) {
+      const found = deepFindEmail(obj[key], depth + 1);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+// Retrieve the full Square order — the email collected by a Payment Link's
+// custom "Email" field lives on the ORDER, not on the payment event payload.
+async function fetchSquareOrder(orderId) {
+  if (!orderId || !process.env.SQUARE_ACCESS_TOKEN) return null;
+  try {
+    const resp = await fetch('https://connect.squareup.com/v2/orders/' + orderId, {
+      headers: {
+        'Authorization': 'Bearer ' + process.env.SQUARE_ACCESS_TOKEN,
+        'Content-Type': 'application/json',
+        'Square-Version': '2024-01-18'
+      }
+    });
+    const data = await resp.json();
+    return data?.order || null;
+  } catch (e) {
+    console.warn('Could not fetch Square order:', e.message);
+    return null;
+  }
+}
+
 // ── TIER CONFIG ──────────────────────────────────────────────────────────────
 const TIERS = {
   basic: {
@@ -110,20 +162,37 @@ app.post('/api/webhooks/square', express.raw({ type: 'application/json' }), asyn
   try {
     const rawBody = Buffer.isBuffer(req.body) ? req.body : Buffer.from(JSON.stringify(req.body || {}));
 
-    // Verify signature if key is set — reject mismatches in production.
+    // ── SIGNATURE VERIFICATION ──────────────────────────────────────────────
+    // If a signing key is configured, a valid signature is NON-NEGOTIABLE.
+    // A missing/invalid signature is rejected (401) instead of skipping the
+    // check, so nobody can forge a payment event and be granted free access.
+    // If NO key is configured we refuse to process at all (503) rather than
+    // granting access on unverified events.
     const signature = req.headers['x-square-hmacsha256-signature'];
-    const sigKey = process.env.SQUARE_WEBHOOK_SIGNATURE;
-    if (sigKey && signature) {
-      const hmac = crypto.createHmac('sha256', sigKey);
-      hmac.update('https://luhv.onrender.com/api/webhooks/square' + rawBody.toString());
-      const expected = hmac.digest('base64');
-      if (expected !== signature) {
+    const sigKey    = process.env.SQUARE_WEBHOOK_SIGNATURE;
+    const notifUrl  = process.env.SQUARE_WEBHOOK_URL || 'https://luhv.onrender.com/api/webhooks/square';
+
+    if (sigKey) {
+      if (!signature) {
+        console.warn('⚠️ Square webhook rejected: missing signature header');
+        return res.status(401).json({ error: 'Missing Square signature' });
+      }
+      const expected = crypto.createHmac('sha256', sigKey)
+        .update(notifUrl + rawBody.toString())
+        .digest('base64');
+      // Constant-time comparison (length-checked so timingSafeEqual can't throw)
+      const a = Buffer.from(expected);
+      const b = Buffer.from(signature);
+      if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
         console.warn('⚠️ Square webhook signature mismatch');
         return res.status(401).json({ error: 'Invalid Square signature' });
       }
+    } else {
+      console.error('SQUARE_WEBHOOK_SIGNATURE not set — webhook disabled to avoid granting free access.');
+      return res.status(503).json({ error: 'Webhook not configured' });
     }
 
-    const event = Buffer.isBuffer(req.body) ? JSON.parse(rawBody.toString()) : req.body;
+    const event = JSON.parse(rawBody.toString());
     const eventType = event.type;
     console.log('Square event:', eventType);
 
@@ -153,6 +222,17 @@ app.post('/api/webhooks/square', express.raw({ type: 'application/json' }), asyn
                      event.data?.object?.order?.net_amounts?.customer_email;
       }
       
+      // Deep-scan the webhook payload itself for any email we missed above.
+      if (!buyerEmail) buyerEmail = deepFindEmail(event.data?.object);
+
+      // Payment Links collect the email on the ORDER. The payment.* event only
+      // carries the payment object, so fetch the full order and scan it.
+      const orderIdForLookup = payment.order_id || order?.id || order?.order_id;
+      if (!buyerEmail && orderIdForLookup) {
+        const fullOrder = await fetchSquareOrder(orderIdForLookup);
+        if (fullOrder) buyerEmail = deepFindEmail(fullOrder);
+      }
+
       // Also try to find via Square customer API using access token
       if (!buyerEmail && payment.customer_id && process.env.SQUARE_ACCESS_TOKEN) {
         try {
@@ -251,6 +331,19 @@ app.post('/api/webhooks/square', express.raw({ type: 'application/json' }), asyn
         sendEmail(email, name, 'access_granted', tier).catch(() => {});
       } else {
         console.warn(`⚠️ PAYMENT received but could not extract buyer email. Raw title: "${rawTitle}", amount: ${amountCents}`);
+        // Persist so a paid-but-unprovisioned customer is visible instead of lost.
+        try {
+          await db.query(
+            `INSERT INTO error_logs (message, user_email, page, context)
+             VALUES ($1,$2,$3,$4)`,
+            [
+              'Square payment without extractable buyer email',
+              null,
+              'square_webhook',
+              JSON.stringify({ eventType, squareOrderId, amountCents, rawTitle })
+            ]
+          );
+        } catch (logErr) { console.error('Could not log missing-email payment:', logErr.message); }
       }
     }
 
@@ -1534,9 +1627,61 @@ app.get('/api/admin/debug/test-db', adminAuth, async (req, res) => {
     await t('is_trial column', async () => { await db.query('SELECT is_trial FROM users LIMIT 1'); return 'ok'; });
     await t('Anthropic key', async () => { return process.env.ANTHROPIC_API_KEY ? 'set (' + process.env.ANTHROPIC_API_KEY.slice(0,8) + '...)' : 'MISSING'; });
     await t('JWT secret', async () => { return process.env.JWT_SECRET ? 'set' : 'MISSING'; });
-    await t('Square webhook', async () => { return process.env.SQUARE_WEBHOOK_SIG ? 'sig set' : 'no sig (ok for testing)'; });
+    await t('Square signature key', async () => { return process.env.SQUARE_WEBHOOK_SIGNATURE ? 'set' : 'MISSING — webhook returns 503, nobody gets access'; });
+    await t('Square access token', async () => { return process.env.SQUARE_ACCESS_TOKEN ? 'set' : 'MISSING — cannot read buyer email from Orders API'; });
+    await t('Square payment columns', async () => { await db.query('SELECT square_order_id, subscription_status, payment_provider FROM users LIMIT 1'); return 'ok'; });
     res.json({ tests });
   } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── PAYMENT HEALTH — surface payment/access problems before the client does ───
+app.get('/api/admin/debug/payments', adminAuth, async (req, res) => {
+  const safe = async (fn, fallback) => { try { return await fn(); } catch(e) { return fallback; } };
+
+  // Config — the silent killers. If any is missing, payments never grant access.
+  const config = {
+    signature_key:  !!process.env.SQUARE_WEBHOOK_SIGNATURE,
+    access_token:   !!process.env.SQUARE_ACCESS_TOKEN,
+    webhook_url:    process.env.SQUARE_WEBHOOK_URL || 'https://luhv.onrender.com/api/webhooks/square (default)'
+  };
+
+  // Payments that arrived but couldn't be matched to an email (logged by the webhook).
+  const unprovisioned = await safe(async () => {
+    const r = await db.query(
+      `SELECT message, context, created_at
+       FROM error_logs
+       WHERE page = 'square_webhook'
+       ORDER BY created_at DESC LIMIT 25`
+    );
+    return r.rows;
+  }, []);
+
+  // Users who paid (active paid tier) but haven't set a password yet → they
+  // can't sign up if something is off. Useful "waiting room" view.
+  const awaitingSignup = await safe(async () => {
+    const r = await db.query(
+      `SELECT email, tier, billing_period_end, created_at
+       FROM users
+       WHERE password_hash IS NULL
+         AND tier IN ('starter','mvp','pro')
+         AND billing_period_end > NOW()
+       ORDER BY created_at DESC LIMIT 25`
+    );
+    return r.rows;
+  }, []);
+
+  // Recently provisioned paying users — confirms the webhook is actually working.
+  const recentPaid = await safe(async () => {
+    const r = await db.query(
+      `SELECT email, tier, is_trial, billing_period_end, created_at
+       FROM users
+       WHERE payment_provider = 'square'
+       ORDER BY created_at DESC LIMIT 15`
+    );
+    return r.rows;
+  }, []);
+
+  res.json({ config, unprovisioned, awaitingSignup, recentPaid });
 });
 
 // ── ADMIN INSIGHTS — goals, habits, coach conversations per user ──────────────
@@ -2648,6 +2793,17 @@ async function runMigrations() {
     `CREATE TABLE IF NOT EXISTS domain_metric_logs (id SERIAL PRIMARY KEY, metric_id INTEGER, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, value NUMERIC NOT NULL, note TEXT, logged_at TIMESTAMPTZ DEFAULT NOW())`,
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT false`,
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS is_trial BOOLEAN DEFAULT false`,
+    // ── Square payment columns (required by the payment webhook INSERT) ──────
+    // Without these the webhook INSERT throws "column does not exist" and the
+    // paying user is never created → "pagué pero no puedo registrarme".
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS square_customer_id TEXT`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS square_order_id TEXT`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_status TEXT DEFAULT 'inactive'`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS payment_provider TEXT`,
+    // The webhook creates the user BEFORE they pick a password (they set it at
+    // sign-up). The original schema had password_hash NOT NULL, which made that
+    // INSERT fail. Allow NULL so the row can be provisioned on payment.
+    `ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL`,
     `CREATE TABLE IF NOT EXISTS error_logs (
       id SERIAL PRIMARY KEY,
       message TEXT,

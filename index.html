@@ -872,14 +872,21 @@ body{background:
     </div>
 
 
-    <!-- Forgot password form -->
+    <!-- Forgot password — step 1: ask for the email -->
     <div id="forgot-form" style="display:none">
-      <div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:14px;text-align:center">Enter your email and choose a new password.<br>Only works if you have an active paid plan.</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:14px;text-align:center">Introduce tu correo y te enviaremos un enlace<br>para elegir una contraseña nueva.</div>
       <div class="auth-field"><label>Email</label><input type="email" id="fp-email" placeholder="you@email.com" autocomplete="email"></div>
-      <div class="auth-field"><label>New Password (min 8 chars)</label><input type="password" id="fp-newpass" placeholder="••••••••"></div>
-      <button class="auth-btn" onclick="forgotPassword()">Reset Password 🔒</button>
+      <button class="auth-btn" onclick="forgotPassword()">Enviar enlace 📧</button>
       <div style="text-align:center;margin-top:10px"><a href="#" onclick="hideForgot();return false" style="font-size:12px;color:rgba(255,255,255,.35);text-decoration:none;">← Back to Sign In</a></div>
       <div style="text-align:center;margin-top:12px;font-size:12px;color:rgba(255,255,255,.5)">Having trouble? <a href="mailto:meltosluhv@gmail.com" style="color:#06d6a0;text-decoration:none;font-weight:600;">Contact support</a></div>
+    </div>
+
+    <!-- Forgot password — step 2: shown when arriving from the emailed link -->
+    <div id="reset-form" style="display:none">
+      <div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:14px;text-align:center">Elige tu nueva contraseña.</div>
+      <div class="auth-field"><label>Nueva contraseña (mín. 8 caracteres)</label><input type="password" id="rp-newpass" placeholder="••••••••" autocomplete="new-password"></div>
+      <button class="auth-btn" onclick="submitReset()">Guardar contraseña 🔒</button>
+      <div style="text-align:center;margin-top:10px"><a href="#" onclick="hideReset();return false" style="font-size:12px;color:rgba(255,255,255,.35);text-decoration:none;">← Back to Sign In</a></div>
     </div>
     <div class="auth-error" id="auth-error"></div>
     <div style="text-align:center;margin-top:18px;font-size:12px;color:rgba(255,255,255,.5)">Having trouble? <a href="mailto:meltosluhv@gmail.com" style="color:#06d6a0;text-decoration:none;font-weight:600;">Contact support</a></div>
@@ -1898,6 +1905,23 @@ function showToast(msg, duration) {
 })();
 
 const API = 'https://luhv.onrender.com';
+
+// Where users without an active plan are sent. Must stay in sync with the
+// backend CORS allowlist in server.js — the old value (meltos.netlify.app) was
+// not a deployed origin, so the redirect landed nowhere.
+const PRICING_URL = 'https://meltosbyluhv.netlify.app/landing.html#pricing';
+
+// After checkout, Square's webhook can take a few seconds to provision the
+// account, so a 403 right after paying is expected and worth retrying. A 403
+// that persists past this budget means there is no active plan — send the user
+// to pricing rather than retrying forever.
+const PAYMENT_POLL_MAX_ATTEMPTS = 5;
+const PAYMENT_POLL_DELAY_MS = 3000;
+
+// initApp fires a dozen requests at once, so a lapsed plan surfaces as a burst
+// of 403s. Redirect on the first and ignore the rest.
+let planRedirectStarted = false;
+
 let TOKEN = localStorage.getItem('luhv_token');
 let USER  = JSON.parse(localStorage.getItem('luhv_user') || 'null');
 let chatHistory = [];
@@ -1985,12 +2009,18 @@ function showTrialBanner(msg, urgent) {
   document.body.prepend(b);
 }
 
+// Coach is MVP-only. Starter buys the dashboard, roadmap, tasks and the quiz
+// that generates them — the backend enforces this via TIERS.coach_access.
+function userHasCoach() {
+  return userTier === 'mvp' || userTier === 'pro';
+}
+
 function updateTierUI() {
   var coachGate  = document.getElementById('coach-upgrade-gate');
   var coachChat  = document.getElementById('chat-msgs');
   var coachInput = document.querySelector('.cinrow');
   var hasActivePlan = userTier === 'starter' || userTier === 'mvp' || userTier === 'pro';
-  var hasCoach = userTier === 'mvp' || userTier === 'pro';
+  var hasCoach = userHasCoach();
 
   if (coachGate)  coachGate.style.display  = hasCoach ? 'none' : 'block';
   if (coachChat)  coachChat.style.opacity   = hasActivePlan ? '1' : '.35';
@@ -2119,6 +2149,14 @@ async function api(path, opts = {}, _retry = 0) {
     if (res.status === 401) { logout(); return null; }
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
+      // The plan can lapse mid-session, so any request may come back 403. Note
+      // this is only 'subscription_required': 'upgrade_required' from the coach
+      // routes is a Starter hitting an MVP feature, which is normal and shows
+      // the in-app upgrade gate rather than throwing them out.
+      if (res.status === 403 && err.code === 'subscription_required') {
+        handleLapsedPlan();
+        return null;
+      }
       // Return the error object instead of throwing — callers check result.error
       return err;
     }
@@ -2153,46 +2191,130 @@ function hideForgot() {
   setTab('login');
 }
 
+// Step 1 — ask for a reset link. The reply is deliberately the same whether or
+// not the address has an account, so don't branch the UI on it.
 async function forgotPassword() {
   var email = document.getElementById('fp-email').value.trim();
-  var newPass = document.getElementById('fp-newpass').value;
   var errEl = document.getElementById('auth-error');
   errEl.textContent = '';
-  if (!email || !newPass) {
-    errEl.textContent = 'Please enter your email and a new password.';
+  if (!email) {
+    errEl.textContent = 'Introduce tu correo.';
     return;
   }
   var btn = document.querySelector('#forgot-form .auth-btn');
-  btn.disabled = true; btn.textContent = 'Resetting...';
+  btn.disabled = true; btn.textContent = 'Enviando...';
   try {
     var r = await fetch(API + '/api/auth/forgot-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email, new_password: newPass })
+      body: JSON.stringify({ email: email })
     });
     var data = await r.json();
-    if (r.ok && data.ok) {
+    if (r.ok) {
       errEl.style.color = '#06d6a0';
-      errEl.textContent = 'Password updated! You can now sign in.';
+      errEl.textContent = data.message || 'Si ese correo tiene cuenta, te hemos enviado un enlace.';
       document.getElementById('fp-email').value = '';
-      document.getElementById('fp-newpass').value = '';
-      setTimeout(hideForgot, 2000);
     } else {
       errEl.style.color = '';
-      errEl.textContent = data.error || 'Could not reset password. Check your email.';
+      errEl.textContent = data.error || 'No se pudo enviar el enlace.';
     }
   } catch(e) {
     errEl.style.color = '';
     errEl.textContent = 'Network error. Please try again.';
   } finally {
-    btn.disabled = false; btn.textContent = 'Reset Password 🔒';
+    btn.disabled = false; btn.textContent = 'Enviar enlace 📧';
+  }
+}
+
+// Step 2 — arriving from the emailed link with ?reset=<token>.
+var RESET_TOKEN = null;
+
+function showResetForm(token) {
+  RESET_TOKEN = token;
+  ['login-form', 'register-form', 'forgot-form'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  var el = document.getElementById('reset-form');
+  if (el) el.style.display = 'block';
+  document.getElementById('auth-error').textContent = '';
+}
+
+function hideReset() {
+  RESET_TOKEN = null;
+  var el = document.getElementById('reset-form');
+  if (el) el.style.display = 'none';
+  setTab('login');
+}
+
+async function submitReset() {
+  var newPass = document.getElementById('rp-newpass').value;
+  var errEl = document.getElementById('auth-error');
+  errEl.textContent = '';
+  if (!newPass || newPass.length < 8) {
+    errEl.style.color = '';
+    errEl.textContent = 'La contraseña debe tener al menos 8 caracteres.';
+    return;
+  }
+  var btn = document.querySelector('#reset-form .auth-btn');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  try {
+    var r = await fetch(API + '/api/auth/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: RESET_TOKEN, new_password: newPass })
+    });
+    var data = await r.json();
+    if (r.ok && data.ok) {
+      errEl.style.color = '#06d6a0';
+      errEl.textContent = '¡Contraseña actualizada! Ya puedes entrar.';
+      document.getElementById('rp-newpass').value = '';
+      // Drop the token from the URL so a shared or reloaded link can't reuse it.
+      try { history.replaceState(null, '', window.location.pathname); } catch(e) {}
+      setTimeout(hideReset, 2000);
+    } else {
+      errEl.style.color = '';
+      errEl.textContent = data.error || 'No se pudo restablecer la contraseña.';
+    }
+  } catch(e) {
+    errEl.style.color = '';
+    errEl.textContent = 'Network error. Please try again.';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Guardar contraseña 🔒';
   }
 }
 function login() {
-    startPaymentPolling(document.getElementById('login-email').value.toLowerCase().trim());
-  }
-  
-async function startPaymentPolling(email) {  if (!email) return;
+  startPaymentPolling(document.getElementById('login-email').value.toLowerCase().trim());
+}
+
+function redirectToPricing(message) {
+  document.getElementById('auth-error').textContent = message;
+  setTimeout(() => { window.location.href = PRICING_URL; }, 2500);
+}
+
+// The plan lapsed while the user was inside the app. The token is still
+// cryptographically valid but buys nothing, so drop it rather than leave them
+// on a login screen that would just reject them.
+function handleLapsedPlan() {
+  if (planRedirectStarted) return;
+  planRedirectStarted = true;
+  try {
+    localStorage.removeItem('luhv_token');
+    localStorage.removeItem('luhv_user');
+    localStorage.removeItem('luhv_chat');
+  } catch (e) {}
+  try { showToast('Tu plan ha caducado — te llevamos a los planes'); } catch (e) {}
+  setTimeout(() => { window.location.href = PRICING_URL; }, 1200);
+}
+
+function isAwaitingPayment(data) {
+  return data?.code === 'awaiting_webhook' ||
+         data?.code === 'payment_required' ||
+         data?.code === 'subscription_required';
+}
+
+async function startPaymentPolling(email, attempt = 0) {
+  if (!email) return;
   const btn = document.getElementById('login-btn');
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span>Signing in...';
@@ -2201,7 +2323,7 @@ async function startPaymentPolling(email) {  if (!email) return;
     const data = await api('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify({
-        email: document.getElementById('login-email').value.toLowerCase().trim(),
+        email: email,
         password: document.getElementById('login-pass').value
       })
     });
@@ -2214,24 +2336,24 @@ async function startPaymentPolling(email) {  if (!email) return;
       localStorage.setItem('luhv_user', JSON.stringify(USER));
 
       initApp();
-    } else {
-      if (
-        data?.code === 'awaiting_webhook' || data?.code === 'payment_required' ||
-        data?.code === 'subscription_required'
-      ) {
+      return;
+    }
+
+    if (isAwaitingPayment(data)) {
+      if (attempt + 1 < PAYMENT_POLL_MAX_ATTEMPTS) {
         document.getElementById('auth-error').textContent =
-          '⏳ Tu pago está siendo procesado... Acceso disponible en breve.';
-
-        setTimeout(() => {
-          const _e2 = (document.getElementById('login-email') || document.getElementById('reg-email'))?.value || ''; if (_e2 && typeof startPaymentPolling === 'function') { startPaymentPolling(_e2); } else { window.location.href = 'https://meltos.netlify.app/'; }
-        }, 1500);
-
+          '⏳ Tu pago está siendo procesado... (' + (attempt + 2) + '/' + PAYMENT_POLL_MAX_ATTEMPTS + ')';
+        // Button stays disabled: a poll is still in flight.
+        setTimeout(() => startPaymentPolling(email, attempt + 1), PAYMENT_POLL_DELAY_MS);
         return;
       }
 
-      document.getElementById('auth-error').textContent =
-        data?.error || 'Invalid email or password';
+      redirectToPricing('No encontramos un plan activo para este correo. Te llevamos a los planes...');
+      return;
     }
+
+    document.getElementById('auth-error').textContent =
+      data?.error || 'Invalid email or password';
   } catch (e) {
     document.getElementById('auth-error').textContent =
       'Connection error — please try again';
@@ -2241,7 +2363,7 @@ async function startPaymentPolling(email) {  if (!email) return;
   btn.innerHTML = 'Sign In 🏆';
 }
 
-async function register() {
+async function register(attempt = 0) {
   const btn = document.getElementById('reg-btn');
   const consent = document.getElementById('reg-consent');
 
@@ -2275,24 +2397,24 @@ async function register() {
       localStorage.setItem('luhv_user', JSON.stringify(USER));
 
       initApp();
-    } else {
-      if (
-        data?.code === 'awaiting_webhook' || data?.code === 'payment_required' ||
-        data?.code === 'subscription_required'
-      ) {
+      return;
+    }
+
+    if (isAwaitingPayment(data)) {
+      if (attempt + 1 < PAYMENT_POLL_MAX_ATTEMPTS) {
         document.getElementById('auth-error').textContent =
-          '⏳ Tu pago está siendo procesado... Acceso disponible en breve.';
-
-        setTimeout(() => {
-          const _e2 = (document.getElementById('login-email') || document.getElementById('reg-email'))?.value || ''; if (_e2 && typeof startPaymentPolling === 'function') { startPaymentPolling(_e2); } else { window.location.href = 'https://meltos.netlify.app/'; }
-        }, 1500);
-
+          '⏳ Tu pago está siendo procesado... (' + (attempt + 2) + '/' + PAYMENT_POLL_MAX_ATTEMPTS + ')';
+        // Button stays disabled: a retry is still in flight.
+        setTimeout(() => register(attempt + 1), PAYMENT_POLL_DELAY_MS);
         return;
       }
 
-      document.getElementById('auth-error').textContent =
-        data?.error || 'Something went wrong';
+      redirectToPricing('No encontramos un plan activo para este correo. Te llevamos a los planes...');
+      return;
     }
+
+    document.getElementById('auth-error').textContent =
+      data?.error || 'Something went wrong';
   } catch (e) {
     document.getElementById('auth-error').textContent =
       'Connection error — please try again';
@@ -3405,8 +3527,10 @@ async function obNext() {
       await loadEffectivenessScore();
       loadPeakHourCard();
 
-      // Switch to coach and send a personalised AI welcome
-      switchPage('ai');
+      // Starter has no coach, so sending them to the coach page dropped them on
+      // the upgrade gate — with their new tasks announced in a panel they can't
+      // use. Send them to the roadmap, where the tasks actually are.
+      switchPage(userHasCoach() ? 'ai' : 'roadmap');
       setTimeout(async function() {
         // Clear the static welcome msg and show typing
         var chatEl = document.getElementById('chat-msgs');
@@ -5435,7 +5559,15 @@ function skipGoalLink() {
     }
   });
 })();
-if (TOKEN && USER) initApp();
+// A ?reset=<token> link from email wins over an existing session: someone
+// resetting their password may well be doing it because the session on this
+// device is not theirs to keep.
+(function bootAuth() {
+  var resetToken = null;
+  try { resetToken = new URLSearchParams(window.location.search).get('reset'); } catch (e) {}
+  if (resetToken) { showResetForm(resetToken); return; }
+  if (TOKEN && USER) initApp();
+})();
 </script>
 
 <script>

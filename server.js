@@ -9,13 +9,20 @@ const stripe = null;
 const STRIPE_WEBHOOK_SECRET = null;
 
 // — EMAIL via Resend ————————————————————————
-async function sendEmail(to, name, type, tier) {
+async function sendEmail(to, name, type, tier, extra) {
   try {
     const key = process.env.RESEND_API_KEY;
     if (!key) return console.warn('RESEND_API_KEY not set, skipping email');
     const firstName = (name || to.split('@')[0]).split(' ')[0];
     let subject, html;
-    if (type === 'access_granted') {
+    if (type === 'password_reset') {
+      subject = 'Restablece tu contraseña de luhv';
+      html = `<h2>Hola ${firstName},</h2>` +
+        `<p>Has pedido restablecer tu contraseña. Pulsa el enlace para elegir una nueva:</p>` +
+        `<p><a href='${extra.resetUrl}'>Restablecer mi contraseña</a></p>` +
+        `<p>El enlace caduca en 1 hora y solo se puede usar una vez.</p>` +
+        `<p>Si no has sido tú, ignora este correo: tu contraseña no cambiará.</p>`;
+    } else if (type === 'access_granted') {
       subject = '🎉 Tu acceso a luhv está listo';
       html = `<h2>Hola ${firstName},</h2><p>Tu pago ha sido procesado y ya tienes acceso al plan <strong>${tier}</strong> de luhv.</p><p>Entra en <a href='https://luhv.onrender.com'>luhv.onrender.com</a> y regístrate con este correo.</p>`;
     } else {
@@ -85,6 +92,25 @@ async function fetchSquareOrder(orderId) {
   }
 }
 
+// ── SQUARE PRODUCT CATALOGUE ─────────────────────────────────────────────────
+// Keyed by charge amount in the smallest currency unit.
+//
+// The amount is the only reliable signal for which product was bought: Square's
+// payment.* events carry the payment object alone, never the order, so
+// line_items[0].name — which the previous plan detection relied on — is always
+// undefined. That left every purchase falling through to a starter/30d default,
+// so MVP buyers silently lost coach access and annual buyers lost 11 months.
+//
+// Keep in sync with the pricing table in landing.html. An amount that is not
+// listed here is NOT guessed at — see the webhook handler.
+const SQUARE_PRODUCTS = {
+  200:   { tier: 'mvp',     days: 7,   is_trial: true,  label: '7-day trial (€2)' },
+  999:   { tier: 'starter', days: 30,  is_trial: false, label: 'Starter monthly ($9.99)' },
+  2999:  { tier: 'mvp',     days: 30,  is_trial: false, label: 'MVP monthly ($29.99)' },
+  9900:  { tier: 'starter', days: 365, is_trial: false, label: 'Starter annual ($99)' },
+  20000: { tier: 'mvp',     days: 365, is_trial: false, label: 'MVP annual ($200)' },
+};
+
 // ── TIER CONFIG ──────────────────────────────────────────────────────────────
 const TIERS = {
   basic: {
@@ -120,6 +146,23 @@ const TOKEN_PACKS = [
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
+
+// Express 4 does not catch rejections from async handlers — it predates them.
+// An async route that throws (a DB blip is enough) becomes an unhandled
+// rejection, and Node kills the process for those: one bad query anywhere took
+// the whole API down. 37 of these routes had no try/catch of their own.
+//
+// Wrapping the registrars catches it for every route at once, including any
+// added later, and hands the error to the middleware at the bottom of the file.
+for (const method of ['get', 'post', 'put', 'patch', 'delete']) {
+  const register = app[method].bind(app);
+  app[method] = (path, ...handlers) =>
+    register(path, ...handlers.map((h) =>
+      typeof h === 'function' && h.length <= 3
+        ? function wrapped(req, res, next) { return Promise.resolve(h(req, res, next)).catch(next); }
+        : h
+    ));
+}
 
 // health check
 app.get('/health', (req, res) => {
@@ -196,7 +239,14 @@ app.post('/api/webhooks/square', express.raw({ type: 'application/json' }), asyn
     const eventType = event.type;
     console.log('Square event:', eventType);
 
-    if (eventType === 'payment.completed' || eventType === 'payment.created' || eventType === 'order.completed') {
+    // payment.created fires when the payment is opened, payment.updated when it
+    // reaches its final state — whichever arrives carrying COMPLETED provisions
+    // the account, and the upsert below makes a double delivery harmless. Both
+    // must be subscribed in the Square dashboard.
+    // ('payment.completed' and 'order.completed' are kept only because older
+    // subscriptions may reference them; Square does not emit either.)
+    if (eventType === 'payment.created' || eventType === 'payment.updated' ||
+        eventType === 'payment.completed' || eventType === 'order.completed') {
       const payment = event.data?.object?.payment || event.data?.object?.order;
       if (!payment) return res.json({ ok: true });
 
@@ -249,39 +299,59 @@ app.post('/api/webhooks/square', express.raw({ type: 'application/json' }), asyn
       const squareCustomerId = payment.customer_id || order?.customer_id || null;
       const squareOrderId = payment.order_id || order?.id || null;
 
-      // Extract plan from product name, note or reference_id
+      // Logged for diagnostics only. Never used to pick a plan: payment.* events
+      // don't carry the order, so line_items is always undefined and Payment
+      // Links set neither note nor reference_id — this is expected to be ''.
       const rawTitle = (
         event.data?.object?.order?.line_items?.[0]?.name ||
-        payment.note || 
-        payment.reference_id || 
+        payment.note ||
+        payment.reference_id ||
         ''
       ).toLowerCase();
 
-      // Also check amount as fallback
       const amountCents = payment.amount_money?.amount || order?.total_money?.amount || 0;
+      const currency = payment.amount_money?.currency || order?.total_money?.currency || null;
 
       // Diagnostic logs
       console.log('Square email found:', buyerEmail);
       console.log('Square amount:', amountMoney);
       console.log('Square order id:', squareOrderId);
 
-      let tier = 'starter';
-      let daysAccess = 30;
-      let isTrial = false;
-
-      if (rawTitle.includes('trial') || rawTitle.includes('7 day') || rawTitle.includes('7-day') || amountCents <= 250) {
-        tier = 'mvp'; daysAccess = 7; isTrial = true;
-      } else if (rawTitle.includes('mvp') && (rawTitle.includes('annual') || rawTitle.includes('yearly'))) { 
-        tier = 'mvp'; daysAccess = 365; 
-      } else if (rawTitle.includes('mvp')) { 
-        tier = 'mvp'; daysAccess = 30; 
-      } else if (rawTitle.includes('starter') && (rawTitle.includes('annual') || rawTitle.includes('yearly'))) { 
-        tier = 'starter'; daysAccess = 365; 
-      } else if (rawTitle.includes('starter')) { 
-        tier = 'starter'; daysAccess = 30;
-      } else if (rawTitle.includes('pro')) {
-        tier = 'mvp'; daysAccess = 30;
+      // Only provision once the money is actually captured. payment.created can
+      // fire on a payment that is merely APPROVED, or that later fails.
+      const paymentStatus = payment.status || null;
+      if (paymentStatus && paymentStatus !== 'COMPLETED') {
+        console.log(`Square payment status=${paymentStatus} (not COMPLETED) — no access granted yet`);
+        return res.json({ ok: true });
       }
+
+      const product = SQUARE_PRODUCTS[amountCents];
+
+      // An unrecognised amount means the catalogue and Square have drifted apart.
+      // Refuse to guess: granting a default plan is exactly how MVP buyers ended
+      // up on starter. Record it so the payment is visible and can be fixed by
+      // hand via /api/admin/users/:id/tier.
+      if (!product) {
+        console.warn(`⚠️ PAYMENT with unrecognised amount ${amountCents} ${currency || ''} — refusing to guess a plan. Email: ${buyerEmail || 'unknown'}`);
+        try {
+          await db.query(
+            `INSERT INTO error_logs (message, user_email, page, context)
+             VALUES ($1,$2,$3,$4)`,
+            [
+              'Square payment with unrecognised amount — no plan granted',
+              buyerEmail || null,
+              'square_webhook',
+              JSON.stringify({ eventType, squareOrderId, amountCents, currency, rawTitle })
+            ]
+          );
+        } catch (logErr) { console.error('Could not log unrecognised payment:', logErr.message); }
+        return res.json({ ok: true });
+      }
+
+      const tier = product.tier;
+      const daysAccess = product.days;
+      const isTrial = product.is_trial;
+      console.log(`Square product matched: ${product.label} → ${tier}, ${daysAccess}d`);
 
       const billingEnd = new Date();
       billingEnd.setDate(billingEnd.getDate() + daysAccess);
@@ -1196,32 +1266,104 @@ app.post('/api/auth/change-password', auth, async (req, res) => {
   }
 });
 
-// ── FORGOT PASSWORD (self-service, no email required) ────────────────────────
-// User provides their email + new password. We verify the email exists and
-// has paid access, then reset. No token/email flow needed for now.
-app.post('/api/auth/forgot-password', async (req, res) => {
-  const { email, new_password } = req.body;
-  if (!email || !new_password)
-    return res.status(400).json({ error: 'Email and new password are required' });
-  if (String(new_password).length < 8)
-    return res.status(400).json({ error: 'New password must be at least 8 characters' });
+// ── FORGOT PASSWORD ───────────────────────────────────────────────────────────
+// Proof of email ownership, via a one-time token mailed to the address. The
+// original endpoint took {email, new_password} and just did it — no token, no
+// proof, no current password — so knowing an address was enough to take the
+// account.
+const RESET_TOKEN_TTL_MIN = 60;
+const hashToken = (t) => crypto.createHash('sha256').update(t).digest('hex');
+
+// Issuing links and spending them get separate budgets. Sharing one meant a
+// user fumbling their new password twice could no longer request a link.
+const forgotLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, max: 5,   // caps how much mail one address can trigger
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Demasiados intentos. Espera unos minutos.' }
+});
+const resetLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, max: 10,  // needs a valid token anyway, so looser
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Demasiados intentos. Espera unos minutos.' }
+});
+
+// Always answers the same way. Saying "no account found" would turn this into a
+// tool for testing which addresses are customers.
+app.post('/api/auth/forgot-password', forgotLimiter, async (req, res) => {
+  const generic = { ok: true, message: 'Si ese correo tiene una cuenta con plan activo, te hemos enviado un enlace para restablecer la contraseña.' };
   try {
-    const cleanEmail = String(email || '').toLowerCase().trim();
+    const cleanEmail = String(req.body?.email || '').toLowerCase().trim();
+    if (!cleanEmail) return res.status(400).json({ error: 'Email is required' });
+
     const { rows } = await db.query(
-      'SELECT id, tier, billing_period_end FROM users WHERE LOWER(email)=LOWER($1)',
+      'SELECT id, name, email, tier, billing_period_end FROM users WHERE LOWER(email)=LOWER($1)',
       [cleanEmail]
     );
-    if (!rows.length)
-      return res.status(404).json({ error: 'No account found with that email' });
     const user = rows[0];
-    if (!hasActivePaidAccess(user))
-      return res.status(403).json({ error: 'No active paid plan found for this email. Please contact support.' });
-    const hash = await bcrypt.hash(new_password, 10);
-    await db.query('UPDATE users SET password_hash=$1 WHERE id=$2', [hash, user.id]);
-    res.json({ ok: true });
+
+    // No account, or no active plan: say nothing, do nothing.
+    if (!user || !hasActivePaidAccess(user)) {
+      console.log(`forgot-password: no eligible account for ${cleanEmail} — generic reply sent`);
+      return res.json(generic);
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MIN * 60 * 1000);
+
+    // One live token per user: a new request invalidates any earlier one.
+    await db.query('DELETE FROM password_reset_tokens WHERE user_id=$1', [user.id]);
+    await db.query(
+      'INSERT INTO password_reset_tokens (token_hash, user_id, expires_at) VALUES ($1,$2,$3)',
+      [hashToken(token), user.id, expiresAt.toISOString()]
+    );
+
+    const base = process.env.APP_URL || 'https://meltosbyluhv.netlify.app';
+    const resetUrl = `${base}/?reset=${token}`;
+    sendEmail(user.email, user.name, 'password_reset', null, { resetUrl }).catch(() => {});
+    console.log(`forgot-password: reset link issued for user ${user.id}`);
+
+    return res.json(generic);
   } catch (e) {
     console.error('forgot-password error:', e);
-    res.status(500).json({ error: 'Could not reset password' });
+    return res.status(500).json({ error: 'Could not start password reset' });
+  }
+});
+
+// Consumes the token from the email and sets the new password.
+app.post('/api/auth/reset-password', resetLimiter, async (req, res) => {
+  const { token, new_password } = req.body || {};
+  if (!token || !new_password)
+    return res.status(400).json({ error: 'Token and new password are required' });
+  if (String(new_password).length < 8)
+    return res.status(400).json({ error: 'New password must be at least 8 characters' });
+
+  try {
+    const { rows } = await db.query(
+      `SELECT t.token_hash, t.user_id, t.expires_at, t.used_at, u.email, u.tier, u.billing_period_end
+         FROM password_reset_tokens t
+         JOIN users u ON u.id = t.user_id
+        WHERE t.token_hash = $1`,
+      [hashToken(String(token))]
+    );
+    const row = rows[0];
+
+    // Same message for unknown, spent, and expired — none of them should tell
+    // the caller which one it was.
+    const invalid = { error: 'Este enlace no es válido o ha caducado. Pide uno nuevo.' };
+    if (!row) return res.status(400).json(invalid);
+    if (row.used_at) return res.status(400).json(invalid);
+    if (new Date(row.expires_at) <= new Date()) return res.status(400).json(invalid);
+    if (!hasActivePaidAccess(row)) return res.status(403).json({ error: 'No active plan for this account.', code: 'subscription_required' });
+
+    const hash = await bcrypt.hash(String(new_password), 10);
+    await db.query('UPDATE users SET password_hash=$1 WHERE id=$2', [hash, row.user_id]);
+    await db.query('UPDATE password_reset_tokens SET used_at=NOW() WHERE token_hash=$1', [row.token_hash]);
+    console.log(`reset-password: password changed for user ${row.user_id}`);
+
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error('reset-password error:', e);
+    return res.status(500).json({ error: 'Could not reset password' });
   }
 });
 
@@ -1237,7 +1379,7 @@ app.get('/api/quotes/today', async (req, res) => {
   res.json(rows[idx] || null);
 });
 
-app.post('/api/quotes', auth, async (req, res) => {
+app.post('/api/quotes', auth, checkTier, async (req, res) => {
   const { text, author } = req.body;
   const { rows } = await db.query(
     'INSERT INTO quotes (text, author) VALUES ($1,$2) RETURNING *',
@@ -1246,7 +1388,7 @@ app.post('/api/quotes', auth, async (req, res) => {
   res.json(rows[0]);
 });
 
-app.delete('/api/quotes/:id', auth, async (req, res) => {
+app.delete('/api/quotes/:id', auth, checkTier, async (req, res) => {
   await db.query('DELETE FROM quotes WHERE id=$1', [req.params.id]);
   res.json({ success: true });
 });
@@ -1268,7 +1410,7 @@ async function updateUserStreak(userId) {
 }
 
 // ── HABITS ────────────────────────────────────────────────────────────────────
-app.get('/api/habits', auth, async (req, res) => {
+app.get('/api/habits', auth, checkTier, async (req, res) => {
   const today = new Date().toISOString().split('T')[0];
   const { rows } = await db.query(
     `SELECT h.*, 
@@ -1283,7 +1425,7 @@ app.get('/api/habits', auth, async (req, res) => {
   res.json(rows);
 });
 
-app.post('/api/habits', auth, async (req, res) => {
+app.post('/api/habits', auth, checkTier, async (req, res) => {
   const { name, time, icon, target_type, daily_target } = req.body;
   // Check for duplicate — same name for same user
   const { rows: existing } = await db.query(
@@ -1301,7 +1443,7 @@ app.post('/api/habits', auth, async (req, res) => {
 });
 
 // Increment habit progress (works for both check and count)
-app.patch('/api/habits/:id/check', auth, async (req, res) => {
+app.patch('/api/habits/:id/check', auth, checkTier, async (req, res) => {
   const today = new Date().toISOString().split('T')[0];
   const { rows: [habit] } = await db.query('SELECT * FROM habits WHERE id=$1 AND user_id=$2', [req.params.id, req.user.id]);
   if (!habit) return res.status(404).json({ error: 'Habit not found' });
@@ -1337,14 +1479,14 @@ app.patch('/api/habits/:id/check', auth, async (req, res) => {
 });
 
 // Reset habit progress for today
-app.patch('/api/habits/:id/reset', auth, async (req, res) => {
+app.patch('/api/habits/:id/reset', auth, checkTier, async (req, res) => {
   const today = new Date().toISOString().split('T')[0];
   await db.query('DELETE FROM habit_completions WHERE habit_id=$1 AND user_id=$2 AND date=$3', [req.params.id, req.user.id, today]);
   res.json({ done: false, value: 0 });
 });
 
 // ── GOALS ─────────────────────────────────────────────────────────────────────
-app.get('/api/goals', auth, async (req, res) => {
+app.get('/api/goals', auth, checkTier, async (req, res) => {
   const { rows } = await db.query(
     'SELECT * FROM goals WHERE user_id=$1 ORDER BY created_at DESC',
     [req.user.id]
@@ -1352,7 +1494,7 @@ app.get('/api/goals', auth, async (req, res) => {
   res.json(rows);
 });
 
-app.post('/api/goals', auth, async (req, res) => {
+app.post('/api/goals', auth, checkTier, async (req, res) => {
   const { title, deadline, target, unit } = req.body;
   const { rows } = await db.query(
     'INSERT INTO goals (user_id, title, deadline, target, unit) VALUES ($1,$2,$3,$4,$5) RETURNING *',
@@ -1361,7 +1503,7 @@ app.post('/api/goals', auth, async (req, res) => {
   res.json(rows[0]);
 });
 
-app.patch('/api/goals/:id/progress', auth, async (req, res) => {
+app.patch('/api/goals/:id/progress', auth, checkTier, async (req, res) => {
   const { progress } = req.body;
   const { rows } = await db.query(
     'UPDATE goals SET progress=$1 WHERE id=$2 AND user_id=$3 RETURNING *',
@@ -1370,12 +1512,12 @@ app.patch('/api/goals/:id/progress', auth, async (req, res) => {
   res.json(rows[0]);
 });
 
-app.delete('/api/goals/:id', auth, async (req, res) => {
+app.delete('/api/goals/:id', auth, checkTier, async (req, res) => {
   await db.query('DELETE FROM goals WHERE id=$1 AND user_id=$2', [req.params.id, req.user.id]);
   res.json({ success: true });
 });
 
-app.patch('/api/goals/:id/title', auth, async (req, res) => {
+app.patch('/api/goals/:id/title', auth, checkTier, async (req, res) => {
   const { title } = req.body;
   if (!title?.trim()) return res.status(400).json({ error: 'Title required' });
   const { rows } = await db.query(
@@ -1386,7 +1528,7 @@ app.patch('/api/goals/:id/title', auth, async (req, res) => {
 });
 
 // ── JOURNAL ───────────────────────────────────────────────────────────────────
-app.get('/api/journal', auth, async (req, res) => {
+app.get('/api/journal', auth, checkTier, async (req, res) => {
   const { rows } = await db.query(
     'SELECT * FROM journal_entries WHERE user_id=$1 ORDER BY created_at DESC LIMIT 20',
     [req.user.id]
@@ -1394,7 +1536,7 @@ app.get('/api/journal', auth, async (req, res) => {
   res.json(rows);
 });
 
-app.post('/api/journal', auth, async (req, res) => {
+app.post('/api/journal', auth, checkTier, async (req, res) => {
   const { title, content, mood, energy_level } = req.body;
   // SQL: ALTER TABLE journal_entries ADD COLUMN IF NOT EXISTS energy_level INTEGER DEFAULT NULL;
   const { rows } = await db.query(
@@ -1405,7 +1547,7 @@ app.post('/api/journal', auth, async (req, res) => {
 });
 
 // ── ENERGY LOG ────────────────────────────────────────────────────────────────
-app.post('/api/energy', auth, async (req, res) => {
+app.post('/api/energy', auth, checkTier, async (req, res) => {
   const { level, note } = req.body;
   if (!level || level < 1 || level > 5) return res.status(400).json({ error: 'Level must be 1-5' });
   // SQL: CREATE TABLE IF NOT EXISTS energy_logs (
@@ -1420,7 +1562,7 @@ app.post('/api/energy', auth, async (req, res) => {
   res.json(rows[0]);
 });
 
-app.get('/api/energy', auth, async (req, res) => {
+app.get('/api/energy', auth, checkTier, async (req, res) => {
   const { rows } = await db.query(
     'SELECT * FROM energy_logs WHERE user_id=$1 ORDER BY logged_at DESC LIMIT 14',
     [req.user.id]
@@ -1428,7 +1570,7 @@ app.get('/api/energy', auth, async (req, res) => {
   res.json(rows);
 });
 
-app.get('/api/energy/today', auth, async (req, res) => {
+app.get('/api/energy/today', auth, checkTier, async (req, res) => {
   const today = new Date().toISOString().split('T')[0];
   const { rows } = await db.query(
     "SELECT * FROM energy_logs WHERE user_id=$1 AND logged_at::date=$2 ORDER BY logged_at DESC LIMIT 1",
@@ -1437,7 +1579,7 @@ app.get('/api/energy/today', auth, async (req, res) => {
   res.json(rows[0] || null);
 });
 
-app.get('/api/journal/prompt', auth, async (req, res) => {
+app.get('/api/journal/prompt', auth, checkTier, async (req, res) => {
   const prompts = [
     "What's one belief that's been holding you back, and how can you start rewriting it today?",
     "Describe your ideal life 5 years from now in vivid detail.",
@@ -1777,7 +1919,7 @@ app.get('/api/admin/insights', insightsAuth, async (req, res) => {
 // CREATE UNIQUE INDEX IF NOT EXISTS daily_intentions_user_date
 //   ON daily_intentions (user_id, date);
 
-app.get('/api/intention/today', auth, async (req, res) => {
+app.get('/api/intention/today', auth, checkTier, async (req, res) => {
   const today = new Date().toISOString().split('T')[0];
   const { rows } = await db.query(
     'SELECT * FROM daily_intentions WHERE user_id=$1 AND date=$2',
@@ -1786,7 +1928,7 @@ app.get('/api/intention/today', auth, async (req, res) => {
   res.json(rows[0] || null);
 });
 
-app.post('/api/intention', auth, async (req, res) => {
+app.post('/api/intention', auth, checkTier, async (req, res) => {
   const { intention } = req.body;
   if (!intention?.trim()) return res.status(400).json({ error: 'Intention required' });
 
@@ -1860,7 +2002,7 @@ COACH: [2-3 sentences in Luhv+ voice — validate or redirect, then energize the
 //   created_at   TIMESTAMPTZ DEFAULT NOW()
 // );
 
-app.get('/api/decisions', auth, async (req, res) => {
+app.get('/api/decisions', auth, checkTier, async (req, res) => {
   const { rows } = await db.query(
     'SELECT * FROM decision_log WHERE user_id=$1 ORDER BY created_at DESC LIMIT 20',
     [req.user.id]
@@ -1868,7 +2010,7 @@ app.get('/api/decisions', auth, async (req, res) => {
   res.json(rows);
 });
 
-app.post('/api/decisions', auth, async (req, res) => {
+app.post('/api/decisions', auth, checkTier, async (req, res) => {
   const { decision, context } = req.body;
   if (!decision?.trim()) return res.status(400).json({ error: 'Decision required' });
 
@@ -1934,7 +2076,7 @@ COACH: [2-4 sentences — give clear direction. If aligned: reinforce and push f
 // ── HEALTH ────────────────────────────────────────────────────────────────────
 
 // ── PROACTIVE COACH GREETING ──────────────────────────────────────────────────
-app.get('/api/coach/greeting', auth, async (req, res) => {
+app.get('/api/coach/greeting', auth, checkTier, async (req, res) => {
   try {
     const { rows: [user] }  = await db.query('SELECT name, streak FROM users WHERE id=$1', [req.user.id]);
     const { rows: goals }   = await db.query("SELECT title, progress, target, updated_at FROM goals WHERE user_id=$1 AND status='active' ORDER BY updated_at ASC", [req.user.id]);
@@ -2031,7 +2173,7 @@ ${fullContext}`;
 
 
 // ── EFFECTIVENESS SCORE ───────────────────────────────────────────────────────
-app.get('/api/effectiveness-score', auth, async (req, res) => {
+app.get('/api/effectiveness-score', auth, checkTier, async (req, res) => {
   try {
     const today = new Date().toISOString().split('T')[0];
     const { rows: [user] }      = await db.query('SELECT name, streak FROM users WHERE id=$1', [req.user.id]);
@@ -2086,7 +2228,7 @@ app.get('/api/effectiveness-score', auth, async (req, res) => {
 
 
 // ── PEAK HOUR UPDATE ─────────────────────────────────────────────────────────
-app.patch('/api/onboarding/peak-hour', auth, async (req, res) => {
+app.patch('/api/onboarding/peak-hour', auth, checkTier, async (req, res) => {
   const { peak_hour } = req.body;
   if (!peak_hour) return res.status(400).json({ error: 'peak_hour required' });
   try {
@@ -2102,7 +2244,7 @@ app.patch('/api/onboarding/peak-hour', auth, async (req, res) => {
 
 
 // ── WEEKLY REVIEW ─────────────────────────────────────────────────────────────
-app.get('/api/weekly-review', auth, async (req, res) => {
+app.get('/api/weekly-review', auth, checkTier, async (req, res) => {
   try {
     const { rows: [user] }   = await db.query('SELECT name, streak FROM users WHERE id=$1', [req.user.id]);
     const { rows: goals }    = await db.query("SELECT title, progress, target, updated_at FROM goals WHERE user_id=$1 AND status='active'", [req.user.id]);
@@ -2165,7 +2307,7 @@ Rules:
 // ── PEAK PERFORMANCE REPORT ───────────────────────────────────────────────────
 // SQL (run once):
 // ALTER TABLE habit_completions ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ DEFAULT NOW();
-app.get('/api/peak-report', auth, async (req, res) => {
+app.get('/api/peak-report', auth, checkTier, async (req, res) => {
   try {
     // Get habit completions by hour over last 30 days
     const { rows: byHour } = await db.query(
@@ -2233,7 +2375,7 @@ app.post('/api/admin/reset-password', adminAuth, async (req, res) => {
 // ── LIFE DOMAINS ──────────────────────────────────────────────────────────────
 
 // Get all domains with their metrics
-app.get('/api/domains', auth, async (req, res) => {
+app.get('/api/domains', auth, checkTier, async (req, res) => {
   const { rows: domains } = await db.query(
     'SELECT * FROM life_domains WHERE user_id=$1 ORDER BY created_at',
     [req.user.id]
@@ -2249,7 +2391,7 @@ app.get('/api/domains', auth, async (req, res) => {
 });
 
 // Create a domain
-app.post('/api/domains', auth, async (req, res) => {
+app.post('/api/domains', auth, checkTier, async (req, res) => {
   const { name, icon, color, domain_type } = req.body;
   if (!name) return res.status(400).json({ error: 'Name required' });
   const { rows } = await db.query(
@@ -2260,7 +2402,7 @@ app.post('/api/domains', auth, async (req, res) => {
 });
 
 // Delete a domain
-app.delete('/api/domains/:id', auth, async (req, res) => {
+app.delete('/api/domains/:id', auth, checkTier, async (req, res) => {
   try {
     await db.query('DELETE FROM domain_metric_logs WHERE metric_id IN (SELECT id FROM domain_metrics WHERE domain_id=$1 AND user_id=$2)', [req.params.id, req.user.id]);
     await db.query('DELETE FROM domain_metrics WHERE domain_id=$1 AND user_id=$2', [req.params.id, req.user.id]);
@@ -2272,7 +2414,7 @@ app.delete('/api/domains/:id', auth, async (req, res) => {
 });
 
 // Add a metric to a domain
-app.post('/api/domains/:id/metrics', auth, async (req, res) => {
+app.post('/api/domains/:id/metrics', auth, checkTier, async (req, res) => {
   const { name, metric_type, unit, target, period } = req.body;
   if (!name || !target) return res.status(400).json({ error: 'Name and target required' });
   const { rows } = await db.query(
@@ -2283,7 +2425,7 @@ app.post('/api/domains/:id/metrics', auth, async (req, res) => {
 });
 
 // Log a value for a metric
-app.post('/api/domains/metrics/:id/log', auth, async (req, res) => {
+app.post('/api/domains/metrics/:id/log', auth, checkTier, async (req, res) => {
   const { value, note } = req.body;
   if (value === undefined) return res.status(400).json({ error: 'Value required' });
   // Update current value
@@ -2300,7 +2442,7 @@ app.post('/api/domains/metrics/:id/log', auth, async (req, res) => {
 });
 
 // Delete a metric
-app.delete('/api/domains/metrics/:id', auth, async (req, res) => {
+app.delete('/api/domains/metrics/:id', auth, checkTier, async (req, res) => {
   await db.query('DELETE FROM domain_metrics WHERE id=$1 AND user_id=$2', [req.params.id, req.user.id]);
   res.json({ success: true });
 });
@@ -2309,7 +2451,7 @@ app.delete('/api/domains/metrics/:id', auth, async (req, res) => {
 // ── EXPORT ENDPOINTS ──────────────────────────────────────────────────────────
 
 // Get report data for a period (for both PDF and CSV)
-app.get('/api/report', auth, async (req, res) => {
+app.get('/api/report', auth, checkTier, async (req, res) => {
   try {
     const { from, to } = req.query;
     const fromDate = from || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
@@ -2422,7 +2564,7 @@ app.get('/api/export/csv', auth, async (req, res) => {
 });
 
 // ── HABITS WEEKLY ─────────────────────────────────────────────────────────────
-app.get('/api/habits/weekly', auth, async (req, res) => {
+app.get('/api/habits/weekly', auth, checkTier, async (req, res) => {
   try {
     const today = new Date();
     const dow = today.getDay();
@@ -2472,7 +2614,7 @@ app.get('/api/onboarding/status', auth, async (req, res) => {
 });
 
 // ── ONBOARDING COMPLETE ───────────────────────────────────────────────────────
-app.post('/api/onboarding/complete', auth, async (req, res) => {
+app.post('/api/onboarding/complete', auth, checkTier, async (req, res) => {
   try {
     const { data } = req.body;
     if (!data) return res.status(400).json({ error: 'data required' });
@@ -2515,13 +2657,13 @@ app.post('/api/onboarding/complete', auth, async (req, res) => {
 
 
 // ── HABIT DELETE & EDIT ───────────────────────────────────────────────────────
-app.delete('/api/habits/:id', auth, async (req, res) => {
+app.delete('/api/habits/:id', auth, checkTier, async (req, res) => {
   await db.query('DELETE FROM habit_completions WHERE habit_id=$1 AND user_id=$2', [req.params.id, req.user.id]);
   await db.query('DELETE FROM habits WHERE id=$1 AND user_id=$2', [req.params.id, req.user.id]);
   res.json({ success: true });
 });
 
-app.patch('/api/habits/:id/name', auth, async (req, res) => {
+app.patch('/api/habits/:id/name', auth, checkTier, async (req, res) => {
   const { name, icon, time } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: 'Name required' });
   const { rows } = await db.query(
@@ -2532,7 +2674,7 @@ app.patch('/api/habits/:id/name', auth, async (req, res) => {
 });
 
 // ── DOMAIN (LIFESTYLE) EDIT ───────────────────────────────────────────────────
-app.patch('/api/domains/:id', auth, async (req, res) => {
+app.patch('/api/domains/:id', auth, checkTier, async (req, res) => {
   const { name, icon, color } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: 'Name required' });
   const { rows } = await db.query(
@@ -2700,7 +2842,7 @@ app.post('/api/billing/cancel', auth, async (req, res) => {
 
 
 // ── SMART TASK SUGGESTIONS ────────────────────────────────────────────────────
-app.post('/api/goals/suggest-tasks', auth, async (req, res) => {
+app.post('/api/goals/suggest-tasks', auth, checkTier, async (req, res) => {
   const { goal } = req.body;
   if (!goal?.trim()) return res.status(400).json({ error: 'Goal required' });
   
@@ -2769,6 +2911,16 @@ app.get('/api/coach/export', auth, async (req, res) => {
 // ── STARTUP MIGRATIONS ────────────────────────────────────────────────────────
 async function runMigrations() {
   const migrations = [
+    // Password reset tokens. Only the SHA-256 hash is stored: a leaked database
+    // then yields nothing usable, the same reason password_hash exists.
+    `CREATE TABLE IF NOT EXISTS password_reset_tokens (
+       token_hash TEXT PRIMARY KEY,
+       user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+       expires_at TIMESTAMPTZ NOT NULL,
+       used_at    TIMESTAMPTZ,
+       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+     )`,
+    'CREATE INDEX IF NOT EXISTS idx_reset_tokens_user ON password_reset_tokens(user_id)',
     'ALTER TABLE users ADD COLUMN IF NOT EXISTS last_streak_date DATE',
     'ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarding_data JSONB',
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS tier TEXT DEFAULT 'basic'`,
@@ -2830,12 +2982,60 @@ async function runMigrations() {
   for (const sql of migrations) {
     try { await db.query(sql); } catch(e) { console.warn('Migration warning:', sql.slice(0,50), e.message); }
   }
+
+  // users.email is UNIQUE, but a Postgres unique constraint is case-sensitive:
+  // 'Ann@x.com' and 'ann@x.com' are two legal rows. The webhook inserts
+  // lowercase with ON CONFLICT (email), so it never collided with an older
+  // capitalised row and quietly created a second account — password on one row,
+  // paid plan on the other, and login (WHERE LOWER(email)=...) matching both and
+  // taking whichever came back first. Customers were locked out of what they had
+  // paid for. This index makes that unrepresentable.
+  //
+  // It cannot be created while duplicates exist, so it will fail on a database
+  // that has not been merged yet. That's why the check below is loud rather than
+  // leaving a warning buried in the deploy log.
+  try {
+    await db.query('CREATE UNIQUE INDEX IF NOT EXISTS users_email_lower_idx ON users (LOWER(email))');
+  } catch (e) {
+    console.warn('Could not create users_email_lower_idx:', e.message);
+  }
+
+  try {
+    const { rows } = await db.query(
+      `SELECT LOWER(TRIM(email)) AS key, COUNT(*)::int AS n
+         FROM users GROUP BY LOWER(TRIM(email)) HAVING COUNT(*) > 1`
+    );
+    if (rows.length) {
+      console.error('');
+      console.error('╔════════════════════════════════════════════════════════════════╗');
+      console.error('║  DUPLICATE ACCOUNTS — CUSTOMERS ARE LOCKED OUT RIGHT NOW       ║');
+      console.error('╚════════════════════════════════════════════════════════════════╝');
+      for (const r of rows) console.error(`   ${r.key} — ${r.n} rows`);
+      console.error('   These people cannot sign in or register: their password is on one');
+      console.error('   row and their paid plan on another.');
+      console.error('   Fix: node scripts/merge-duplicate-accounts.js  (then --apply)');
+      console.error('');
+    }
+  } catch (e) {
+    console.warn('Duplicate-account check failed:', e.message);
+  }
+
   console.log('Migrations complete');
 }
 
 
 // ── SQUARE WEBHOOK ────────────────────────────────────────────────────────────
 // ── CHECK ACCESS MIDDLEWARE ────────────────────────────────────────────────────
+// Gate for everything a plan actually buys.
+//
+// This used to downgrade an expired user to basic and call next() anyway, so
+// the request went through regardless — and since only the coach routes used it,
+// a lapsed plan left the rest of the app fully usable for the remaining life of
+// the JWT (up to 7 days). It now rejects, with a code the frontend turns into a
+// redirect to pricing.
+//
+// "Active" is decided by hasActivePaidAccess() alone. That check used to be
+// written out three separate times, in three subtly different ways.
 async function checkTier(req, res, next) {
   try {
     const { rows: [user] } = await db.query(
@@ -2844,21 +3044,26 @@ async function checkTier(req, res, next) {
     );
     if (!user) return res.status(401).json({ error: 'User not found' });
 
+    if (!hasActivePaidAccess(user)) {
+      // Write the lapse down once so the row stops claiming a plan it no longer has.
+      if (user.billing_period_end && new Date(user.billing_period_end) <= new Date()) {
+        await db.query(
+          "UPDATE users SET tier='basic', token_balance=0, is_trial=false, billing_period_end=NULL WHERE id=$1",
+          [req.user.id]
+        );
+      }
+      return res.status(403).json({
+        error: 'No active plan for this account.',
+        code: 'subscription_required'
+      });
+    }
+
     let tier = user.tier || 'basic';
     if (tier === 'pro') tier = 'mvp'; // legacy alias
 
-    const expired = user.billing_period_end && new Date(user.billing_period_end) < new Date();
-    if (expired) {
-      tier = 'basic';
-      await db.query(
-        "UPDATE users SET tier='basic', token_balance=0, billing_period_end=NULL WHERE id=$1",
-        [req.user.id]
-      );
-    }
-
     req.userTier = tier;
     req.tokenBalance = Number(user.token_balance || 0);
-    req.billingExpired = !!expired;
+    req.billingExpired = false;
     next();
   } catch (e) {
     console.error('checkTier error:', e);
@@ -2943,6 +3148,20 @@ app.get('/api/dev/my-status', auth, async (req, res) => {
     is_expired: expired,
     coach_access: !expired && (TIERS[user.tier]?.coach_access || false)
   });
+});
+
+// Catches whatever the async wrapper above forwards. Must stay last: Express
+// only reaches an error handler registered after the routes it protects.
+app.use((err, req, res, next) => {
+  console.error(`Unhandled error on ${req.method} ${req.originalUrl}:`, err && err.stack ? err.stack : err);
+  if (res.headersSent) return next(err);
+  res.status(500).json({ error: 'Internal error' });
+});
+
+// Last line of defence. Nothing should reach here now, but a crash loop on
+// Render is worse than a logged mistake.
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled promise rejection (not crashing):', reason);
 });
 
 runMigrations().then(() => {

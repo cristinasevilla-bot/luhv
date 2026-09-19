@@ -1168,6 +1168,25 @@ function hasActivePaidAccess(user) {
 function activeAccessError() {
   return 'No active paid plan found for this email. Please complete payment with the same email before signing up or signing in.';
 }
+
+// Three very different situations used to share the code 'awaiting_webhook',
+// so the frontend showed "your payment is being processed" to people whose
+// plan had simply run out, then retried the request five times on their behalf.
+//   'active'   — paid and in date.
+//   'expired'  — had a plan, billing_period_end is in the past. Retrying will
+//                never help; they need to renew.
+//   'none'     — no plan on the row at all. Either the Square webhook has not
+//                landed yet (worth a short retry, register only) or they never
+//                paid.
+function planState(user) {
+  if (hasActivePaidAccess(user)) return 'active';
+  if (user && user.billing_period_end) return 'expired';
+  return 'none';
+}
+
+function expiredPlanError() {
+  return 'Tu plan ha caducado. Renueva para volver a entrar.';
+}
 app.post('/api/auth/register', async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -1190,7 +1209,18 @@ app.post('/api/auth/register', async (req, res) => {
     );
 
     const existingUser = existing[0];
-    if (!existingUser || !hasActivePaidAccess(existingUser)) {
+    const regPlan = planState(existingUser);
+    if (regPlan === 'expired') {
+      // A real, finished plan. Retrying the signup cannot bring it back.
+      return res.status(403).json({
+        error: expiredPlanError(),
+        code: 'plan_expired',
+        billing_period_end: existingUser.billing_period_end
+      });
+    }
+    if (regPlan !== 'active') {
+      // No row, or a row Square has not attached a plan to yet. This is the one
+      // case where the webhook may genuinely still be in flight.
       return res.status(403).json({ error: activeAccessError(), code: 'awaiting_webhook', hint: 'Si acabas de pagar, tu acceso puede tardar hasta 30 segundos en activarse. Por favor intenta de nuevo.' });
     }
 
@@ -1218,7 +1248,31 @@ app.post('/api/auth/register', async (req, res) => {
 });
 
 
-app.post('/api/auth/login', async (req, res) => {
+// Brute force is the real exposure behind a simple password, and nothing was
+// guarding this route: the general 60/min IP cap was the only thing in the way,
+// and there is no account lockout anywhere in the app.
+//
+// Keyed by email rather than IP, for two reasons. Rotating IPs then buys an
+// attacker no extra guesses against one account, and one person fumbling their
+// own password cannot lock out everyone else behind the same office or mobile
+// network address.
+//
+// Only genuine credential failures count. requestWasSuccessful treats anything
+// that is not a 401 as fine, so the 403 a lapsed customer gets does not eat
+// their allowance and neither does signing in correctly ten times in a row.
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, max: 8,
+  standardHeaders: true, legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  requestWasSuccessful: (req, res) => res.statusCode !== 401,
+  keyGenerator: (req) => String(req.body && req.body.email || '').toLowerCase().trim() || 'anonymous',
+  message: {
+    error: 'Demasiados intentos fallidos. Espera 15 minutos e inténtalo de nuevo.',
+    code: 'too_many_attempts'
+  }
+});
+
+app.post('/api/auth/login', loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
     const cleanEmail = String(email || '').toLowerCase().trim();
@@ -1230,11 +1284,21 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    if (!hasActivePaidAccess(dbUser)) {
-      if (dbUser.billing_period_end && new Date(dbUser.billing_period_end) <= new Date()) {
-        await db.query("UPDATE users SET tier='basic', token_balance=0, is_trial=false WHERE id=$1", [dbUser.id]);
-      }
-      return res.status(403).json({ error: activeAccessError(), code: 'awaiting_webhook', hint: 'Si acabas de pagar, tu acceso puede tardar hasta 30 segundos en activarse. Por favor intenta de nuevo.' });
+    // A refused sign-in used to downgrade the row and zero token_balance on the
+    // way out. The frontend retried the call five times, so one person tapping
+    // "Sign In" twice wrote to their account ten times and wiped an MVP balance
+    // before they ever got in. Sign-in is a read now; checkTier still records
+    // the lapse on the next authenticated request.
+    const loginPlan = planState(dbUser);
+    if (loginPlan === 'expired') {
+      return res.status(403).json({
+        error: expiredPlanError(),
+        code: 'plan_expired',
+        billing_period_end: dbUser.billing_period_end
+      });
+    }
+    if (loginPlan !== 'active') {
+      return res.status(403).json({ error: activeAccessError(), code: 'no_plan' });
     }
 
     const { password_hash, ...user } = dbUser;
@@ -3047,8 +3111,11 @@ async function checkTier(req, res, next) {
     if (!hasActivePaidAccess(user)) {
       // Write the lapse down once so the row stops claiming a plan it no longer has.
       if (user.billing_period_end && new Date(user.billing_period_end) <= new Date()) {
+        // billing_period_end is deliberately left in place: nulling it erased
+        // the only record of when the plan ended, which is what tells 'expired'
+        // apart from 'never paid' on the next sign-in.
         await db.query(
-          "UPDATE users SET tier='basic', token_balance=0, is_trial=false, billing_period_end=NULL WHERE id=$1",
+          "UPDATE users SET tier='basic', token_balance=0, is_trial=false WHERE id=$1",
           [req.user.id]
         );
       }

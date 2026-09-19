@@ -2146,7 +2146,11 @@ async function api(path, opts = {}, _retry = 0) {
         ...(opts.headers || {})
       }
     });
-    if (res.status === 401) { logout(); return null; }
+    // A 401 from the sign-in call means "wrong password", not "your session
+    // expired". Routing it through logout() blanked the email and password the
+    // user had just typed, so a single typo cleared the whole form and they had
+    // to start again. Let it fall through and be reported as an error instead.
+    if (res.status === 401 && !path.startsWith('/api/auth/login')) { logout(); return null; }
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       // The plan can lapse mid-session, so any request may come back 403. Note
@@ -2307,10 +2311,34 @@ function handleLapsedPlan() {
   setTimeout(() => { window.location.href = PRICING_URL; }, 1200);
 }
 
+// Only a webhook that may still be in flight is worth retrying. An expired or
+// absent plan used to return this same code, so people whose plan had simply
+// run out were told their payment was being processed and made to watch five
+// pointless retries before being redirected.
 function isAwaitingPayment(data) {
-  return data?.code === 'awaiting_webhook' ||
+  return data?.code === 'awaiting_webhook';
+}
+
+// The plan is gone and no amount of retrying changes that.
+function isPlanGone(data) {
+  return data?.code === 'plan_expired' ||
+         data?.code === 'no_plan' ||
          data?.code === 'payment_required' ||
          data?.code === 'subscription_required';
+}
+
+function planGoneMessage(data) {
+  if (data?.code !== 'plan_expired') {
+    return 'No encontramos un plan activo para este correo. Te llevamos a los planes...';
+  }
+  var when = '';
+  try {
+    if (data.billing_period_end) {
+      when = ' el ' + new Date(data.billing_period_end)
+        .toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+    }
+  } catch (e) {}
+  return 'Tu plan caducó' + when + '. Te llevamos a los planes para renovar...';
 }
 
 async function startPaymentPolling(email, attempt = 0) {
@@ -2336,6 +2364,11 @@ async function startPaymentPolling(email, attempt = 0) {
       localStorage.setItem('luhv_user', JSON.stringify(USER));
 
       initApp();
+      return;
+    }
+
+    if (isPlanGone(data)) {
+      redirectToPricing(planGoneMessage(data));
       return;
     }
 
@@ -2397,6 +2430,11 @@ async function register(attempt = 0) {
       localStorage.setItem('luhv_user', JSON.stringify(USER));
 
       initApp();
+      return;
+    }
+
+    if (isPlanGone(data)) {
+      redirectToPricing(planGoneMessage(data));
       return;
     }
 

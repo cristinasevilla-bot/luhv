@@ -1,0 +1,518 @@
+<title>Howpow Energy</title>
+<meta name="description" content="Howpow Ltd, Retford. Commercial solar PV, LED lighting, export limitation and G99 / G100 compliance since 2013.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..900&family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --ink:#07131F;
+  --deep:#0D2032;
+  --panel:#16344F;
+  --line:rgba(160,190,215,.16);
+  --text:#E8EEF2;
+  --muted:#8EA3B4;
+  --sun:#FFB020;
+  --sun-hot:#FF7A1A;
+  --paper:#EEF2EF;
+  --paper-ink:#0B1824;
+  --paper-muted:#51606C;
+  --display:"Archivo","Arial Narrow",Arial,sans-serif;
+  --body:"Hanken Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  --gutter:clamp(16px,4vw,56px);
+  --max:1240px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--ink);color:var(--text);font:400 17px/1.6 var(--body);overflow-x:hidden}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--sun);outline-offset:3px;border-radius:4px}
+.wrap{max-width:var(--max);margin-inline:auto;padding-inline:var(--gutter)}
+.eyebrow{font:600 12px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--sun)}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0}
+h2{font-size:clamp(34px,5.2vw,68px);font-weight:800;font-stretch:78%;line-height:.98;letter-spacing:-.01em;text-transform:uppercase}
+p{margin:0}
+
+/* NAV */
+.nav{position:fixed;inset:0 0 auto 0;z-index:50;padding-top:env(safe-area-inset-top,0px);transition:background .4s,backdrop-filter .4s,border-color .4s;border-bottom:1px solid transparent}
+.nav.solid{background:rgba(7,19,31,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-color:var(--line)}
+.nav .wrap{display:flex;align-items:center;justify-content:space-between;gap:24px;height:72px}
+.logo{display:flex;align-items:center;gap:10px;font:800 22px/1 var(--display);font-stretch:112%;letter-spacing:.02em;text-decoration:none}
+.logo svg{width:28px;height:28px}
+.nav ul{display:flex;gap:28px;list-style:none;margin:0;padding:0;font-size:15px}
+.nav ul a{text-decoration:none;color:var(--muted);transition:color .2s}
+.nav ul a:hover{color:var(--text)}
+.btn{display:inline-flex;align-items:center;gap:10px;font:600 15px/1 var(--body);padding:15px 22px;border-radius:999px;text-decoration:none;border:1px solid transparent;cursor:pointer;transition:transform .25s cubic-bezier(.2,.8,.2,1),background .25s,color .25s}
+.btn-sun{background:var(--sun);color:var(--paper-ink)}
+.btn-sun:hover{background:#FFC24D}
+.btn-ghost{border-color:var(--line);color:var(--text);background:transparent}
+.btn-ghost:hover{border-color:var(--text)}
+.btn .arr{transition:transform .25s}
+.btn:hover .arr{transform:translateX(4px)}
+.progress{position:absolute;left:0;bottom:-1px;height:2px;width:100%;background:linear-gradient(90deg,var(--sun-hot),var(--sun));transform-origin:0 50%;transform:scaleX(0)}
+@media (max-width:860px){.nav ul{display:none}}
+
+/* HERO */
+.hero{position:relative;padding-block:150px 90px;overflow:hidden;isolation:isolate}
+#flow{position:absolute;inset:0;width:100%;height:100%;z-index:-1}
+.hero::after{content:"";position:absolute;inset:auto 0 0 0;height:160px;background:linear-gradient(transparent,var(--ink));z-index:-1}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,.9fr);gap:48px;align-items:end}
+.hero h1{font-size:clamp(52px,9.6vw,150px);font-weight:900;font-stretch:70%;line-height:.86;text-transform:uppercase;letter-spacing:-.015em;margin-top:22px}
+.hero h1 .line{display:block;overflow:hidden;padding-bottom:.04em}
+.hero h1 .line span{display:inline-block;animation:up 1s cubic-bezier(.16,1,.3,1) both}
+.hero h1 .line:nth-child(2) span{animation-delay:.08s}
+.hero h1 .line:nth-child(3) span{animation-delay:.16s}
+.hero h1 em{font-style:normal;color:var(--sun)}
+@keyframes up{from{transform:translateY(105%)}to{transform:none}}
+.hero-side{display:grid;gap:28px;padding-bottom:10px;animation:fade 1.2s .4s both}
+@keyframes fade{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.hero-side p{color:var(--muted);font-size:19px;max-width:40ch}
+.hero-cta{display:flex;flex-wrap:wrap;gap:12px}
+.readout{display:flex;flex-wrap:wrap;gap:10px 22px;margin-top:64px;padding-top:22px;border-top:1px solid var(--line);font:400 13px/1.4 var(--mono);color:var(--muted)}
+.readout b{color:var(--text);font-weight:600}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--sun);margin-right:8px;box-shadow:0 0 0 0 rgba(255,176,32,.6);animation:ping 2s infinite}
+@keyframes ping{70%{box-shadow:0 0 0 10px rgba(255,176,32,0)}100%{box-shadow:0 0 0 0 rgba(255,176,32,0)}}
+@media (max-width:860px){.hero{padding-block:120px 60px}.hero-grid{grid-template-columns:1fr}}
+
+/* MARQUEE */
+.marquee{border-block:1px solid var(--line);overflow:hidden;padding-block:22px;background:var(--deep)}
+.track{display:flex;gap:56px;width:max-content;animation:scroll 38s linear infinite}
+.marquee:hover .track{animation-play-state:paused}
+.track span{font:800 clamp(22px,3vw,34px)/1 var(--display);font-stretch:75%;text-transform:uppercase;white-space:nowrap;color:transparent;-webkit-text-stroke:1px var(--muted);display:flex;align-items:center;gap:56px}
+.track span::after{content:"";width:10px;height:10px;background:var(--sun);transform:rotate(45deg)}
+.track span:nth-child(3n+1){color:var(--text);-webkit-text-stroke:0}
+@keyframes scroll{to{transform:translateX(-50%)}}
+
+/* SECTIONS */
+section{padding-block:clamp(80px,11vw,150px)}
+.head{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.8fr);gap:40px;align-items:end;margin-bottom:56px}
+.head p{color:var(--muted);max-width:52ch}
+@media (max-width:860px){.head{grid-template-columns:1fr}}
+
+/* SERVICES */
+.services{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+.svc{position:relative;background:var(--ink);padding:34px 30px 30px;display:grid;grid-template-rows:auto auto 1fr auto;gap:14px;min-height:320px;overflow:hidden;isolation:isolate;transition:background .4s}
+.svc::before{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(420px circle at var(--mx,50%) var(--my,0%),rgba(255,176,32,.14),transparent 60%);opacity:0;transition:opacity .4s}
+.svc:hover::before{opacity:1}
+.svc:hover{background:var(--deep)}
+.svc .ico{width:46px;height:46px;color:var(--sun)}
+.svc .ico *{fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.svc h3{font-size:26px;font-weight:800;font-stretch:82%;text-transform:uppercase;line-height:1.02}
+.svc p{color:var(--muted);font-size:16px}
+.svc .tag{font:400 12px/1 var(--mono);color:var(--muted);letter-spacing:.06em;display:flex;justify-content:space-between;align-items:center;padding-top:16px;border-top:1px solid var(--line)}
+.svc .tag i{font-style:normal;color:var(--sun);transition:transform .3s}
+.svc:hover .tag i{transform:translateX(5px)}
+@media (max-width:980px){.services{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:620px){.services{grid-template-columns:1fr}.svc{min-height:0}}
+
+/* STATS / FIGURES */
+.figures{background:var(--deep);border-block:1px solid var(--line)}
+.fig-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:32px}
+.fig{display:grid;gap:10px;padding-top:22px;border-top:1px solid var(--sun)}
+.fig .n{font:900 clamp(46px,6vw,84px)/.9 var(--display);font-stretch:68%;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.fig .n small{font-size:.38em;font-stretch:100%;color:var(--sun);margin-left:4px;font-weight:700}
+.fig p{color:var(--muted);font-size:15px;max-width:30ch}
+@media (max-width:860px){.fig-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:460px){.fig-grid{grid-template-columns:1fr}}
+
+/* EXPORT LIMIT SIM */
+.sim{background:var(--paper);color:var(--paper-ink);border-radius:28px;margin-inline:auto;max-width:calc(var(--max) - 2*var(--gutter));padding:clamp(28px,5vw,64px)}
+.sim .eyebrow{color:#B86A00}
+.sim h2{color:var(--paper-ink)}
+.sim .head p{color:var(--paper-muted)}
+.sim-body{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:clamp(28px,5vw,64px);align-items:center}
+.ctrl{display:grid;gap:26px}
+.ctrl label{display:flex;justify-content:space-between;font:600 13px/1 var(--mono);letter-spacing:.04em;text-transform:uppercase;margin-bottom:12px}
+.ctrl label output{color:#B86A00;font-variant-numeric:tabular-nums}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:6px;background:linear-gradient(90deg,var(--paper-ink) var(--p,50%),#C9D2D0 var(--p,50%));outline-offset:6px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:var(--sun);border:3px solid var(--paper-ink);cursor:grab}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--sun);border:3px solid var(--paper-ink);cursor:grab}
+.bars{display:grid;gap:18px}
+.bar-row{display:grid;grid-template-columns:128px minmax(0,1fr) 78px;gap:14px;align-items:center;font:400 13px/1.2 var(--mono)}
+.bar{height:34px;background:#DDE3E1;border-radius:8px;overflow:hidden;position:relative}
+.bar i{position:absolute;inset:0 auto 0 0;width:0;border-radius:8px;transition:width .5s cubic-bezier(.2,.8,.2,1)}
+.b-self i{background:var(--paper-ink)}
+.b-exp i{background:var(--sun)}
+.b-cur i{background:repeating-linear-gradient(135deg,#9AA7A5 0 6px,#C3CCCA 6px 12px)}
+.b-imp i{background:#4F7A96}
+.bar-row .v{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.verdict{margin-top:8px;padding:18px 20px;border-radius:12px;background:#fff;border:1px solid #D5DCDA;font-size:15px;color:var(--paper-muted);min-height:78px}
+.verdict b{color:var(--paper-ink)}
+.note{font:400 12px/1.4 var(--mono);color:var(--paper-muted);margin-top:14px}
+@media (max-width:900px){.sim-body{grid-template-columns:1fr}}
+@media (max-width:460px){.bar-row{grid-template-columns:1fr 64px}.bar-row .bar{grid-column:1 / -1;grid-row:2}}
+
+/* PROCESS */
+.steps{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:0;counter-reset:s;position:relative}
+.steps::before{content:"";position:absolute;left:0;right:0;top:22px;height:1px;background:var(--line)}
+.steps .fillline{position:absolute;left:0;top:22px;height:1px;width:100%;background:var(--sun);transform-origin:0 50%;transform:scaleX(1)}
+.step{position:relative;padding-right:20px;display:grid;gap:12px;align-content:start}
+.step .k{width:44px;height:44px;border-radius:50%;background:var(--ink);border:1px solid var(--sun);display:grid;place-items:center;font:600 14px/1 var(--mono);color:var(--sun);position:relative}
+.step h3{font-size:21px;font-weight:800;font-stretch:84%;text-transform:uppercase;margin-top:8px}
+.step p{color:var(--muted);font-size:15px}
+@media (max-width:980px){.steps{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:44px}.steps::before,.steps .fillline{display:none}}
+@media (max-width:560px){.steps{grid-template-columns:1fr}}
+
+/* PARTNERS */
+.partners{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid var(--line);border-radius:18px;overflow:hidden}
+.partners div{padding:40px 20px;text-align:center;font:800 clamp(20px,2.4vw,30px)/1 var(--display);font-stretch:88%;color:var(--muted);border-right:1px solid var(--line);transition:color .3s,background .3s}
+.partners div:last-child{border-right:0}
+.partners div:hover{color:var(--text);background:var(--deep)}
+@media (max-width:700px){.partners{grid-template-columns:repeat(2,minmax(0,1fr))}.partners div:nth-child(2){border-right:0}.partners div:nth-child(-n+2){border-bottom:1px solid var(--line)}}
+
+/* CTA / CONTACT */
+.cta{position:relative;overflow:hidden;border-top:1px solid var(--line)}
+.cta-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:56px}
+.cta h2{font-size:clamp(44px,7vw,104px)}
+.cta h2 em{font-style:normal;color:var(--sun)}
+.addr{margin-top:34px;display:grid;gap:6px;color:var(--muted);font-size:16px}
+.addr b{color:var(--text);font-weight:600}
+form{display:grid;gap:14px;background:var(--deep);border:1px solid var(--line);border-radius:20px;padding:28px}
+form label{font:600 12px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:grid;gap:8px}
+form input,form select,form textarea{font:400 16px/1.4 var(--body);color:var(--text);background:var(--ink);border:1px solid var(--line);border-radius:10px;padding:13px 14px;width:100%}
+form input:focus,form select:focus,form textarea:focus{border-color:var(--sun);outline:none}
+form .btn{justify-self:start;margin-top:6px}
+.sent{font:400 14px/1.4 var(--mono);color:var(--sun)}
+@media (max-width:900px){.cta-grid{grid-template-columns:1fr}}
+
+footer{border-top:1px solid var(--line);padding-block:28px 40px;color:var(--muted);font:400 13px/1.6 var(--mono)}
+footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px}
+
+/* Scroll-driven reveals: elements stay fully visible where unsupported */
+@supports (animation-timeline: view()){
+  .reveal{animation:rise linear both;animation-timeline:view();animation-range:entry 0% entry 35%}
+  @keyframes rise{from{transform:translateY(56px) scale(.98)}to{transform:none}}
+  .steps .fillline{animation:grow linear both;animation-timeline:view();animation-range:entry 20% cover 45%}
+  @keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+}
+</style>
+
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="logo" href="#top" aria-label="Howpow home">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="6" fill="#FFB020"/><g stroke="#FFB020" stroke-width="2.2" stroke-linecap="round"><path d="M16 2v4M16 26v4M2 16h4M26 16h4M6.1 6.1l2.8 2.8M23.1 23.1l2.8 2.8M6.1 25.9l2.8-2.8M23.1 8.9l2.8-2.8"/></g></svg>
+      HOWPOW
+    </a>
+    <ul>
+      <li><a href="#services">Services</a></li>
+      <li><a href="#export">Export limitation</a></li>
+      <li><a href="#process">How we work</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ul>
+    <a class="btn btn-sun" href="#contact">Get a quote <span class="arr">→</span></a>
+  </div>
+  <div class="progress" id="progress"></div>
+</header>
+
+<main id="top">
+  <section class="hero" aria-label="Introduction">
+    <canvas id="flow" aria-hidden="true"></canvas>
+    <div class="wrap">
+      <div class="hero-grid">
+        <div>
+          <span class="eyebrow">Renewable energy specialists · Est. 2013</span>
+          <h1>
+            <span class="line"><span>Your roof.</span></span>
+            <span class="line"><span>Your power.</span></span>
+            <span class="line"><span><em>Your grid.</em></span></span>
+          </h1>
+        </div>
+        <div class="hero-side">
+          <p>Howpow designs and installs commercial solar PV and LED lighting, then handles the grid side too: G99 applications, G100 export limitation panels and witness testing.</p>
+          <div class="hero-cta">
+            <a class="btn btn-sun" href="#contact">Book a site survey <span class="arr">→</span></a>
+            <a class="btn btn-ghost" href="#export">See export limitation</a>
+          </div>
+        </div>
+      </div>
+      <div class="readout" aria-label="Company facts">
+        <span><span class="dot"></span><b>Retford, Nottinghamshire</b></span>
+        <span>Commercial solar PV</span>
+        <span>LED lighting</span>
+        <span>G99 · G100</span>
+        <span>Witness test engineers</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="marquee" aria-hidden="true">
+    <div class="track">
+      <span>Commercial Solar PV</span><span>LED Lighting</span><span>Export Limitation</span><span>G99 Applications</span><span>G100 Panels</span><span>Witness Testing</span>
+      <span>Commercial Solar PV</span><span>LED Lighting</span><span>Export Limitation</span><span>G99 Applications</span><span>G100 Panels</span><span>Witness Testing</span>
+    </div>
+  </div>
+
+  <section id="services">
+    <div class="wrap">
+      <div class="head reveal">
+        <div><span class="eyebrow">What we do</span><h2 style="margin-top:16px">From panel to<br>point of connection</h2></div>
+        <p>One team covers the whole job, from the first design drawing to the DNO paperwork and the final witness test. That keeps projects moving and puts one company on the hook for the result.</p>
+      </div>
+      <div class="services">
+        <article class="svc reveal">
+          <svg class="ico" viewBox="0 0 48 48" aria-hidden="true"><path d="M6 34 12 16h24l6 18Z"/><path d="M9 25h30M17 16l-3 18M31 16l3 18M24 16v18"/><path d="M24 34v8M16 42h16"/></svg>
+          <h3>Commercial<br>solar PV</h3>
+          <p>Rooftop and ground-mount arrays for factories, farms, warehouses and offices, installed on proven mounting systems.</p>
+          <div class="tag">Design · Supply · Install <i>→</i></div>
+        </article>
+        <article class="svc reveal">
+          <svg class="ico" viewBox="0 0 48 48" aria-hidden="true"><path d="M17 30a11 11 0 1 1 14 0c-1.6 1.3-2 2.8-2 4.5V36H19v-1.5c0-1.7-.4-3.2-2-4.5Z"/><path d="M19 41h10M21 45h6M24 2v4M40 18h4M4 18h4M35.3 6.7l-2.8 2.8M12.7 6.7l2.8 2.8"/></svg>
+          <h3>LED<br>lighting</h3>
+          <p>Warehouse, workshop and site lighting upgrades that cut the lighting load before a single panel goes up.</p>
+          <div class="tag">Retrofit · New build <i>→</i></div>
+        </article>
+        <article class="svc reveal">
+          <svg class="ico" viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="6" width="36" height="36" rx="3"/><path d="M6 16h36M14 24h8M14 30h12M14 36h6M32 24v12M29 27l3-3 3 3"/></svg>
+          <h3>Solar PV<br>design</h3>
+          <p>Layouts, string design and yield modelling sized to the site's real demand profile, not just the roof area.</p>
+          <div class="tag">Drawings · Yield reports <i>→</i></div>
+        </article>
+        <article class="svc reveal">
+          <svg class="ico" viewBox="0 0 48 48" aria-hidden="true"><path d="M4 30c6 0 6-12 12-12s6 12 12 12 6-12 12-12"/><path d="M4 22h40" stroke-dasharray="3 4"/><path d="M40 10v8M36 14h8"/></svg>
+          <h3>Export<br>limitation</h3>
+          <p>G100 control schemes that hold site export under the limit your DNO agrees, so you can fit a bigger array without grid reinforcement.</p>
+          <div class="tag">EREC G100 <i>→</i></div>
+        </article>
+        <article class="svc reveal">
+          <svg class="ico" viewBox="0 0 48 48" aria-hidden="true"><path d="M12 4h18l8 8v32H12Z"/><path d="M30 4v8h8M18 22h14M18 28h14M18 34h8"/><path d="m30 36 3 3 6-6"/></svg>
+          <h3>G99<br>applications</h3>
+          <p>We prepare and submit G99 connection applications to the DNO and manage them through to approval.</p>
+          <div class="tag">DNO liaison <i>→</i></div>
+        </article>
+        <article class="svc reveal">
+          <svg class="ico" viewBox="0 0 48 48" aria-hidden="true"><rect x="8" y="6" width="32" height="36" rx="3"/><circle cx="24" cy="20" r="7"/><path d="M24 20l4-4M16 34h16M16 38h10"/></svg>
+          <h3>Panel builds &amp;<br>witness testing</h3>
+          <p>G99 and G100 panels built in-house, then commissioned and witness tested with the DNO on site.</p>
+          <div class="tag">Build · Commission · Test <i>→</i></div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="figures" aria-label="Key figures">
+    <div class="wrap fig-grid">
+      <div class="fig reveal"><div class="n" data-count="2013">2013</div><p>Year Howpow was founded in Retford.</p></div>
+      <div class="fig reveal"><div class="n" data-count="16" data-suffix="A">16<small>A</small></div><p>Per-phase ceiling for G98. Go above it and you need a G99 application.</p></div>
+      <div class="fig reveal"><div class="n" data-count="3.68" data-dec="2" data-suffix="kW">3.68<small>kW</small></div><p>Single-phase threshold where DNO approval under G99 kicks in.</p></div>
+      <div class="fig reveal"><div class="n" data-count="11.04" data-dec="2" data-suffix="kW">11.04<small>kW</small></div><p>The same threshold on a three-phase supply.</p></div>
+    </div>
+  </section>
+
+  <section id="export">
+    <div class="sim reveal">
+      <div class="head">
+        <div><span class="eyebrow">Export limitation, explained</span><h2 style="margin-top:16px">Bigger array.<br>Same grid limit.</h2></div>
+        <p>Your DNO sets how much power the site may send back to the grid. A G100 scheme watches the site in real time and trims generation only when export would go over that limit. Move the sliders to see how it plays out.</p>
+      </div>
+      <div class="sim-body">
+        <div class="ctrl">
+          <div>
+            <label for="gen">Solar generation <output id="genO">180 kW</output></label>
+            <input type="range" id="gen" min="0" max="300" step="5" value="180">
+          </div>
+          <div>
+            <label for="dem">Site demand <output id="demO">90 kW</output></label>
+            <input type="range" id="dem" min="0" max="300" step="5" value="90">
+          </div>
+          <div>
+            <label for="lim">DNO export limit <output id="limO">50 kW</output></label>
+            <input type="range" id="lim" min="0" max="200" step="5" value="50">
+          </div>
+        </div>
+        <div>
+          <div class="bars" role="img" aria-label="Energy split" id="bars">
+            <div class="bar-row b-self"><span>Used on site</span><div class="bar"><i></i></div><span class="v">0 kW</span></div>
+            <div class="bar-row b-exp"><span>Exported</span><div class="bar"><i></i></div><span class="v">0 kW</span></div>
+            <div class="bar-row b-cur"><span>Trimmed by G100</span><div class="bar"><i></i></div><span class="v">0 kW</span></div>
+            <div class="bar-row b-imp"><span>From grid</span><div class="bar"><i></i></div><span class="v">0 kW</span></div>
+          </div>
+          <div class="verdict" id="verdict" aria-live="polite"></div>
+          <p class="note">Illustrative figures for a single moment in time. Real schemes are designed from your site's metering data.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="process">
+    <div class="wrap">
+      <div class="head reveal">
+        <div><span class="eyebrow">How a project runs</span><h2 style="margin-top:16px">Six steps.<br>One team.</h2></div>
+        <p>Grid approval is where most commercial solar projects stall. We start the DNO conversation early and run it alongside the design, so the install date holds.</p>
+      </div>
+      <div class="steps">
+        <div class="fillline" aria-hidden="true"></div>
+        <div class="step reveal"><span class="k">01</span><h3>Site survey</h3><p>Roof, supply, metering and half-hourly demand data.</p></div>
+        <div class="step reveal"><span class="k">02</span><h3>Design</h3><p>Array layout, yield model and the export strategy.</p></div>
+        <div class="step reveal"><span class="k">03</span><h3>G99 application</h3><p>We submit to the DNO and handle their questions.</p></div>
+        <div class="step reveal"><span class="k">04</span><h3>Install</h3><p>Mounting, modules, inverters and the G100 panel.</p></div>
+        <div class="step reveal"><span class="k">05</span><h3>Witness test</h3><p>Commissioning with the DNO present on site.</p></div>
+        <div class="step reveal"><span class="k">06</span><h3>Handover</h3><p>Monitoring set up and paperwork in your hands.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-label="Manufacturers" style="padding-top:0">
+    <div class="wrap">
+      <p class="eyebrow reveal" style="margin-bottom:22px">Kit we install</p>
+      <div class="partners reveal">
+        <div>SolarEdge</div><div>ESDEC</div><div>K2 Systems</div><div>Clenergy</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta" id="contact">
+    <div class="wrap cta-grid">
+      <div class="reveal">
+        <span class="eyebrow">Start with a survey</span>
+        <h2 style="margin-top:16px">Let's put your<br>roof to <em>work.</em></h2>
+        <div class="addr">
+          <b>Howpow Ltd</b>
+          <span>Unit 1, Trinity Park Industrial Estate</span>
+          <span>Sloswicke Drive, Retford</span>
+          <span>Nottinghamshire DN22 7WQ</span>
+        </div>
+      </div>
+      <form id="quote" class="reveal" novalidate>
+        <label for="f-name">Name<input id="f-name" name="name" autocomplete="name" required></label>
+        <label for="f-co">Company<input id="f-co" name="company" autocomplete="organization"></label>
+        <label for="f-svc">What do you need?
+          <select id="f-svc" name="service">
+            <option>Commercial solar PV</option>
+            <option>LED lighting</option>
+            <option>Export limitation (G100)</option>
+            <option>G99 application</option>
+            <option>Witness testing</option>
+          </select>
+        </label>
+        <label for="f-msg">About the site<textarea id="f-msg" name="message" rows="3" placeholder="Roof type, rough size, annual electricity spend"></textarea></label>
+        <button class="btn btn-sun" type="submit">Request a survey <span class="arr">→</span></button>
+        <p class="sent" id="sent" hidden>Demo form: in the live site this would send to Howpow.</p>
+      </form>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© Howpow Ltd · Renewable energy specialists since 2013</span>
+    <span>Solar PV · LED lighting · Export limitation · G99 &amp; G100</span>
+  </div>
+</footer>
+
+<script>
+(() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Nav state + scroll progress
+  const nav = document.getElementById('nav'), bar = document.getElementById('progress');
+  const onScroll = () => {
+    const h = document.documentElement;
+    nav.classList.toggle('solid', h.scrollTop > 40);
+    bar.style.transform = `scaleX(${h.scrollTop / Math.max(1, h.scrollHeight - h.clientHeight)})`;
+  };
+  addEventListener('scroll', onScroll, {passive: true}); onScroll();
+
+  // Hero canvas: sunlight streaming down into rows of panels
+  const cv = document.getElementById('flow'), ctx = cv.getContext('2d');
+  let W, H, dpr, parts = [];
+  const size = () => {
+    dpr = Math.min(devicePixelRatio || 1, 2);
+    W = cv.clientWidth; H = cv.clientHeight;
+    cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    parts = Array.from({length: Math.round(W / 9)}, spawn);
+  };
+  function spawn() {
+    return {t: Math.random(), s: .0015 + Math.random() * .003, x: Math.random(), bend: (Math.random() - .5) * .5, w: .6 + Math.random() * 1.6};
+  }
+  const sun = () => ({x: W * .82, y: H * .16});
+  function point(p, t) {
+    const s = sun(), ex = W * (.05 + p.x * .9), ey = H * .98;
+    const cx = (s.x + ex) / 2 + p.bend * W * .3, cy = (s.y + ey) / 2;
+    const u = 1 - t;
+    return [u*u*s.x + 2*u*t*cx + t*t*ex, u*u*s.y + 2*u*t*cy + t*t*ey];
+  }
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    const s = sun(), r = Math.min(W, H) * .5;
+    const g = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, r);
+    g.addColorStop(0, 'rgba(255,176,32,.55)'); g.addColorStop(.12, 'rgba(255,122,26,.22)'); g.addColorStop(1, 'rgba(255,122,26,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#FFC24D'; ctx.beginPath(); ctx.arc(s.x, s.y, Math.min(W, H) * .045, 0, 7); ctx.fill();
+    // panel rows
+    ctx.strokeStyle = 'rgba(160,190,215,.10)'; ctx.lineWidth = 1;
+    for (let i = 0; i < 7; i++) {
+      const y = H * (.62 + i * .06), sk = 30 + i * 12;
+      ctx.beginPath(); ctx.moveTo(-sk, y); ctx.lineTo(W + sk, y); ctx.stroke();
+    }
+    for (let i = -10; i <= 30; i++) {
+      const x0 = W * i / 20;
+      ctx.beginPath(); ctx.moveTo(x0, H * .62); ctx.lineTo(W * .5 + (x0 - W * .5) * 1.6, H); ctx.stroke();
+    }
+    // light particles
+    for (const p of parts) {
+      if (!reduce) { p.t += p.s; if (p.t > 1) Object.assign(p, spawn(), {t: 0}); }
+      const [x, y] = point(p, p.t), [x2, y2] = point(p, Math.max(0, p.t - .05));
+      const a = Math.sin(p.t * Math.PI) * .8;
+      ctx.strokeStyle = `rgba(255,${150 + p.t * 60 | 0},40,${a})`; ctx.lineWidth = p.w;
+      ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x, y); ctx.stroke();
+    }
+    if (!reduce) requestAnimationFrame(draw);
+  }
+  size(); addEventListener('resize', size); draw();
+
+  // Service card glow follows the pointer
+  document.querySelectorAll('.svc').forEach(el => el.addEventListener('pointermove', e => {
+    const r = el.getBoundingClientRect();
+    el.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+    el.style.setProperty('--my', (e.clientY - r.top) + 'px');
+  }));
+
+  // Count-up figures (final values are already in the HTML)
+  if (!reduce && 'IntersectionObserver' in window) {
+    const io = new IntersectionObserver(es => es.forEach(e => {
+      if (!e.isIntersecting) return; io.unobserve(e.target);
+      const el = e.target, end = +el.dataset.count, dec = +(el.dataset.dec || 0), suf = el.dataset.suffix;
+      const from = end > 1000 ? end - 60 : 0, t0 = performance.now();
+      const tick = now => {
+        const k = Math.min(1, (now - t0) / 1400), v = from + (end - from) * (1 - Math.pow(1 - k, 3));
+        el.innerHTML = v.toFixed(dec) + (suf ? `<small>${suf}</small>` : '');
+        if (k < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    }), {threshold: .6});
+    document.querySelectorAll('[data-count]').forEach(el => io.observe(el));
+  }
+
+  // Export limitation simulator
+  const $ = id => document.getElementById(id);
+  const rows = [...document.querySelectorAll('#bars .bar-row')];
+  function sim() {
+    const gen = +$('gen').value, dem = +$('dem').value, lim = +$('lim').value;
+    for (const [id, v] of [['gen', gen], ['dem', dem], ['lim', lim]]) {
+      $(id + 'O').textContent = v + ' kW';
+      $(id).style.setProperty('--p', (v / $(id).max * 100) + '%');
+    }
+    const self = Math.min(gen, dem), surplus = Math.max(0, gen - dem);
+    const exp = Math.min(surplus, lim), cur = surplus - exp, imp = Math.max(0, dem - gen);
+    const scale = Math.max(gen, dem, 1);
+    [self, exp, cur, imp].forEach((v, i) => {
+      rows[i].querySelector('i').style.width = (v / scale * 100) + '%';
+      rows[i].querySelector('.v').textContent = v + ' kW';
+    });
+    const pct = gen ? Math.round((gen - cur) / gen * 100) : 0;
+    $('verdict').innerHTML = cur > 0
+      ? `Export would hit <b>${surplus} kW</b>, over the <b>${lim} kW</b> limit. The G100 panel trims <b>${cur} kW</b> and the site still uses or sells <b>${pct}%</b> of what the array makes.`
+      : surplus > 0
+        ? `Surplus of <b>${surplus} kW</b> sits inside the <b>${lim} kW</b> limit, so it all goes to the grid. Nothing is trimmed.`
+        : `The site uses every kW the array makes and draws <b>${imp} kW</b> from the grid. No export, so the limit is not in play.`;
+  }
+  ['gen', 'dem', 'lim'].forEach(id => $(id).addEventListener('input', sim)); sim();
+
+  // Demo form
+  $('quote').addEventListener('submit', e => { e.preventDefault(); $('sent').hidden = false; });
+})();
+</script>

@@ -875,18 +875,18 @@ body{background:
 
     <!-- Forgot password — step 1: ask for the email -->
     <div id="forgot-form" style="display:none">
-      <div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:14px;text-align:center">Introduce tu correo y te enviaremos un enlace<br>para elegir una contraseña nueva.</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:14px;text-align:center">Enter your email and we'll send you a link<br>to choose a new password.</div>
       <div class="auth-field"><label>Email</label><input type="email" id="fp-email" placeholder="you@email.com" autocomplete="email"></div>
-      <button class="auth-btn" onclick="forgotPassword()">Enviar enlace 📧</button>
+      <button class="auth-btn" onclick="forgotPassword()">Send link 📧</button>
       <div style="text-align:center;margin-top:10px"><a href="#" onclick="hideForgot();return false" style="font-size:12px;color:rgba(255,255,255,.35);text-decoration:none;">← Back to Sign In</a></div>
       <div style="text-align:center;margin-top:12px;font-size:12px;color:rgba(255,255,255,.5)">Having trouble? <a href="mailto:meltosluhv@gmail.com" style="color:#06d6a0;text-decoration:none;font-weight:600;">Contact support</a></div>
     </div>
 
     <!-- Forgot password — step 2: shown when arriving from the emailed link -->
     <div id="reset-form" style="display:none">
-      <div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:14px;text-align:center">Elige tu nueva contraseña.</div>
-      <div class="auth-field"><label>Nueva contraseña (mín. 8 caracteres)</label><input type="password" id="rp-newpass" placeholder="••••••••" autocomplete="new-password"></div>
-      <button class="auth-btn" onclick="submitReset()">Guardar contraseña 🔒</button>
+      <div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:14px;text-align:center">Choose your new password.</div>
+      <div class="auth-field"><label>New password (min. 8 characters)</label><input type="password" id="rp-newpass" placeholder="••••••••" autocomplete="new-password"></div>
+      <button class="auth-btn" onclick="submitReset()">Save password 🔒</button>
       <div style="text-align:center;margin-top:10px"><a href="#" onclick="hideReset();return false" style="font-size:12px;color:rgba(255,255,255,.35);text-decoration:none;">← Back to Sign In</a></div>
     </div>
 
@@ -2255,11 +2255,11 @@ async function forgotPassword() {
   var errEl = document.getElementById('auth-error');
   errEl.textContent = '';
   if (!email) {
-    errEl.textContent = 'Introduce tu correo.';
+    errEl.textContent = 'Please enter your email.';
     return;
   }
   var btn = document.querySelector('#forgot-form .auth-btn');
-  btn.disabled = true; btn.textContent = 'Enviando...';
+  btn.disabled = true; btn.textContent = 'Sending...';
   try {
     var r = await fetch(API + '/api/auth/forgot-password', {
       method: 'POST',
@@ -2269,17 +2269,17 @@ async function forgotPassword() {
     var data = await r.json();
     if (r.ok) {
       errEl.style.color = '#06d6a0';
-      errEl.textContent = data.message || 'Si ese correo tiene cuenta, te hemos enviado un enlace.';
+      errEl.textContent = data.message || 'If that email has an account, we have sent you a link.';
       document.getElementById('fp-email').value = '';
     } else {
       errEl.style.color = '';
-      errEl.textContent = data.error || 'No se pudo enviar el enlace.';
+      errEl.textContent = data.error || 'Could not send the link.';
     }
   } catch(e) {
     errEl.style.color = '';
     errEl.textContent = 'Network error. Please try again.';
   } finally {
-    btn.disabled = false; btn.textContent = 'Enviar enlace 📧';
+    btn.disabled = false; btn.textContent = 'Send link 📧';
   }
 }
 
@@ -2310,11 +2310,11 @@ async function submitReset() {
   errEl.textContent = '';
   if (!newPass || newPass.length < 8) {
     errEl.style.color = '';
-    errEl.textContent = 'La contraseña debe tener al menos 8 caracteres.';
+    errEl.textContent = 'Password must be at least 8 characters.';
     return;
   }
   var btn = document.querySelector('#reset-form .auth-btn');
-  btn.disabled = true; btn.textContent = 'Guardando...';
+  btn.disabled = true; btn.textContent = 'Saving...';
   try {
     var r = await fetch(API + '/api/auth/reset-password', {
       method: 'POST',
@@ -2324,20 +2324,20 @@ async function submitReset() {
     var data = await r.json();
     if (r.ok && data.ok) {
       errEl.style.color = '#06d6a0';
-      errEl.textContent = '¡Contraseña actualizada! Ya puedes entrar.';
+      errEl.textContent = 'Password updated! You can sign in now.';
       document.getElementById('rp-newpass').value = '';
       // Drop the token from the URL so a shared or reloaded link can't reuse it.
       try { history.replaceState(null, '', window.location.pathname); } catch(e) {}
       setTimeout(hideReset, 2000);
     } else {
       errEl.style.color = '';
-      errEl.textContent = data.error || 'No se pudo restablecer la contraseña.';
+      errEl.textContent = data.error || 'Could not reset the password.';
     }
   } catch(e) {
     errEl.style.color = '';
     errEl.textContent = 'Network error. Please try again.';
   } finally {
-    btn.disabled = false; btn.textContent = 'Guardar contraseña 🔒';
+    btn.disabled = false; btn.textContent = 'Save password 🔒';
   }
 }
 // ── CANCEL SUBSCRIPTION WITHOUT SIGNING IN ─────────────────────────────────
@@ -2451,7 +2451,7 @@ function handleLapsedPlan() {
     localStorage.removeItem('luhv_user');
     localStorage.removeItem('luhv_chat');
   } catch (e) {}
-  try { showToast('Tu plan ha caducado — te llevamos a los planes'); } catch (e) {}
+  try { showToast('Your plan has expired — taking you to the plans'); } catch (e) {}
   setTimeout(() => { window.location.href = PRICING_URL; }, 1200);
 }
 
@@ -2473,16 +2473,16 @@ function isPlanGone(data) {
 
 function planGoneMessage(data) {
   if (data?.code !== 'plan_expired') {
-    return 'No encontramos un plan activo para este correo. Te llevamos a los planes...';
+    return 'We could not find an active plan for this email. Taking you to the plans...';
   }
   var when = '';
   try {
     if (data.billing_period_end) {
-      when = ' el ' + new Date(data.billing_period_end)
-        .toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+      when = ' on ' + new Date(data.billing_period_end)
+        .toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
     }
   } catch (e) {}
-  return 'Tu plan caducó' + when + '. Te llevamos a los planes para renovar...';
+  return 'Your plan expired' + when + '. Taking you to the plans to renew...';
 }
 
 async function startPaymentPolling(email, attempt = 0) {
@@ -2533,13 +2533,13 @@ async function startPaymentPolling(email, attempt = 0) {
     if (isAwaitingPayment(data)) {
       if (attempt + 1 < PAYMENT_POLL_MAX_ATTEMPTS) {
         document.getElementById('auth-error').textContent =
-          '⏳ Tu pago está siendo procesado... (' + (attempt + 2) + '/' + PAYMENT_POLL_MAX_ATTEMPTS + ')';
+          '⏳ Your payment is being processed... (' + (attempt + 2) + '/' + PAYMENT_POLL_MAX_ATTEMPTS + ')';
         // Button stays disabled: a poll is still in flight.
         setTimeout(() => startPaymentPolling(email, attempt + 1), PAYMENT_POLL_DELAY_MS);
         return;
       }
 
-      redirectToPricing('No encontramos un plan activo para este correo. Te llevamos a los planes...');
+      redirectToPricing('We could not find an active plan for this email. Taking you to the plans...');
       return;
     }
 
@@ -2599,7 +2599,7 @@ async function register(attempt = 0) {
     if (isAwaitingPayment(data)) {
       if (attempt + 1 < PAYMENT_POLL_MAX_ATTEMPTS) {
         document.getElementById('auth-error').textContent =
-          '⏳ Tu pago está siendo procesado... (' + (attempt + 2) + '/' + PAYMENT_POLL_MAX_ATTEMPTS + ')';
+          '⏳ Your payment is being processed... (' + (attempt + 2) + '/' + PAYMENT_POLL_MAX_ATTEMPTS + ')';
         // Button stays disabled: a retry is still in flight.
         setTimeout(() => register(attempt + 1), PAYMENT_POLL_DELAY_MS);
         return;
@@ -2843,7 +2843,9 @@ async function initApp() {
 
   // ── Push notifications ──────────────────────────────────────
   var _onb = JSON.parse(localStorage.getItem('luhv_onboarding') || '{}');
-  if (Notification.permission === 'granted') {
+  // Notification doesn't exist in iOS Safari tabs and some in-app browsers;
+  // touching it unguarded threw here.
+  if ('Notification' in window && Notification.permission === 'granted') {
     registerPushNotifications(USER.id, _onb.peak_hour);
   }
   setTimeout(function() {
@@ -5259,6 +5261,11 @@ async function loadWeeklyReview(force) {
   if (btn) { btn.disabled = true; btn.textContent = 'Loading...'; }
   try {
     var data = await api('/api/weekly-review');
+    if (data && data.error === 'upgrade_required') {
+      if (summaryEl) summaryEl.textContent = 'Weekly Performance Reviews are part of the MVP plan.';
+      if (btn) { btn.disabled = false; btn.textContent = 'Upgrade ↑'; btn.onclick = function() { openPaywall('upgrade'); }; }
+      return;
+    }
     if (!data || data.error) { if (summaryEl) summaryEl.textContent = 'Could not load review.'; return; }
     if (summaryEl) summaryEl.textContent = data.summary;
     var s = data.stats;
@@ -5646,6 +5653,12 @@ async function submitDecisionModal() {
   result.style.display = 'none';
   try {
     var data = await api('/api/decisions', { method:'POST', body:JSON.stringify({ decision:val, context:ctx.value.trim()||null }) });
+    if (data && data.error === 'upgrade_required') {
+      btn.disabled = false; btn.textContent = 'Get Clarity ⚡';
+      closeDecisionModal();
+      openPaywall('upgrade');
+      return;
+    }
     if (data && data.alignment) {
       var labels = { aligned:'Aligned', needs_adjustment:'Needs Adjustment', not_aligned:'Not Aligned' };
       var colors = { aligned:'#06d6a0', needs_adjustment:'#fbbf24', not_aligned:'#f43f5e' };
@@ -5671,6 +5684,11 @@ async function submitDecision() {
   btn.disabled = true; btn.textContent = 'Getting clarity...'; result.style.display = 'none';
   try {
     var data = await api('/api/decisions', {method:'POST', body:JSON.stringify({decision:val, context:ctxInput.value.trim()||null})});
+    if (data && data.error === 'upgrade_required') {
+      btn.disabled = false; btn.textContent = 'Get Clarity';
+      openPaywall('upgrade');
+      return;
+    }
     if (data&&data.alignment) {
       var labels = {aligned:'✓ Aligned',needs_adjustment:'Needs Adjustment',not_aligned:'✗ Not Aligned'};
       var colors = {aligned:'#06d6a0',needs_adjustment:'#fbbf24',not_aligned:'#f43f5e'};
@@ -6592,7 +6610,7 @@ function urlBase64ToUint8Array(base64) {
 }
 
 async function registerPushNotifications(userId, peakHour) {
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return;
   if (Notification.permission === 'denied') return;
 
   try {
@@ -6604,13 +6622,10 @@ async function registerPushNotifications(userId, peakHour) {
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
       });
     }
-    // api(path, opts) — this was called as api('POST', path, body), which
-    // requested "<API>POST" and showed "Connecting to server..." after retries.
-    // Note: the server does not mount routes/push.js yet, so this still 404s
-    // quietly until push is switched on.
+    // The server identifies the user from the session token, not the body.
     await api('/push/subscribe', {
       method: 'POST',
-      body: JSON.stringify({ subscription: sub.toJSON(), userId, peakHour })
+      body: JSON.stringify({ subscription: sub.toJSON(), peakHour })
     });
     console.log('[MELTOS] Push subscription saved ✅');
   } catch (err) {
@@ -6621,15 +6636,16 @@ async function registerPushNotifications(userId, peakHour) {
 async function unsubscribeFromPush(userId) {
   const reg = await navigator.serviceWorker.ready;
   const sub = await reg.pushManager.getSubscription();
+  const endpoint = sub ? sub.endpoint : null;
   if (sub) await sub.unsubscribe();
-  await api('/push/unsubscribe', { method: 'POST', body: JSON.stringify({ userId }) });
+  await api('/push/unsubscribe', { method: 'POST', body: JSON.stringify({ endpoint }) });
 }
 
 function showPushPermissionBanner(userId, peakHour) {
   if (document.getElementById('luhv-push-banner')) return;
   const dismissed = localStorage.getItem('luhv_push_dismissed');
   if (dismissed) return;
-  if (Notification.permission !== 'default') return;
+  if (!('Notification' in window) || Notification.permission !== 'default') return;
 
   const banner = document.createElement('div');
   banner.id = 'luhv-push-banner';

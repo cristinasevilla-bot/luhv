@@ -22,3 +22,5 @@ jobs:
             echo "Checking $f"
             node --check "$f"
           done
+      - name: Check Square checkout prices match the webhook catalogue
+        run: node scripts/check-square-prices.js

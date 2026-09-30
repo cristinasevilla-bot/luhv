@@ -855,6 +855,7 @@ body{background:
       <div class="auth-field"><label>Password</label><input type="password" id="login-pass" placeholder="••••••••"></div>
       <button class="auth-btn" onclick="login()" id="login-btn">Sign In 🏆</button>
       <div style="text-align:center;margin-top:10px"><a href="#" onclick="showForgot();return false" style="font-size:12px;color:rgba(255,255,255,.4);text-decoration:none;">Forgot your password?</a></div>
+      <div style="text-align:center;margin-top:6px"><a href="#" onclick="showCancelRequest();return false" style="font-size:12px;color:rgba(255,255,255,.3);text-decoration:none;">Cancel my subscription</a></div>
     </div>
 
     <!-- Register form -->
@@ -887,6 +888,21 @@ body{background:
       <div class="auth-field"><label>Nueva contraseña (mín. 8 caracteres)</label><input type="password" id="rp-newpass" placeholder="••••••••" autocomplete="new-password"></div>
       <button class="auth-btn" onclick="submitReset()">Guardar contraseña 🔒</button>
       <div style="text-align:center;margin-top:10px"><a href="#" onclick="hideReset();return false" style="font-size:12px;color:rgba(255,255,255,.35);text-decoration:none;">← Back to Sign In</a></div>
+    </div>
+
+    <!-- Cancel subscription without signing in — step 1: ask for the email -->
+    <div id="cancel-request-form" style="display:none">
+      <div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:14px;text-align:center">Enter the email you paid with. We'll send you<br>a link to cancel your subscription.</div>
+      <div class="auth-field"><label>Email</label><input type="email" id="cr-email" placeholder="you@email.com" autocomplete="email"></div>
+      <button class="auth-btn" onclick="requestCancel()">Send cancellation link 📧</button>
+      <div style="text-align:center;margin-top:10px"><a href="#" onclick="hideCancelForms();return false" style="font-size:12px;color:rgba(255,255,255,.35);text-decoration:none;">← Back to Sign In</a></div>
+    </div>
+
+    <!-- Cancel subscription — step 2: shown when arriving from the emailed link -->
+    <div id="cancel-confirm-form" style="display:none">
+      <div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:14px;text-align:center">Cancel your MELTOS subscription?<br>You keep access until the end of the period you already paid for, and you won't be charged again.</div>
+      <button class="auth-btn" onclick="confirmCancel()">Yes, cancel my subscription</button>
+      <div style="text-align:center;margin-top:10px"><a href="#" onclick="hideCancelForms();return false" style="font-size:12px;color:rgba(255,255,255,.35);text-decoration:none;">← Keep my subscription</a></div>
     </div>
     <div class="auth-error" id="auth-error"></div>
     <div style="text-align:center;margin-top:18px;font-size:12px;color:rgba(255,255,255,.5)">Having trouble? <a href="mailto:meltosluhv@gmail.com" style="color:#06d6a0;text-decoration:none;font-weight:600;">Contact support</a></div>
@@ -2203,6 +2219,11 @@ function setTab(t) {
   document.querySelectorAll('.auth-tab').forEach((el, i) => el.classList.toggle('active', (i === 0) === (t === 'login')));
   document.getElementById('login-form').style.display    = t === 'login'    ? 'block' : 'none';
   document.getElementById('register-form').style.display = t === 'register' ? 'block' : 'none';
+  // Leave no side form (forgot / reset / cancel) open under the tab just picked.
+  ['forgot-form', 'reset-form', 'cancel-request-form', 'cancel-confirm-form'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
   document.getElementById('auth-error').textContent = '';
 }
 
@@ -2310,6 +2331,97 @@ async function submitReset() {
     btn.disabled = false; btn.textContent = 'Guardar contraseña 🔒';
   }
 }
+// ── CANCEL SUBSCRIPTION WITHOUT SIGNING IN ─────────────────────────────────
+// Same two steps as the password reset: ask for a link, then confirm from it.
+var CANCEL_TOKEN = null;
+var AUTH_FORMS = ['login-form', 'register-form', 'forgot-form', 'reset-form', 'cancel-request-form', 'cancel-confirm-form'];
+
+function showAuthForm(id) {
+  AUTH_FORMS.forEach(function(f) {
+    var el = document.getElementById(f);
+    if (el) el.style.display = f === id ? 'block' : 'none';
+  });
+  var errEl = document.getElementById('auth-error');
+  errEl.textContent = '';
+  errEl.style.color = '';
+}
+
+function showCancelRequest() { showAuthForm('cancel-request-form'); }
+
+function showCancelConfirm(token) {
+  CANCEL_TOKEN = token;
+  showAuthForm('cancel-confirm-form');
+}
+
+function hideCancelForms() {
+  CANCEL_TOKEN = null;
+  try { history.replaceState(null, '', window.location.pathname); } catch(e) {}
+  showAuthForm(null);
+  setTab('login');
+}
+
+// The reply is the same whether or not the address is a customer.
+async function requestCancel() {
+  var email = document.getElementById('cr-email').value.trim();
+  var errEl = document.getElementById('auth-error');
+  errEl.style.color = '';
+  errEl.textContent = '';
+  if (!email) { errEl.textContent = 'Please enter your email.'; return; }
+  var btn = document.querySelector('#cancel-request-form .auth-btn');
+  btn.disabled = true; btn.textContent = 'Sending...';
+  try {
+    var r = await fetch(API + '/api/billing/cancel-request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email })
+    });
+    var data = await r.json().catch(function() { return {}; });
+    if (r.ok) {
+      errEl.style.color = '#06d6a0';
+      errEl.textContent = data.message || 'If that email has a subscription, we have sent you a link.';
+      document.getElementById('cr-email').value = '';
+    } else {
+      errEl.textContent = data.error || 'Could not send the link. Please contact support.';
+    }
+  } catch(e) {
+    errEl.textContent = 'Network error. Please try again.';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Send cancellation link 📧';
+  }
+}
+
+async function confirmCancel() {
+  var errEl = document.getElementById('auth-error');
+  errEl.style.color = '';
+  errEl.textContent = '';
+  var btn = document.querySelector('#cancel-confirm-form .auth-btn');
+  btn.disabled = true; btn.textContent = 'Cancelling...';
+  try {
+    var r = await fetch(API + '/api/billing/cancel-confirm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: CANCEL_TOKEN })
+    });
+    var data = await r.json().catch(function() { return {}; });
+    if (r.ok && data.success) {
+      var until = data.access_until
+        ? new Date(data.access_until).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+        : null;
+      errEl.style.color = '#06d6a0';
+      errEl.textContent = 'Your subscription is cancelled. You won\'t be charged again.' + (until ? ' Access continues until ' + until + '.' : '');
+      btn.style.display = 'none';
+      try { history.replaceState(null, '', window.location.pathname); } catch(e) {}
+      return;
+    }
+    errEl.textContent = data.code === 'no_subscription'
+      ? 'There is no active subscription on this email — you will not be charged again.'
+      : (data.error || 'Could not cancel. Please contact support.');
+  } catch(e) {
+    errEl.textContent = 'Network error. Please try again.';
+  }
+  btn.disabled = false; btn.textContent = 'Yes, cancel my subscription';
+}
+
 function login() {
   startPaymentPolling(document.getElementById('login-email').value.toLowerCase().trim());
 }
@@ -5627,6 +5739,9 @@ function skipGoalLink() {
   var resetToken = null;
   try { resetToken = new URLSearchParams(window.location.search).get('reset'); } catch (e) {}
   if (resetToken) { showResetForm(resetToken); return; }
+  var cancelToken = null;
+  try { cancelToken = new URLSearchParams(window.location.search).get('cancel'); } catch (e) {}
+  if (cancelToken) { showCancelConfirm(cancelToken); return; }
   if (TOKEN && USER) initApp();
 })();
 </script>

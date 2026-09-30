@@ -22,6 +22,13 @@ async function sendEmail(to, name, type, tier, extra) {
         `<p><a href='${extra.resetUrl}'>Restablecer mi contraseña</a></p>` +
         `<p>El enlace caduca en 1 hora y solo se puede usar una vez.</p>` +
         `<p>Si no has sido tú, ignora este correo: tu contraseña no cambiará.</p>`;
+    } else if (type === 'cancel_subscription') {
+      subject = 'Cancel your MELTOS subscription';
+      html = `<h2>Hi ${firstName},</h2>` +
+        `<p>We received a request to cancel your MELTOS subscription. Click the link to confirm:</p>` +
+        `<p><a href='${extra.cancelUrl}'>Cancel my subscription</a></p>` +
+        `<p>You keep access until the end of the period you already paid for, and you won't be charged again.</p>` +
+        `<p>The link expires in 1 hour. If you didn't ask for this, ignore this email — nothing will change.</p>`;
     } else if (type === 'access_granted') {
       subject = '🎉 Tu acceso a luhv está listo';
       html = `<h2>Hola ${firstName},</h2><p>Tu pago ha sido procesado y ya tienes acceso al plan <strong>${tier}</strong> de luhv.</p><p>Entra en <a href='https://luhv.onrender.com'>luhv.onrender.com</a> y regístrate con este correo.</p>`;
@@ -150,26 +157,40 @@ async function cancelSquareSubscriptions(user) {
   return results;
 }
 
-// Shared by the in-app button and the admin panel.
-async function cancelUserSubscription(userId) {
-  const { rows: [user] } = await db.query(
-    'SELECT id, email, square_customer_id, billing_period_end FROM users WHERE id=$1',
-    [userId]
-  );
-  if (!user) return { status: 404, body: { error: 'User not found' } };
+// Shared by the in-app button, the admin panel and the emailed cancel link.
+// Takes a userId, or { email } for someone who paid but never got a users row
+// (e.g. the webhook could not match their payment) — they still need to be
+// able to stop the charges.
+async function cancelUserSubscription(userIdOrEmail) {
+  let user;
+  if (typeof userIdOrEmail === 'object') {
+    const email = String(userIdOrEmail.email || '').toLowerCase().trim();
+    const { rows } = await db.query(
+      'SELECT id, email, square_customer_id, billing_period_end FROM users WHERE LOWER(TRIM(email))=$1',
+      [email]
+    );
+    user = rows[0] || { id: null, email, square_customer_id: null, billing_period_end: null };
+  } else {
+    const { rows } = await db.query(
+      'SELECT id, email, square_customer_id, billing_period_end FROM users WHERE id=$1',
+      [userIdOrEmail]
+    );
+    user = rows[0];
+    if (!user) return { status: 404, body: { error: 'User not found' } };
+  }
 
   let cancelled;
   try {
     cancelled = await cancelSquareSubscriptions(user);
   } catch (e) {
-    console.error(`Square cancel failed for user ${userId}:`, e.message);
+    console.error(`Square cancel failed for ${user.email}:`, e.message);
     return { status: 502, body: { error: 'Could not reach Square to cancel. Please try again or contact support.' } };
   }
   if (!cancelled.length) {
     return { status: 404, body: { error: 'No active Square subscription found for this email.', code: 'no_subscription' } };
   }
 
-  await db.query("UPDATE users SET subscription_status='canceled' WHERE id=$1", [userId]);
+  if (user.id) await db.query("UPDATE users SET subscription_status='canceled' WHERE id=$1", [user.id]);
   console.log(`🛑 SUBSCRIPTION CANCELLED: ${user.email} — ${cancelled.map(c => `${c.id} ends ${c.ends || '?'}`).join(', ')}`);
   return {
     status: 200,
@@ -2990,6 +3011,85 @@ app.post('/api/billing/cancel', auth, async (req, res) => {
   res.status(status).json(body);
 });
 
+// ── CANCEL BY EMAIL ───────────────────────────────────────────────────────────
+// For customers who cannot sign in (never registered, forgot the password, or
+// locked out by a payment problem) and still need to stop being charged. Same
+// shape as forgot-password: prove you own the inbox via a one-time link.
+const CANCEL_TOKEN_TTL_MIN = 60;
+const cancelRequestLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, max: 5,   // caps how much mail one address can trigger
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Too many attempts. Please wait a few minutes.' }
+});
+const cancelConfirmLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, max: 10,
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Too many attempts. Please wait a few minutes.' }
+});
+
+// Always answers the same way, so it can't be used to test who is a customer.
+app.post('/api/billing/cancel-request', cancelRequestLimiter, async (req, res) => {
+  const generic = { ok: true, message: 'If that email has a subscription, we have sent you a link to cancel it. Check your inbox (and spam).' };
+  const email = String(req.body?.email || '').toLowerCase().trim();
+  if (!EMAIL_RE.test(email)) return res.status(400).json({ error: 'Please enter a valid email.' });
+
+  try {
+    // Only mail addresses we have billed — a users row, or a Square customer
+    // (someone whose payment never produced a row). Anything else would let
+    // this endpoint send mail to arbitrary strangers.
+    const { rows: [user] } = await db.query(
+      'SELECT name FROM users WHERE LOWER(TRIM(email))=$1', [email]
+    );
+    let known = !!user;
+    if (!known && process.env.SQUARE_ACCESS_TOKEN) {
+      const { customers = [] } = await squareApi('POST', '/customers/search', {
+        query: { filter: { email_address: { fuzzy: email } } }
+      });
+      known = customers.some(c => String(c.email_address || '').toLowerCase().trim() === email);
+    }
+    if (!known) {
+      console.log(`cancel-request: no customer for ${email} — generic reply sent`);
+      return res.json(generic);
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + CANCEL_TOKEN_TTL_MIN * 60 * 1000);
+    await db.query('DELETE FROM subscription_cancel_tokens WHERE email=$1', [email]);
+    await db.query(
+      'INSERT INTO subscription_cancel_tokens (token_hash, email, expires_at) VALUES ($1,$2,$3)',
+      [hashToken(token), email, expiresAt.toISOString()]
+    );
+
+    const base = process.env.APP_URL || 'https://meltosbyluhv.netlify.app';
+    sendEmail(email, user?.name, 'cancel_subscription', null, { cancelUrl: `${base}/?cancel=${token}` }).catch(() => {});
+    console.log(`cancel-request: link issued for ${email}`);
+    return res.json(generic);
+  } catch (e) {
+    console.error('cancel-request error:', e);
+    return res.status(500).json({ error: 'Could not start the cancellation. Please contact support.' });
+  }
+});
+
+// Spends the emailed token and cancels at Square. The token is only marked
+// used once Square has confirmed, so a Square outage doesn't burn the link.
+app.post('/api/billing/cancel-confirm', cancelConfirmLimiter, async (req, res) => {
+  const token = String(req.body?.token || '');
+  const invalid = { error: 'This link is invalid or has expired. Please request a new one.' };
+  if (!token) return res.status(400).json(invalid);
+
+  const { rows: [row] } = await db.query(
+    'SELECT token_hash, email, expires_at, used_at FROM subscription_cancel_tokens WHERE token_hash=$1',
+    [hashToken(token)]
+  );
+  if (!row || row.used_at || new Date(row.expires_at) <= new Date()) return res.status(400).json(invalid);
+
+  const { status, body } = await cancelUserSubscription({ email: row.email });
+  if (status === 200 || body.code === 'no_subscription') {
+    await db.query('UPDATE subscription_cancel_tokens SET used_at=NOW() WHERE token_hash=$1', [row.token_hash]);
+  }
+  res.status(status).json(body);
+});
+
 
 // ── SMART TASK SUGGESTIONS ────────────────────────────────────────────────────
 app.post('/api/goals/suggest-tasks', auth, checkTier, async (req, res) => {
@@ -3071,6 +3171,16 @@ async function runMigrations() {
        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
      )`,
     'CREATE INDEX IF NOT EXISTS idx_reset_tokens_user ON password_reset_tokens(user_id)',
+    // Emailed "cancel my subscription" links. Keyed by email, not user_id: a
+    // customer can be billed by Square without ever having a users row.
+    `CREATE TABLE IF NOT EXISTS subscription_cancel_tokens (
+       token_hash TEXT PRIMARY KEY,
+       email      TEXT NOT NULL,
+       expires_at TIMESTAMPTZ NOT NULL,
+       used_at    TIMESTAMPTZ,
+       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+     )`,
+    'CREATE INDEX IF NOT EXISTS idx_cancel_tokens_email ON subscription_cancel_tokens(email)',
     'ALTER TABLE users ADD COLUMN IF NOT EXISTS last_streak_date DATE',
     'ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarding_data JSONB',
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS tier TEXT DEFAULT 'basic'`,

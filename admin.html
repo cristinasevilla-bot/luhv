@@ -709,15 +709,15 @@ async function loadDebugPayments() {
 
   box.innerHTML = `
     <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
-      ${cfgRow(c.signature_key, 'Square signature key', c.signature_key?'set':'MISSING → webhook 503, nadie entra')}
-      ${cfgRow(c.access_token,  'Square access token', c.access_token?'set':'MISSING → no se lee el email')}
+      ${cfgRow(c.signature_key, 'Square signature key', c.signature_key?'set':'MISSING → webhook 503, nobody gets access')}
+      ${cfgRow(c.access_token,  'Square access token', c.access_token?'set':'MISSING → buyer email cannot be read')}
       ${cfgRow(true, 'Webhook URL', String(c.webhook_url||'?'))}
     </div>
 
     <div style="margin:0 0 6px;font-size:13px;font-weight:700;color:${unprov.length?'#f43f5e':'#06d6a0'}">
-      ${unprov.length?('⚠️ '+unprov.length+' pago(s) sin email — cliente pagó pero NO tiene acceso'):'✅ No hay pagos sin procesar'}
+      ${unprov.length?('⚠️ '+unprov.length+' payment issue(s) — customer paid but may NOT have access'):'✅ No unprocessed payments'}
     </div>
-    ${unprov.length ? `<table><thead><tr><th>Detalle</th><th>Cuándo</th></tr></thead><tbody>${
+    ${unprov.length ? `<table><thead><tr><th>Detail</th><th>When</th></tr></thead><tbody>${
       unprov.map(e => `<tr>
         <td style="font-size:12px;color:#f43f5e">${esc(e.message||'')}<div style="color:rgba(255,255,255,.4);font-size:11px">${esc(ctxOf(e))}</div></td>
         <td style="color:rgba(255,255,255,.4);font-size:11px">${fmt(e.created_at)}</td>
@@ -725,26 +725,26 @@ async function loadDebugPayments() {
     }</tbody></table>` : ''}
 
     <div style="margin:16px 0 6px;font-size:13px;font-weight:700;color:rgba(255,255,255,.6)">
-      ⏳ Pagaron pero aún no se han registrado (${awaiting.length})
+      ⏳ Paid but not signed up yet (${awaiting.length})
     </div>
-    ${awaiting.length ? `<table><thead><tr><th>Email</th><th>Plan</th><th>Acceso hasta</th></tr></thead><tbody>${
+    ${awaiting.length ? `<table><thead><tr><th>Email</th><th>Plan</th><th>Access until</th></tr></thead><tbody>${
       awaiting.map(u => `<tr>
         <td style="font-size:12px">${esc(u.email)}</td>
         <td><span class="badge ${u.tier==='mvp'?'badge-mvp':u.tier==='starter'?'badge-starter':'badge-basic'}">${(u.tier||'').toUpperCase()}</span></td>
         <td style="color:rgba(255,255,255,.4);font-size:11px">${fmt(u.billing_period_end)}</td>
       </tr>`).join('')
-    }</tbody></table>` : '<div class="empty">Nadie en espera</div>'}
+    }</tbody></table>` : '<div class="empty">Nobody waiting</div>'}
 
     <div style="margin:16px 0 6px;font-size:13px;font-weight:700;color:rgba(255,255,255,.6)">
-      ✅ Últimos accesos provisionados por Square (${recent.length})
+      ✅ Latest access granted by Square (${recent.length})
     </div>
-    ${recent.length ? `<table><thead><tr><th>Email</th><th>Plan</th><th>Cuándo</th></tr></thead><tbody>${
+    ${recent.length ? `<table><thead><tr><th>Email</th><th>Plan</th><th>When</th></tr></thead><tbody>${
       recent.map(u => `<tr>
         <td style="font-size:12px">${esc(u.email)}</td>
         <td><span class="badge ${u.tier==='mvp'?'badge-mvp':u.tier==='starter'?'badge-starter':'badge-basic'}">${(u.tier||'').toUpperCase()}${u.is_trial?' · TRIAL':''}</span></td>
         <td style="color:rgba(255,255,255,.4);font-size:11px">${fmt(u.created_at)}</td>
       </tr>`).join('')
-    }</tbody></table>` : '<div class="empty">Aún ningún pago de Square registrado</div>'}
+    }</tbody></table>` : '<div class="empty">No Square payments recorded yet</div>'}
   `;
 }
 

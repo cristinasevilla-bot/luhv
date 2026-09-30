@@ -153,7 +153,7 @@ function buildStreakDangerNudge(user, onboarding, habits, goals) {
   var goal90 = (onboarding && onboarding.goal_90days) || '';
   var easiest = cats.pending.all.length > 0 ? cats.pending.all[cats.pending.all.length - 1] : null;
   var opts = [];
-  opts.push({ title: name + ' — your ' + streak + '-day streak ends in 1 hour', body: 'Just 1 habit saves it. ' + (easiest ? easiest.icon + ' "' + easiest.name + '"' : 'Pick one') + ' — do it right now.', tag: 'luhv-danger', nudgeType: 'danger-streak-rescue' });
+  opts.push({ title: name + ' — your ' + streak + '-day streak ends at midnight', body: 'Just 1 habit saves it. ' + (easiest ? easiest.icon + ' "' + easiest.name + '"' : 'Pick one') + ' — do it right now.', tag: 'luhv-danger', nudgeType: 'danger-streak-rescue' });
   if (urgentGoal) opts.push({ title: streak + ' days at risk, ' + name, body: '"' + urgentGoal.title + '" needs you consistent. 1 habit right now keeps the chain alive.', tag: 'luhv-danger', nudgeType: 'danger-streak-goal' });
   if (goal90) opts.push({ title: 'Last call, ' + name, body: 'You are working toward "' + goal90 + '". Save your streak with 1 check right now.', tag: 'luhv-danger', nudgeType: 'danger-streak-90goal' });
   return pickRandom(opts);

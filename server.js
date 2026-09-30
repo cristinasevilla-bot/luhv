@@ -1,3 +1,17 @@
+// ── TIMEZONE ─────────────────────────────────────────────────────────────────
+// MELTOS runs on US Eastern time: "today", streaks, the greeting's morning /
+// evening and the weekly view all follow New York, not the server's UTC. In UTC
+// an evening check-in in New York landed on the next day and broke streaks.
+// Set before anything creates a Date.
+const APP_TZ = 'America/New_York';
+process.env.TZ = APP_TZ;
+const _ymdFmt = new Intl.DateTimeFormat('en-CA', { timeZone: APP_TZ, year: 'numeric', month: '2-digit', day: '2-digit' });
+// YYYY-MM-DD of an instant, in Eastern time.
+const ymdET = (d) => _ymdFmt.format(d instanceof Date ? d : new Date(d));
+const todayET = () => ymdET(new Date());
+// SQL for "today" in Eastern time (CURRENT_DATE follows the DB session, which is UTC).
+const SQL_TODAY_ET = "(NOW() AT TIME ZONE 'America/New_York')::date";
+
 const express   = require('express'); 
 const rateLimit  = require('express-rate-limit');
 const bcrypt    = require('bcryptjs');
@@ -20,12 +34,12 @@ async function sendEmail(to, name, type, tier, extra) {
     const firstName = (name || to.split('@')[0]).split(' ')[0];
     let subject, html;
     if (type === 'password_reset') {
-      subject = 'Restablece tu contraseña de luhv';
-      html = `<h2>Hola ${firstName},</h2>` +
-        `<p>Has pedido restablecer tu contraseña. Pulsa el enlace para elegir una nueva:</p>` +
-        `<p><a href='${extra.resetUrl}'>Restablecer mi contraseña</a></p>` +
-        `<p>El enlace caduca en 1 hora y solo se puede usar una vez.</p>` +
-        `<p>Si no has sido tú, ignora este correo: tu contraseña no cambiará.</p>`;
+      subject = 'Reset your MELTOS password';
+      html = `<h2>Hi ${firstName},</h2>` +
+        `<p>You asked to reset your password. Click the link to choose a new one:</p>` +
+        `<p><a href='${extra.resetUrl}'>Reset my password</a></p>` +
+        `<p>The link expires in 1 hour and can only be used once.</p>` +
+        `<p>If this wasn't you, ignore this email — your password won't change.</p>`;
     } else if (type === 'cancel_subscription') {
       subject = 'Cancel your MELTOS subscription';
       html = `<h2>Hi ${firstName},</h2>` +
@@ -34,11 +48,11 @@ async function sendEmail(to, name, type, tier, extra) {
         `<p>You keep access until the end of the period you already paid for, and you won't be charged again.</p>` +
         `<p>The link expires in 1 hour. If you didn't ask for this, ignore this email — nothing will change.</p>`;
     } else if (type === 'access_granted') {
-      subject = '🎉 Tu acceso a luhv está listo';
-      html = `<h2>Hola ${firstName},</h2><p>Tu pago ha sido procesado y ya tienes acceso al plan <strong>${tier}</strong> de luhv.</p><p>Entra en <a href='${APP_LINK}/?registered=true'>${APP_LINK.replace('https://', '')}</a> y regístrate con este correo.</p>`;
+      subject = '🎉 Your MELTOS access is ready';
+      html = `<h2>Hi ${firstName},</h2><p>Your payment has been processed and you now have access to the MELTOS <strong>${String(tier || '').toUpperCase()}</strong> plan.</p><p>Go to <a href='${APP_LINK}/?registered=true'>${APP_LINK.replace('https://', '')}</a> and sign up with this email address to create your password.</p>`;
     } else {
-      subject = '✅ Bienvenida a luhv';
-      html = `<h2>Hola ${firstName},</h2><p>Tu cuenta en luhv ha sido creada correctamente.</p><p>Accede en <a href='${APP_LINK}'>${APP_LINK.replace('https://', '')}</a>.</p>`;
+      subject = '✅ Welcome to MELTOS';
+      html = `<h2>Hi ${firstName},</h2><p>Your MELTOS account has been created.</p><p>Sign in at <a href='${APP_LINK}'>${APP_LINK.replace('https://', '')}</a>.</p>`;
     }
     await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -627,6 +641,11 @@ const auth = (req, res, next) => {
   try { req.user = jwt.verify(token, process.env.JWT_SECRET); next(); }
   catch { res.status(401).json({ error: 'Invalid token' }); }
 };
+
+// ── PUSH NOTIFICATIONS ────────────────────────────────────────────────────────
+const createPush = require('./routes/push');
+const push = createPush({ db, auth, hasActivePaidAccess, ymdET });
+app.use('/push', push.router);
 
 // ── SUPABASE SCHEMA (run once) ────────────────────────────────────────────────
 // CREATE TABLE IF NOT EXISTS coach_sessions (
@@ -1236,7 +1255,7 @@ app.post('/api/coach/session/reset', auth, checkTier, coachAuth, async (req, res
 app.post('/api/coach/chat', auth, checkTier, coachAuth, async (req, res) => {
   const { message, history = [] } = req.body;
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayET();
   const { rows: [user] }   = await db.query('SELECT name, streak FROM users WHERE id=$1', [req.user.id]);
   const { rows: goals }    = await db.query("SELECT title, progress, target, updated_at FROM goals WHERE user_id=$1 AND status='active'", [req.user.id]);
   const { rows: habits }   = await db.query(
@@ -1349,7 +1368,7 @@ function planState(user) {
 }
 
 function expiredPlanError() {
-  return 'Tu plan ha caducado. Renueva para volver a entrar.';
+  return 'Your plan has expired. Renew to get back in.';
 }
 app.post('/api/auth/register', async (req, res) => {
   try {
@@ -1385,7 +1404,7 @@ app.post('/api/auth/register', async (req, res) => {
     if (regPlan !== 'active') {
       // No row, or a row Square has not attached a plan to yet. This is the one
       // case where the webhook may genuinely still be in flight.
-      return res.status(403).json({ error: activeAccessError(), code: 'awaiting_webhook', hint: 'Si acabas de pagar, tu acceso puede tardar hasta 30 segundos en activarse. Por favor intenta de nuevo.' });
+      return res.status(403).json({ error: activeAccessError(), code: 'awaiting_webhook', hint: 'If you just paid, your access can take up to a minute to activate. Please try again.' });
     }
 
     if (existingUser.password_hash) {
@@ -1436,7 +1455,7 @@ const loginLimiter = rateLimit({
   requestWasSuccessful: (req, res) => res.statusCode !== 401,
   keyGenerator: (req) => String(req.body && req.body.email || '').toLowerCase().trim() || 'anonymous',
   message: {
-    error: 'Demasiados intentos fallidos. Espera 15 minutos e inténtalo de nuevo.',
+    error: 'Too many failed attempts. Please wait 15 minutes and try again.',
     code: 'too_many_attempts'
   }
 });
@@ -1527,18 +1546,18 @@ const hashToken = (t) => crypto.createHash('sha256').update(t).digest('hex');
 const forgotLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, max: 5,   // caps how much mail one address can trigger
   standardHeaders: true, legacyHeaders: false,
-  message: { error: 'Demasiados intentos. Espera unos minutos.' }
+  message: { error: 'Too many attempts. Please wait a few minutes.' }
 });
 const resetLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, max: 10,  // needs a valid token anyway, so looser
   standardHeaders: true, legacyHeaders: false,
-  message: { error: 'Demasiados intentos. Espera unos minutos.' }
+  message: { error: 'Too many attempts. Please wait a few minutes.' }
 });
 
 // Always answers the same way. Saying "no account found" would turn this into a
 // tool for testing which addresses are customers.
 app.post('/api/auth/forgot-password', forgotLimiter, async (req, res) => {
-  const generic = { ok: true, message: 'Si ese correo tiene una cuenta con plan activo, te hemos enviado un enlace para restablecer la contraseña.' };
+  const generic = { ok: true, message: 'If that email has an account with an active plan, we have sent you a link to reset your password.' };
   try {
     const cleanEmail = String(req.body?.email || '').toLowerCase().trim();
     if (!cleanEmail) return res.status(400).json({ error: 'Email is required' });
@@ -1597,7 +1616,7 @@ app.post('/api/auth/reset-password', resetLimiter, async (req, res) => {
 
     // Same message for unknown, spent, and expired — none of them should tell
     // the caller which one it was.
-    const invalid = { error: 'Este enlace no es válido o ha caducado. Pide uno nuevo.' };
+    const invalid = { error: 'This link is invalid or has expired. Please request a new one.' };
     if (!row) return res.status(400).json(invalid);
     if (row.used_at) return res.status(400).json(invalid);
     if (new Date(row.expires_at) <= new Date()) return res.status(400).json(invalid);
@@ -1650,19 +1669,17 @@ async function updateUserStreak(userId) {
     'SELECT streak, last_streak_date FROM users WHERE id=$1', [userId]
   );
   if (!user) return;
-  const today = new Date().toISOString().split('T')[0];
-  const lastDate = user.last_streak_date ? new Date(user.last_streak_date).toISOString().split('T')[0] : null;
+  const today = todayET();
+  const lastDate = user.last_streak_date ? ymdET(user.last_streak_date) : null;
   if (lastDate === today) return;
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yStr = yesterday.toISOString().split('T')[0];
+  const yStr = ymdET(new Date(Date.now() - 24 * 60 * 60 * 1000));
   const newStreak = lastDate === yStr ? (user.streak || 0) + 1 : 1;
   await db.query('UPDATE users SET streak=$1, last_streak_date=$2 WHERE id=$3', [newStreak, today, userId]);
 }
 
 // ── HABITS ────────────────────────────────────────────────────────────────────
 app.get('/api/habits', auth, checkTier, async (req, res) => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayET();
   const { rows } = await db.query(
     `SELECT h.*, 
       COALESCE(hc.value, 0) as today_value,
@@ -1695,7 +1712,7 @@ app.post('/api/habits', auth, checkTier, async (req, res) => {
 
 // Increment habit progress (works for both check and count)
 app.patch('/api/habits/:id/check', auth, checkTier, async (req, res) => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayET();
   const { rows: [habit] } = await db.query('SELECT * FROM habits WHERE id=$1 AND user_id=$2', [req.params.id, req.user.id]);
   if (!habit) return res.status(404).json({ error: 'Habit not found' });
 
@@ -1734,7 +1751,7 @@ app.patch('/api/habits/:id/check', auth, checkTier, async (req, res) => {
 
 // Reset habit progress for today
 app.patch('/api/habits/:id/reset', auth, checkTier, async (req, res) => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayET();
   await db.query('DELETE FROM habit_completions WHERE habit_id=$1 AND user_id=$2 AND date=$3', [req.params.id, req.user.id, today]);
   res.json({ done: false, value: 0 });
 });
@@ -1827,9 +1844,9 @@ app.get('/api/energy', auth, checkTier, async (req, res) => {
 });
 
 app.get('/api/energy/today', auth, checkTier, async (req, res) => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayET();
   const { rows } = await db.query(
-    "SELECT * FROM energy_logs WHERE user_id=$1 AND logged_at::date=$2 ORDER BY logged_at DESC LIMIT 1",
+    "SELECT * FROM energy_logs WHERE user_id=$1 AND (logged_at AT TIME ZONE 'America/New_York')::date=$2 ORDER BY logged_at DESC LIMIT 1",
     [req.user.id, today]
   );
   res.json(rows[0] || null);
@@ -2092,7 +2109,7 @@ app.get('/api/admin/debug/payments', adminAuth, async (req, res) => {
 // ── ADMIN INSIGHTS — goals, habits, coach conversations per user ──────────────
 app.get('/api/admin/insights', insightsAuth, async (req, res) => {
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayET();
 
     // Goals per user with progress
     const { rows: goals } = await db.query(`
@@ -2114,7 +2131,7 @@ app.get('/api/admin/insights', insightsAuth, async (req, res) => {
       FROM habits h
       JOIN users u ON u.id = h.user_id
       LEFT JOIN habit_completions hc ON hc.habit_id = h.id
-        AND hc.date >= CURRENT_DATE - INTERVAL '7 days'
+        AND hc.date >= ${SQL_TODAY_ET} - INTERVAL '7 days'
       GROUP BY h.id, h.name, h.icon, h.target_type, h.user_id, u.name, u.email
       ORDER BY u.name, completions_7d DESC
     `, [today]);
@@ -2183,7 +2200,7 @@ app.get('/api/admin/insights', insightsAuth, async (req, res) => {
 //   ON daily_intentions (user_id, date);
 
 app.get('/api/intention/today', auth, checkTier, async (req, res) => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayET();
   const { rows } = await db.query(
     'SELECT * FROM daily_intentions WHERE user_id=$1 AND date=$2',
     [req.user.id, today]
@@ -2236,7 +2253,7 @@ COACH: [2-3 sentences in Luhv+ voice — validate or redirect, then energize the
     const alignment  = alignmentMap[alignMatch?.[1]?.toUpperCase()] || 'needs_adjustment';
     const coachReply = coachMatch?.[1]?.trim() || raw;
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayET();
     await db.query(
       `INSERT INTO daily_intentions (user_id, intention, coach_reply, alignment, date)
        VALUES ($1,$2,$3,$4,$5)
@@ -2273,7 +2290,9 @@ app.get('/api/decisions', auth, checkTier, async (req, res) => {
   res.json(rows);
 });
 
-app.post('/api/decisions', auth, checkTier, async (req, res) => {
+// Decision Alignment Check and Weekly Reviews are MVP features. Starter keeps
+// Daily Intention coaching only. Both call Claude; neither was gated before.
+app.post('/api/decisions', auth, checkTier, coachAuth, async (req, res) => {
   const { decision, context } = req.body;
   if (!decision?.trim()) return res.status(400).json({ error: 'Decision required' });
 
@@ -2369,7 +2388,7 @@ Days since last coach chat: ${daysSinceChat}
 `;
 
     // Also get today's habits for chip personalisation
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayET();
     const { rows: habits } = await db.query(
       `SELECT h.name, CASE WHEN h.target_type='check' THEN (hc.id IS NOT NULL)
         ELSE (COALESCE(hc.value,0) >= h.daily_target) END as done
@@ -2438,7 +2457,7 @@ ${fullContext}`;
 // ── EFFECTIVENESS SCORE ───────────────────────────────────────────────────────
 app.get('/api/effectiveness-score', auth, checkTier, async (req, res) => {
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayET();
     const { rows: [user] }      = await db.query('SELECT name, streak FROM users WHERE id=$1', [req.user.id]);
     const { rows: goals }       = await db.query("SELECT progress, target FROM goals WHERE user_id=$1 AND status='active'", [req.user.id]);
     const { rows: habits }      = await db.query(
@@ -2507,14 +2526,14 @@ app.patch('/api/onboarding/peak-hour', auth, checkTier, async (req, res) => {
 
 
 // ── WEEKLY REVIEW ─────────────────────────────────────────────────────────────
-app.get('/api/weekly-review', auth, checkTier, async (req, res) => {
+app.get('/api/weekly-review', auth, checkTier, coachAuth, async (req, res) => {
   try {
     const { rows: [user] }   = await db.query('SELECT name, streak FROM users WHERE id=$1', [req.user.id]);
     const { rows: goals }    = await db.query("SELECT title, progress, target, updated_at FROM goals WHERE user_id=$1 AND status='active'", [req.user.id]);
     const { rows: habits }   = await db.query(
       `SELECT h.name, COUNT(hc.id) as completions
        FROM habits h LEFT JOIN habit_completions hc
-         ON hc.habit_id=h.id AND hc.user_id=$1 AND hc.date >= CURRENT_DATE - INTERVAL '7 days'
+         ON hc.habit_id=h.id AND hc.user_id=$1 AND hc.date >= ${SQL_TODAY_ET} - INTERVAL '7 days'
        WHERE h.user_id=$1 GROUP BY h.id, h.name`, [req.user.id]);
     const { rows: checkins } = await db.query(
       "SELECT mood, created_at FROM journal_entries WHERE user_id=$1 AND created_at >= NOW() - INTERVAL '7 days' ORDER BY created_at DESC",
@@ -2574,9 +2593,9 @@ app.get('/api/peak-report', auth, checkTier, async (req, res) => {
   try {
     // Get habit completions by hour over last 30 days
     const { rows: byHour } = await db.query(
-      `SELECT EXTRACT(HOUR FROM completed_at) as hour, COUNT(*) as count
+      `SELECT EXTRACT(HOUR FROM completed_at AT TIME ZONE 'America/New_York') as hour, COUNT(*) as count
        FROM habit_completions
-       WHERE user_id=$1 AND date >= CURRENT_DATE - INTERVAL '30 days'
+       WHERE user_id=$1 AND date >= ${SQL_TODAY_ET} - INTERVAL '30 days'
        GROUP BY hour ORDER BY hour`,
       [req.user.id]);
 
@@ -2592,7 +2611,7 @@ app.get('/api/peak-report', auth, checkTier, async (req, res) => {
     const { rows: byDay } = await db.query(
       `SELECT TO_CHAR(date, 'Dy') as day, alignment, COUNT(*) as count
        FROM daily_intentions
-       WHERE user_id=$1 AND date >= CURRENT_DATE - INTERVAL '30 days'
+       WHERE user_id=$1 AND date >= ${SQL_TODAY_ET} - INTERVAL '30 days'
        GROUP BY day, alignment`,
       [req.user.id]);
 
@@ -2718,16 +2737,16 @@ app.get('/api/report', auth, checkTier, async (req, res) => {
   try {
     const { from, to } = req.query;
     const fromDate = from || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
-    const toDate   = to   || new Date().toISOString().split('T')[0];
+    const toDate   = to   || todayET();
 
     const [user, goals, habits, completions, energy, decisions, checkins] = await Promise.all([
       db.query('SELECT name, streak FROM users WHERE id=$1', [req.user.id]),
       db.query("SELECT title, progress, target, deadline, category FROM goals WHERE user_id=$1 AND status='active' ORDER BY created_at", [req.user.id]),
       db.query('SELECT id, name, icon, target_type, daily_target FROM habits WHERE user_id=$1 ORDER BY created_at', [req.user.id]),
       db.query('SELECT habit_id, date, value FROM habit_completions WHERE user_id=$1 AND date>=$2 AND date<=$3 ORDER BY date', [req.user.id, fromDate, toDate]),
-      db.query('SELECT level, logged_at FROM energy_logs WHERE user_id=$1 AND logged_at::date>=$2 AND logged_at::date<=$3 ORDER BY logged_at', [req.user.id, fromDate, toDate]),
-      db.query('SELECT decision, alignment, created_at FROM decision_log WHERE user_id=$1 AND created_at::date>=$2 AND created_at::date<=$3 ORDER BY created_at DESC', [req.user.id, fromDate, toDate]),
-      db.query('SELECT mood, created_at FROM journal_entries WHERE user_id=$1 AND created_at::date>=$2 AND created_at::date<=$3 ORDER BY created_at', [req.user.id, fromDate, toDate]),
+      db.query(`SELECT level, logged_at FROM energy_logs WHERE user_id=$1 AND (logged_at AT TIME ZONE 'America/New_York')::date>=$2 AND (logged_at AT TIME ZONE 'America/New_York')::date<=$3 ORDER BY logged_at`, [req.user.id, fromDate, toDate]),
+      db.query(`SELECT decision, alignment, created_at FROM decision_log WHERE user_id=$1 AND (created_at AT TIME ZONE 'America/New_York')::date>=$2 AND (created_at AT TIME ZONE 'America/New_York')::date<=$3 ORDER BY created_at DESC`, [req.user.id, fromDate, toDate]),
+      db.query(`SELECT mood, created_at FROM journal_entries WHERE user_id=$1 AND (created_at AT TIME ZONE 'America/New_York')::date>=$2 AND (created_at AT TIME ZONE 'America/New_York')::date<=$3 ORDER BY created_at`, [req.user.id, fromDate, toDate]),
     ]);
 
     // Calculate habit completion rates
@@ -2773,13 +2792,13 @@ app.get('/api/export/csv', auth, async (req, res) => {
   try {
     const { from, to } = req.query;
     const fromDate = from || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
-    const toDate   = to   || new Date().toISOString().split('T')[0];
+    const toDate   = to   || todayET();
 
     const [goals, habits, completions, energy] = await Promise.all([
       db.query("SELECT title, progress, target, deadline FROM goals WHERE user_id=$1", [req.user.id]),
       db.query('SELECT id, name FROM habits WHERE user_id=$1', [req.user.id]),
       db.query('SELECT habit_id, date, value FROM habit_completions WHERE user_id=$1 AND date>=$2 AND date<=$3 ORDER BY date', [req.user.id, fromDate, toDate]),
-      db.query('SELECT level, logged_at FROM energy_logs WHERE user_id=$1 AND logged_at::date>=$2 AND logged_at::date<=$3 ORDER BY logged_at', [req.user.id, fromDate, toDate]),
+      db.query(`SELECT level, logged_at FROM energy_logs WHERE user_id=$1 AND (logged_at AT TIME ZONE 'America/New_York')::date>=$2 AND (logged_at AT TIME ZONE 'America/New_York')::date<=$3 ORDER BY logged_at`, [req.user.id, fromDate, toDate]),
     ]);
 
     let csv = '';
@@ -2800,7 +2819,7 @@ app.get('/api/export/csv', auth, async (req, res) => {
     const end = new Date(toDate);
     while (d <= end) {
       days.push(d.toISOString().split('T')[0]);
-      d.setDate(d.getDate() + 1);
+      d.setUTCDate(d.getUTCDate() + 1); // d is UTC midnight; local steps drift over DST
     }
     days.forEach(date => {
       const row = [date];
@@ -2814,7 +2833,7 @@ app.get('/api/export/csv', auth, async (req, res) => {
     csv += '\nENERGY LOGS\n';
     csv += 'Date,Level (1-5)\n';
     energy.rows.forEach(e => {
-      csv += `"${e.logged_at.toISOString().split('T')[0]}",${e.level}\n`;
+      csv += `"${ymdET(e.logged_at)}",${e.level}\n`;
     });
 
     res.setHeader('Content-Type', 'text/csv');
@@ -2838,7 +2857,7 @@ app.get('/api/habits/weekly', auth, checkTier, async (req, res) => {
     for (let i = 0; i < 7; i++) {
       const d = new Date(monday);
       d.setDate(monday.getDate() + i);
-      days.push(d.toISOString().split('T')[0]);
+      days.push(ymdET(d));
     }
     const { rows: habits } = await db.query(
       'SELECT id, name, icon, target_type, daily_target FROM habits WHERE user_id=$1 ORDER BY created_at',
@@ -3239,7 +3258,7 @@ app.get('/api/coach/export', auth, async (req, res) => {
       text += (msg.role === 'user' ? 'YOU' : 'COACH') + ' (' + time + ')\n' + msg.content + '\n\n';
     });
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.setHeader('Content-Disposition', 'attachment; filename="luhv-coach-' + new Date().toISOString().split('T')[0] + '.txt"');
+    res.setHeader('Content-Disposition', 'attachment; filename="luhv-coach-' + todayET() + '.txt"');
     res.send(text);
   } catch(e) { res.status(500).json({ error: 'Export failed' }); }
 });
@@ -3531,6 +3550,8 @@ process.on('unhandledRejection', (reason) => {
   console.error('Unhandled promise rejection (not crashing):', reason);
 });
 
-runMigrations().then(() => {
+runMigrations().then(async () => {
+  try { await push.migrate(); } catch (e) { console.warn('Push migration warning:', e.message); }
+  push.startSchedule();
   app.listen(PORT, '0.0.0.0', () => console.log('Luhv+ API running on port ' + PORT));
 });

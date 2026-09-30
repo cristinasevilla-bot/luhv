@@ -24,3 +24,5 @@ jobs:
           done
       - name: Check Square checkout prices match the webhook catalogue
         run: node scripts/check-square-prices.js
+      - name: Test payment → access rules
+        run: node scripts/test-plans.js

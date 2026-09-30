@@ -1931,8 +1931,11 @@ const PRICING_URL = 'https://meltosbyluhv.netlify.app/landing.html#pricing';
 // account, so a 403 right after paying is expected and worth retrying. A 403
 // that persists past this budget means there is no active plan — send the user
 // to pricing rather than retrying forever.
-const PAYMENT_POLL_MAX_ATTEMPTS = 5;
-const PAYMENT_POLL_DELAY_MS = 3000;
+// About a minute in total. 5 x 3s gave up after ~12s — less than the server's
+// own "up to 30 seconds" hint, and far less than a Render cold start plus the
+// Square order lookup — then sent the buyer to pricing, where some paid twice.
+const PAYMENT_POLL_MAX_ATTEMPTS = 12;
+const PAYMENT_POLL_DELAY_MS = 5000;
 
 // initApp fires a dozen requests at once, so a lapsed plan surfaces as a burst
 // of 403s. Redirect on the first and ignore the rest.
@@ -1984,10 +1987,18 @@ var userTier = 'basic';
 var tokenBalance = 0;
 var tokenPacks = [];
 
-async function loadBillingStatus() {
+async function loadBillingStatus(_retry) {
   try {
     var data = await api('/api/billing/status');
-    if (!data || data.error || data.expired || data.tier === 'basic') {
+    // No answer or an error (network, 429, 500) says nothing about the plan.
+    // Treating it as "unpaid" showed paying customers a red "Payment required"
+    // banner and hid the coach — the "my account is frozen" reports. Keep the
+    // current state and ask again shortly.
+    if (!data || data.error) {
+      if (!_retry) setTimeout(function() { loadBillingStatus(1); }, 5000);
+      return;
+    }
+    if (data.expired || data.tier === 'basic') {
       userTier = 'basic';
       tokenBalance = 0;
       updateTierUI();
@@ -2007,9 +2018,7 @@ async function loadBillingStatus() {
       }
     }
   } catch(e) {
-    userTier = 'basic';
-    tokenBalance = 0;
-    updateTierUI();
+    console.warn('loadBillingStatus failed:', e);
   }
 }
 
@@ -2502,6 +2511,20 @@ async function startPaymentPolling(email, attempt = 0) {
       return;
     }
 
+    // Paid, but never created a password. Sign In is the default tab, so this
+    // is where new buyers land — and they used to get "Invalid credentials".
+    if (data?.code === 'not_registered') {
+      btn.disabled = false;
+      btn.innerHTML = 'Sign In 🏆';
+      setTab('register');
+      var regEmail = document.getElementById('reg-email');
+      if (regEmail) regEmail.value = email;
+      document.getElementById('auth-error').style.color = '#06d6a0';
+      document.getElementById('auth-error').textContent =
+        'Your payment is confirmed ✅ Create your password to finish setting up your account.';
+      return;
+    }
+
     if (isPlanGone(data)) {
       redirectToPricing(planGoneMessage(data));
       return;
@@ -2582,7 +2605,13 @@ async function register(attempt = 0) {
         return;
       }
 
-      redirectToPricing('No encontramos un plan activo para este correo. Te llevamos a los planes...');
+      // Don't send someone who may have just paid to the pricing page — that is
+      // how people ended up paying twice. Tell them what to check instead.
+      document.getElementById('auth-error').innerHTML =
+        'We can\'t find a payment for this email yet. Make sure it is the same email you used at checkout, ' +
+        'wait a minute and try again, or <a href="mailto:meltosluhv@gmail.com" style="color:#06d6a0">contact support</a>.';
+      btn.disabled = false;
+      btn.innerHTML = "Let's Go 🔥";
       return;
     }
 
@@ -6575,10 +6604,13 @@ async function registerPushNotifications(userId, peakHour) {
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
       });
     }
-    await api('POST', '/push/subscribe', {
-      subscription: sub.toJSON(),
-      userId,
-      peakHour
+    // api(path, opts) — this was called as api('POST', path, body), which
+    // requested "<API>POST" and showed "Connecting to server..." after retries.
+    // Note: the server does not mount routes/push.js yet, so this still 404s
+    // quietly until push is switched on.
+    await api('/push/subscribe', {
+      method: 'POST',
+      body: JSON.stringify({ subscription: sub.toJSON(), userId, peakHour })
     });
     console.log('[MELTOS] Push subscription saved ✅');
   } catch (err) {
@@ -6590,7 +6622,7 @@ async function unsubscribeFromPush(userId) {
   const reg = await navigator.serviceWorker.ready;
   const sub = await reg.pushManager.getSubscription();
   if (sub) await sub.unsubscribe();
-  await api('POST', '/push/unsubscribe', { userId });
+  await api('/push/unsubscribe', { method: 'POST', body: JSON.stringify({ userId }) });
 }
 
 function showPushPermissionBanner(userId, peakHour) {

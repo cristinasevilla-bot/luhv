@@ -9,6 +9,10 @@ const stripe = null;
 const STRIPE_WEBHOOK_SECRET = null;
 
 // — EMAIL via Resend ————————————————————————
+// The app lives on Netlify. The emails used to link to luhv.onrender.com — the
+// API, which answers "Cannot GET /" — so every new buyer who clicked "sign up"
+// in their payment email landed on an error page.
+const APP_LINK = process.env.APP_URL || 'https://meltosbyluhv.netlify.app';
 async function sendEmail(to, name, type, tier, extra) {
   try {
     const key = process.env.RESEND_API_KEY;
@@ -31,10 +35,10 @@ async function sendEmail(to, name, type, tier, extra) {
         `<p>The link expires in 1 hour. If you didn't ask for this, ignore this email — nothing will change.</p>`;
     } else if (type === 'access_granted') {
       subject = '🎉 Tu acceso a luhv está listo';
-      html = `<h2>Hola ${firstName},</h2><p>Tu pago ha sido procesado y ya tienes acceso al plan <strong>${tier}</strong> de luhv.</p><p>Entra en <a href='https://luhv.onrender.com'>luhv.onrender.com</a> y regístrate con este correo.</p>`;
+      html = `<h2>Hola ${firstName},</h2><p>Tu pago ha sido procesado y ya tienes acceso al plan <strong>${tier}</strong> de luhv.</p><p>Entra en <a href='${APP_LINK}/?registered=true'>${APP_LINK.replace('https://', '')}</a> y regístrate con este correo.</p>`;
     } else {
       subject = '✅ Bienvenida a luhv';
-      html = `<h2>Hola ${firstName},</h2><p>Tu cuenta en luhv ha sido creada correctamente.</p><p>Accede en <a href='https://luhv.onrender.com'>luhv.onrender.com</a>.</p>`;
+      html = `<h2>Hola ${firstName},</h2><p>Tu cuenta en luhv ha sido creada correctamente.</p><p>Accede en <a href='${APP_LINK}'>${APP_LINK.replace('https://', '')}</a>.</p>`;
     }
     await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -198,7 +202,18 @@ async function cancelUserSubscription(userIdOrEmail) {
   };
 }
 
-const { SQUARE_PRODUCTS } = require('./square-products');
+const { SQUARE_PRODUCTS, nextPlan } = require('./square-products');
+
+// Things the webhook could not do on its own go to error_logs, where
+// /api/admin/debug/payments shows them.
+async function logWebhookIssue(message, email, context) {
+  try {
+    await db.query(
+      'INSERT INTO error_logs (message, user_email, page, context) VALUES ($1,$2,$3,$4)',
+      [message, email || null, 'square_webhook', JSON.stringify(context || {})]
+    );
+  } catch (e) { console.error('Could not log webhook issue:', e.message); }
+}
 
 // ── TIER CONFIG ──────────────────────────────────────────────────────────────
 const TIERS = {
@@ -234,6 +249,11 @@ const TOKEN_PACKS = [
 ];
 
 const app  = express();
+// Render sits in front of this app as a proxy. Without this, req.ip is the
+// proxy's address for every request, so each rate limit below was one bucket
+// shared by ALL users: a few people signing in at once got "Too many requests",
+// and one fumbled forgot-password used up everyone's allowance.
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3001;
 
 // Express 4 does not catch rejections from async handlers — it predates them.
@@ -259,9 +279,11 @@ app.get('/health', (req, res) => {
 });
 
 // Frontend error logging — no auth needed
-app.post('/api/log-error', async (req, res) => {
-  const { message, stack, user_email, page } = req.body;
-  console.error(`[FRONTEND ERROR] ${user_email||'anon'} @ ${page||'?'}: ${message}`);
+// Registered before the global express.json(), so it parses its own body: with
+// req.body undefined the destructuring threw and every report was lost.
+app.post('/api/log-error', express.json({ limit: '20kb' }), async (req, res) => {
+  const { message, user_email, page } = req.body || {};
+  console.error(`[FRONTEND ERROR] ${String(user_email||'anon').slice(0,200)} @ ${String(page||'?').slice(0,200)}: ${String(message||'').slice(0,1000)}`);
   res.json({ ok: true });
 });
 
@@ -437,90 +459,102 @@ app.post('/api/webhooks/square', express.raw({ type: 'application/json' }), asyn
         return res.json({ ok: true });
       }
 
-      const tier = product.tier;
-      const daysAccess = product.days;
-      const isTrial = product.is_trial;
-      console.log(`Square product matched: ${product.label} → ${tier}, ${daysAccess}d`);
+      console.log(`Square product matched: ${product.label}`);
 
-      const billingEnd = new Date();
-      billingEnd.setDate(billingEnd.getDate() + daysAccess);
+      // A refund arrives as another payment.updated on the same payment, still
+      // COMPLETED. Treating it as a purchase re-granted a fresh period to the
+      // customer who had just been refunded.
+      if (Number(payment.refunded_money?.amount || 0) > 0) {
+        console.log(`Square payment ${payment.id} has refunds — not granting access`);
+        return res.json({ ok: true });
+      }
 
       if (buyerEmail) {
         const email = buyerEmail;
         const name = email.split('@')[0];
         const cleanEmail = email.toLowerCase().trim();
+        // payment.created and payment.updated both arrive COMPLETED for the same
+        // payment, and Square re-sends events. Each payment may add access once.
+        const paymentKey = payment.id || squareOrderId || event.event_id || null;
 
-        // Match an existing account case-insensitively FIRST. ON CONFLICT (email)
-        // alone compares exactly, so a returning customer stored as 'Ann@x.com'
-        // never matched the lowercase insert: the INSERT then hit
-        // users_email_lower_idx, threw, and the renewal was never applied (or,
-        // before that index existed, a duplicate account was created).
-        // If duplicates still exist, every one of them gets the plan, so the
-        // customer has access whichever row login picks.
-        const { rowCount: renewed } = await db.query(
-          `UPDATE users SET
-            tier = $2,
-            token_balance = $3,
-            billing_period_end = $4,
-            is_trial = $5,
-            square_customer_id = $6,
-            square_order_id = $7,
-            subscription_status = 'active',
-            payment_provider = 'square'
-          WHERE LOWER(TRIM(email)) = $1`,
-          [
-            cleanEmail,
-            tier,
-            tier === 'mvp' ? 999999 : 0,
-            billingEnd.toISOString(),
-            isTrial,
-            squareCustomerId || null,
-            squareOrderId || null
-          ]
-        );
+        const client = await db.connect();
+        let plan = null;
+        try {
+          await client.query('BEGIN');
 
-        // New customer. ON CONFLICT stays for the case where Square's
-        // payment.created and payment.updated both arrive at once for a first
-        // purchase and both find no row above.
-        if (!renewed) await db.query(
-          `INSERT INTO users (
-            name,
-            email,
-            tier,
-            token_balance,
-            billing_period_end,
-            is_trial,
-            square_customer_id,
-            square_order_id,
-            subscription_status,
-            payment_provider,
-            created_at
-          )
-          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'active','square',NOW())
-          ON CONFLICT (email)
-          DO UPDATE SET
-            tier = EXCLUDED.tier,
-            token_balance = EXCLUDED.token_balance,
-            billing_period_end = EXCLUDED.billing_period_end,
-            is_trial = EXCLUDED.is_trial,
-            square_customer_id = EXCLUDED.square_customer_id,
-            square_order_id = EXCLUDED.square_order_id,
-            subscription_status = 'active',
-            payment_provider = 'square'`,
-          [
-            name,
-            cleanEmail,
-            tier,
-            tier === 'mvp' ? 999999 : 0,
-            billingEnd.toISOString(),
-            isTrial,
-            squareCustomerId || null,
-            squareOrderId || null
-          ]
-        );
+          if (paymentKey) {
+            const { rowCount: fresh } = await client.query(
+              `INSERT INTO square_payments (payment_id, email, amount_cents)
+               VALUES ($1,$2,$3) ON CONFLICT (payment_id) DO NOTHING`,
+              [paymentKey, cleanEmail, amountCents]
+            );
+            if (!fresh) {
+              await client.query('ROLLBACK');
+              console.log(`Square payment ${paymentKey} already applied — skipping`);
+              return res.json({ ok: true });
+            }
+          }
 
-        console.log(`✅ PAYMENT: ${email} → ${tier}${isTrial?' TRIAL':''} until ${billingEnd.toDateString()}`);
-        sendEmail(email, name, 'access_granted', tier).catch(() => {});
+          // Case-insensitive match: ON CONFLICT (email) compares exactly, so a
+          // returning customer stored as 'Ann@x.com' never matched the lowercase
+          // insert and the renewal was lost. If duplicates still exist, the one
+          // with the furthest plan decides, and every copy gets the result so
+          // login works whichever row it picks.
+          const { rows: existingRows } = await client.query(
+            `SELECT id, tier, billing_period_end, is_trial FROM users
+              WHERE LOWER(TRIM(email)) = $1
+              ORDER BY billing_period_end DESC NULLS LAST
+              FOR UPDATE`,
+            [cleanEmail]
+          );
+          const existing = existingRows[0] || null;
+
+          plan = nextPlan(existing, product, new Date());
+          if (!plan) {
+            await client.query('COMMIT');
+            console.log(`Square payment ${paymentKey}: ${product.label} on top of a live plan for ${cleanEmail} — no change`);
+            await logWebhookIssue('Square payment did not change an active plan (trial bought during a paid plan?)', cleanEmail,
+              { eventType, squareOrderId, amountCents, tier: existing.tier, billing_period_end: existing.billing_period_end });
+            return res.json({ ok: true });
+          }
+
+          const tokenBalance = plan.tier === 'mvp' || plan.tier === 'pro' ? 999999 : 0;
+          if (existing) {
+            await client.query(
+              `UPDATE users SET
+                 tier = $2, token_balance = $3, billing_period_end = $4, is_trial = $5,
+                 square_customer_id = COALESCE($6, square_customer_id),
+                 square_order_id = COALESCE($7, square_order_id),
+                 subscription_status = 'active', payment_provider = 'square'
+               WHERE LOWER(TRIM(email)) = $1`,
+              [cleanEmail, plan.tier, tokenBalance, plan.end.toISOString(), plan.is_trial,
+               squareCustomerId || null, squareOrderId || null]
+            );
+          } else {
+            await client.query(
+              `INSERT INTO users (name, email, tier, token_balance, billing_period_end, is_trial,
+                                  square_customer_id, square_order_id, subscription_status, payment_provider, created_at)
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'active','square',NOW())`,
+              [name, cleanEmail, plan.tier, tokenBalance, plan.end.toISOString(), plan.is_trial,
+               squareCustomerId || null, squareOrderId || null]
+            );
+          }
+          await client.query('COMMIT');
+        } catch (txErr) {
+          await client.query('ROLLBACK').catch(() => {});
+          throw txErr;
+        } finally {
+          client.release();
+        }
+
+        console.log(`✅ PAYMENT (${plan.note}): ${cleanEmail} → ${plan.tier}${plan.is_trial ? ' TRIAL' : ''} until ${plan.end.toDateString()}`);
+        if (plan.note === 'overlap') {
+          await logWebhookIssue('Customer is paying for two plans at once — cancel the lower one in Square', cleanEmail,
+            { eventType, squareOrderId, amountCents, product: product.label });
+        }
+        if (plan.note === 'new' || plan.note === 'upgrade') {
+          sendEmail(cleanEmail, name, 'access_granted', plan.tier).catch(() => {});
+        }
       } else {
         console.warn(`⚠️ PAYMENT received but could not extract buyer email. Raw title: "${rawTitle}", amount: ${amountCents}`);
         // Persist so a paid-but-unprovisioned customer is visible instead of lost.
@@ -1030,10 +1064,14 @@ app.post('/api/coach/session', auth, checkTier, coachAuth, async (req, res) => {
     let lens = session.lens;
     if (responses.lens_preference && !lens) {
       const lp = responses.lens_preference.toLowerCase();
-      if (lp.includes('a') || lp.includes('speak') || lp.includes('stage') || lp.includes('podcast')) lens = 'Paid to Speak';
-      else if (lp.includes('b') || lp.includes('consult') || lp.includes('strateg')) lens = 'Paid to Think';
-      else if (lp.includes('c') || lp.includes('system') || lp.includes('organ')) lens = 'Paid to Organize';
-      else if (lp.includes('d') || lp.includes('execut') || lp.includes('deliver')) lens = 'Paid to Do';
+      // The option letter only counts on its own ("a", "A)", "(b) ..."). This
+      // used lp.includes('a'), which matches nearly any answer, so almost
+      // everyone was labelled Paid to Speak.
+      const opt = (lp.match(/^\s*\(?([a-d])(?![a-z])/) || [])[1];
+      if (opt === 'a' || lp.includes('speak') || lp.includes('stage') || lp.includes('podcast')) lens = 'Paid to Speak';
+      else if (opt === 'b' || lp.includes('consult') || lp.includes('strateg')) lens = 'Paid to Think';
+      else if (opt === 'c' || lp.includes('system') || lp.includes('organ')) lens = 'Paid to Organize';
+      else if (opt === 'd' || lp.includes('execut') || lp.includes('deliver')) lens = 'Paid to Do';
     }
 
     // Move to next step
@@ -1284,8 +1322,12 @@ function hasActivePaidAccess(user) {
   const tier = (user.tier || 'basic').toLowerCase();
   if (!['starter', 'mvp', 'pro'].includes(tier)) return false;
   if (!user.billing_period_end) return false;
-  return new Date(user.billing_period_end) > new Date();
+  // Grace window: Square's renewal webhook can land hours (on retries, days)
+  // after the period ends. Without it a paying customer was locked out and
+  // told their plan had expired while the renewal was still on its way.
+  return new Date(user.billing_period_end).getTime() + ACCESS_GRACE_MS > Date.now();
 }
+const ACCESS_GRACE_MS = 2 * 24 * 60 * 60 * 1000;
 
 function activeAccessError() {
   return 'No active paid plan found for this email. Please complete payment with the same email before signing up or signing in.';
@@ -1355,12 +1397,17 @@ app.post('/api/auth/register', async (req, res) => {
     const { rows } = await db.query(
       `UPDATE users
        SET name=$1, password_hash=$2
-       WHERE LOWER(email)=LOWER($3)
+       WHERE LOWER(email)=LOWER($3) AND password_hash IS NULL
        RETURNING id, name, email, tier, is_admin, is_trial, billing_period_end`,
       [cleanName, hash, cleanEmail]
     );
 
+    // Two sign-ups racing for the same address: only the first sets a password.
+    // Without the guard the second silently replaced it.
     const user = rows[0];
+    if (!user) {
+      return res.status(400).json({ error: 'An account with this email already exists. Please sign in.' });
+    }
     sendEmail(cleanEmail, cleanName, 'welcome').catch(() => {});
     return res.json({ token: sign({ id: user.id }), user });
   } catch (e) {
@@ -1402,6 +1449,17 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
     const { rows } = await db.query('SELECT * FROM users WHERE LOWER(email)=LOWER($1)', [cleanEmail]);
     const dbUser = rows[0];
 
+    // Paid (the webhook made the row) but never set a password. Saying
+    // "Invalid credentials" sent these buyers round in circles; point them to
+    // sign-up. Only for a live plan, so it reveals nothing about lapsed or
+    // unknown addresses that the register endpoint doesn't already.
+    if (dbUser && !dbUser.password_hash && hasActivePaidAccess(dbUser)) {
+      return res.status(403).json({
+        error: 'Your payment is confirmed — create your password to finish signing up.',
+        code: 'not_registered'
+      });
+    }
+
     if (!dbUser || !dbUser.password_hash || !(await bcrypt.compare(password || '', dbUser.password_hash))) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
@@ -1411,7 +1469,9 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
     // "Sign In" twice wrote to their account ten times and wiped an MVP balance
     // before they ever got in. Sign-in is a read now; checkTier still records
     // the lapse on the next authenticated request.
-    const loginPlan = planState(dbUser);
+    // Admins sign in to the admin panel through this same route; requiring a
+    // paid plan of them locked the panel whenever the admin account had none.
+    const loginPlan = dbUser.is_admin ? 'active' : planState(dbUser);
     if (loginPlan === 'expired') {
       return res.status(403).json({
         error: expiredPlanError(),
@@ -1442,7 +1502,9 @@ app.post('/api/auth/change-password', auth, async (req, res) => {
     const { rows } = await db.query('SELECT password_hash FROM users WHERE id=$1', [req.user.id]);
     if (!rows[0]) return res.status(404).json({ error: 'User not found' });
     const valid = await bcrypt.compare(current_password, rows[0].password_hash);
-    if (!valid) return res.status(401).json({ error: 'Current password is incorrect' });
+    // Not 401: the app treats any 401 as an expired session and logs out, so
+    // a mistyped current password used to throw the user out of the app.
+    if (!valid) return res.status(400).json({ error: 'Current password is incorrect' });
     const hash = await bcrypt.hash(new_password, 10);
     await db.query('UPDATE users SET password_hash=$1 WHERE id=$2', [hash, req.user.id]);
     res.json({ success: true });
@@ -1565,7 +1627,10 @@ app.get('/api/quotes/today', async (req, res) => {
   res.json(rows[idx] || null);
 });
 
-app.post('/api/quotes', auth, checkTier, async (req, res) => {
+// Quotes are shared by every user, so only admins may add or delete them —
+// these were open to any paying user. adminAuth is defined further down the
+// file, hence the arrow (a direct reference would hit the const's TDZ).
+app.post('/api/quotes', (req, res, next) => adminAuth(req, res, next), async (req, res) => {
   const { text, author } = req.body;
   const { rows } = await db.query(
     'INSERT INTO quotes (text, author) VALUES ($1,$2) RETURNING *',
@@ -1574,7 +1639,7 @@ app.post('/api/quotes', auth, checkTier, async (req, res) => {
   res.json(rows[0]);
 });
 
-app.delete('/api/quotes/:id', auth, checkTier, async (req, res) => {
+app.delete('/api/quotes/:id', (req, res, next) => adminAuth(req, res, next), async (req, res) => {
   await db.query('DELETE FROM quotes WHERE id=$1', [req.params.id]);
   res.json({ success: true });
 });
@@ -1659,7 +1724,10 @@ app.patch('/api/habits/:id/check', auth, checkTier, async (req, res) => {
       await db.query('INSERT INTO habit_completions (habit_id, user_id, date, value) VALUES ($1,$2,$3,$4)', [req.params.id, req.user.id, today, newValue]);
     }
     const done = newValue >= habit.daily_target;
-    if (done && !existing) await updateUserStreak(req.user.id);
+    // Not `done && !existing`: for a target of 2+ the row already exists by the
+    // time the target is reached, so the streak never counted. updateUserStreak
+    // is a no-op when today is already counted.
+    if (done) await updateUserStreak(req.user.id);
     res.json({ done, value: newValue, target: habit.daily_target });
   }
 });
@@ -1684,7 +1752,9 @@ app.post('/api/goals', auth, checkTier, async (req, res) => {
   const { title, deadline, target, unit } = req.body;
   const { rows } = await db.query(
     'INSERT INTO goals (user_id, title, deadline, target, unit) VALUES ($1,$2,$3,$4,$5) RETURNING *',
-    [req.user.id, title, deadline, target, unit]
+    // An explicit NULL overrides the column's DEFAULT 100, and every
+    // progress/target percentage for that goal then came out NaN.
+    [req.user.id, title, deadline, Number(target) > 0 ? Number(target) : 100, unit || null]
   );
   res.json(rows[0]);
 });
@@ -1692,7 +1762,7 @@ app.post('/api/goals', auth, checkTier, async (req, res) => {
 app.patch('/api/goals/:id/progress', auth, checkTier, async (req, res) => {
   const { progress } = req.body;
   const { rows } = await db.query(
-    'UPDATE goals SET progress=$1 WHERE id=$2 AND user_id=$3 RETURNING *',
+    'UPDATE goals SET progress=$1, updated_at=NOW() WHERE id=$2 AND user_id=$3 RETURNING *',
     [progress, req.params.id, req.user.id]
   );
   res.json(rows[0]);
@@ -1707,7 +1777,7 @@ app.patch('/api/goals/:id/title', auth, checkTier, async (req, res) => {
   const { title } = req.body;
   if (!title?.trim()) return res.status(400).json({ error: 'Title required' });
   const { rows } = await db.query(
-    'UPDATE goals SET title=$1 WHERE id=$2 AND user_id=$3 RETURNING *',
+    'UPDATE goals SET title=$1, updated_at=NOW() WHERE id=$2 AND user_id=$3 RETURNING *',
     [title.trim(), req.params.id, req.user.id]
   );
   res.json(rows[0] || null);
@@ -2504,7 +2574,7 @@ app.get('/api/peak-report', auth, checkTier, async (req, res) => {
   try {
     // Get habit completions by hour over last 30 days
     const { rows: byHour } = await db.query(
-      `SELECT EXTRACT(HOUR FROM NOW()) as hour, COUNT(*) as count
+      `SELECT EXTRACT(HOUR FROM completed_at) as hour, COUNT(*) as count
        FROM habit_completions
        WHERE user_id=$1 AND date >= CURRENT_DATE - INTERVAL '30 days'
        GROUP BY hour ORDER BY hour`,
@@ -3197,7 +3267,19 @@ async function runMigrations() {
        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
      )`,
     'CREATE INDEX IF NOT EXISTS idx_cancel_tokens_email ON subscription_cancel_tokens(email)',
+    // One row per Square payment already applied, so a re-sent or duplicate
+    // event can't grant the same period twice.
+    `CREATE TABLE IF NOT EXISTS square_payments (
+       payment_id   TEXT PRIMARY KEY,
+       email        TEXT,
+       amount_cents INTEGER,
+       processed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+     )`,
     'ALTER TABLE users ADD COLUMN IF NOT EXISTS last_streak_date DATE',
+    // Used by nearly every habit and goal query but never created by schema.sql
+    // or a migration — a fresh database returned 500 on habits and the coach.
+    'ALTER TABLE habit_completions ADD COLUMN IF NOT EXISTS value INTEGER DEFAULT 1',
+    'ALTER TABLE goals ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()',
     'ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarding_data JSONB',
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS tier TEXT DEFAULT 'basic'`,
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS token_balance INTEGER DEFAULT 0`,
@@ -3358,10 +3440,13 @@ app.get('/api/billing/status', auth, async (req, res) => {
       [req.user.id]
     );
     
-    const expired = user?.billing_period_end && new Date(user.billing_period_end) < new Date();
-    if (expired) {
-      await db.query("UPDATE users SET tier='basic', is_trial=false WHERE id=$1", [req.user.id]);
-      return res.json({ tier: 'basic', expired: true, is_trial: false, billing_period_end: null });
+    // Same rule as login and checkTier (including the grace window). This used
+    // to compare dates on its own, so during the grace window it demoted a
+    // paying user that the rest of the API still let in, and it answered
+    // billing_period_end: null where login reported the real date.
+    if (planState(user) === 'expired') {
+      await db.query("UPDATE users SET tier='basic', token_balance=0, is_trial=false WHERE id=$1", [req.user.id]);
+      return res.json({ tier: 'basic', expired: true, is_trial: false, billing_period_end: user.billing_period_end });
     }
 
     let tier = user?.tier || 'basic';
@@ -3380,7 +3465,10 @@ app.get('/api/billing/status', auth, async (req, res) => {
       expired: false
     });
   } catch(e) {
-    res.json({ tier: 'basic', expired: false, is_trial: false });
+    // Answering 'basic' here told a paying user, on any DB hiccup, that they
+    // had no plan — the app then showed "Payment required" and hid the coach.
+    console.error('billing/status error:', e);
+    res.status(500).json({ error: 'Could not load billing status' });
   }
 });
 

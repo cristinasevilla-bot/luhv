@@ -92,6 +92,91 @@ async function fetchSquareOrder(orderId) {
   }
 }
 
+// ── SQUARE SUBSCRIPTIONS ─────────────────────────────────────────────────────
+// Starter and MVP checkout links are Square subscriptions that renew on their
+// own, so cancelling has to happen at Square. The app never stored the
+// subscription id, so subscriptions are found through the customer instead.
+async function squareApi(method, path, body) {
+  const resp = await fetch('https://connect.squareup.com/v2' + path, {
+    method,
+    headers: {
+      'Authorization': 'Bearer ' + process.env.SQUARE_ACCESS_TOKEN,
+      'Content-Type': 'application/json',
+      'Square-Version': '2024-01-18'
+    },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok) throw new Error(data?.errors?.[0]?.detail || `Square ${path} failed (HTTP ${resp.status})`);
+  return data;
+}
+
+// Cancels every live Square subscription belonging to this user. Square ends
+// them at the close of the period already paid for, so access runs until
+// billing_period_end and there is simply no further charge.
+// Returns [{ id, ends }] for each subscription cancelled or already cancelling.
+async function cancelSquareSubscriptions(user) {
+  if (!process.env.SQUARE_ACCESS_TOKEN) throw new Error('SQUARE_ACCESS_TOKEN not set');
+
+  // The stored customer id covers the usual case. The email search catches
+  // payments where Square created a separate customer record for the buyer.
+  const customerIds = new Set();
+  if (user.square_customer_id) customerIds.add(user.square_customer_id);
+  const email = String(user.email || '').toLowerCase().trim();
+  if (email) {
+    const { customers = [] } = await squareApi('POST', '/customers/search', {
+      query: { filter: { email_address: { fuzzy: email } } }
+    });
+    for (const c of customers) {
+      if (String(c.email_address || '').toLowerCase().trim() === email) customerIds.add(c.id);
+    }
+  }
+  if (!customerIds.size) return [];
+
+  const { subscriptions = [] } = await squareApi('POST', '/subscriptions/search', {
+    query: { filter: { customer_ids: [...customerIds] } }
+  });
+
+  const results = [];
+  for (const sub of subscriptions) {
+    if (!['ACTIVE', 'PENDING', 'PAUSED'].includes(sub.status)) continue;
+    if (sub.canceled_date) {
+      results.push({ id: sub.id, ends: sub.canceled_date });
+      continue;
+    }
+    const { subscription } = await squareApi('POST', `/subscriptions/${sub.id}/cancel`);
+    results.push({ id: sub.id, ends: subscription?.canceled_date || null });
+  }
+  return results;
+}
+
+// Shared by the in-app button and the admin panel.
+async function cancelUserSubscription(userId) {
+  const { rows: [user] } = await db.query(
+    'SELECT id, email, square_customer_id, billing_period_end FROM users WHERE id=$1',
+    [userId]
+  );
+  if (!user) return { status: 404, body: { error: 'User not found' } };
+
+  let cancelled;
+  try {
+    cancelled = await cancelSquareSubscriptions(user);
+  } catch (e) {
+    console.error(`Square cancel failed for user ${userId}:`, e.message);
+    return { status: 502, body: { error: 'Could not reach Square to cancel. Please try again or contact support.' } };
+  }
+  if (!cancelled.length) {
+    return { status: 404, body: { error: 'No active Square subscription found for this email.', code: 'no_subscription' } };
+  }
+
+  await db.query("UPDATE users SET subscription_status='canceled' WHERE id=$1", [userId]);
+  console.log(`🛑 SUBSCRIPTION CANCELLED: ${user.email} — ${cancelled.map(c => `${c.id} ends ${c.ends || '?'}`).join(', ')}`);
+  return {
+    status: 200,
+    body: { success: true, cancelled, access_until: user.billing_period_end }
+  };
+}
+
 // ── SQUARE PRODUCT CATALOGUE ─────────────────────────────────────────────────
 // Keyed by charge amount in the smallest currency unit.
 //
@@ -1739,6 +1824,13 @@ app.post('/api/admin/users/:id/tier', adminAuth, async (req, res) => {
   res.json(rows[0] || { id: req.params.id, tier, billing_period_end: expiresAt });
 });
 
+// Cancel a user's Square subscription (admin only) — for customers who cannot
+// sign in to do it themselves.
+app.post('/api/admin/users/:id/cancel-subscription', adminAuth, async (req, res) => {
+  const { status, body } = await cancelUserSubscription(req.params.id);
+  res.status(status).json(body);
+});
+
 // Get usage stats
 app.get('/api/admin/usage', adminAuth, async (req, res) => {
   try {
@@ -2890,18 +2982,12 @@ app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), asyn
   res.json({ received: true });
 });
 
-// Cancel subscription
+// Cancel subscription — the user's own Square subscription. Deliberately not
+// behind checkTier: someone whose plan has lapsed must still be able to stop
+// the next charge.
 app.post('/api/billing/cancel', auth, async (req, res) => {
-  // STRIPE_DISABLED
-  return res.json({ success: false, message: 'Payments coming soon' });
-  try {
-    const { rows: [user] } = await db.query('SELECT stripe_subscription_id FROM users WHERE id=$1', [req.user.id]);
-    if (!user.stripe_subscription_id) return res.status(400).json({ error: 'No active subscription' });
-    await stripe.subscriptions.update(user.stripe_subscription_id, { cancel_at_period_end: true });
-    res.json({ success: true, message: 'Subscription will cancel at end of billing period.' });
-  } catch(e) {
-    res.status(500).json({ error: 'Could not cancel subscription' });
-  }
+  const { status, body } = await cancelUserSubscription(req.user.id);
+  res.status(status).json(body);
 });
 
 

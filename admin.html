@@ -415,6 +415,7 @@ function renderTable(users) {
           <button class="ab ab-str" onclick="setTier(${u.id},'starter',30,'${em}')">Starter mo</button>
           <button class="ab ab-str" onclick="setTier(${u.id},'starter',365,'${em}')">Starter yr</button>
           <button class="ab ab-cut" onclick="setTier(${u.id},'basic',0,'${em}')">✂️ Cut</button>
+          <button class="ab ab-cut" onclick="cancelSub(${u.id},'${em}')">🛑 Cancel sub</button>
         </div></td>
       </tr>`;
     }).join('')}</tbody>
@@ -435,6 +436,19 @@ async function setTier(userId, tier, days, email, isTrial) {
     setTimeout(loadUsers, 500); // slight delay to let DB settle
   } else {
     showToast('Failed — check Render logs', true);
+  }
+}
+
+// Stops future Square charges. Access is left alone — use ✂️ Cut for that.
+async function cancelSub(userId, email) {
+  if (!confirm(`Cancel the Square subscription for ${email}? They will not be charged again.`)) return;
+  const result = await apiReq(`/api/admin/users/${userId}/cancel-subscription`,{method:'POST'});
+  if (result && result.success) {
+    const ends = result.cancelled.map(c=>c.ends).filter(Boolean).join(', ');
+    showToast(`🛑 Subscription cancelled — ${email}${ends?` (ends ${ends})`:''}`);
+    setTimeout(loadUsers, 500);
+  } else {
+    showToast((result && result.error) || 'Failed — check Render logs', true);
   }
 }
 

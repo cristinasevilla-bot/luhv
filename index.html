@@ -2078,10 +2078,33 @@ function openPaywall(type) {
       '<a href="https://square.link/u/fdKovMff" target="_blank" style="flex:1;text-decoration:none;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--purple),var(--blue));color:#fff;font-size:12px;font-weight:700;text-align:center;display:block">$200 / year <span style="font-size:10px;opacity:.8">save $40</span></a>' +
     '</div></div>';
 
+  // Starter and MVP renew automatically at Square — let paying users stop that.
+  var cancelHtml = isManage && currentTier !== 'basic'
+    ? '<div style="text-align:center;margin-top:16px"><button id="cancel-sub-btn" onclick="cancelSubscription()" style="background:none;border:none;color:rgba(255,255,255,.45);font-size:12px;text-decoration:underline;cursor:pointer;font-family:inherit">Cancel subscription</button></div>'
+    : '';
+
   content.innerHTML = header + trialHtml + starterHtml + mvpHtml +
-    '<p style="font-size:11px;color:rgba(255,255,255,.25);text-align:center;margin-top:14px;line-height:1.6;">After payment, your plan activates automatically using the email you paid with.</p>';
+    '<p style="font-size:11px;color:rgba(255,255,255,.25);text-align:center;margin-top:14px;line-height:1.6;">After payment, your plan activates automatically using the email you paid with.</p>' +
+    cancelHtml;
 
   modal.style.display = 'flex';
+}
+
+async function cancelSubscription() {
+  if (!confirm('Cancel your subscription? You keep access until the end of the period you already paid for, and you will not be charged again.')) return;
+  var btn = document.getElementById('cancel-sub-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Cancelling…'; }
+  var result = await api('/api/billing/cancel', { method: 'POST' });
+  if (result && result.success) {
+    var until = result.access_until
+      ? new Date(result.access_until).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+      : null;
+    if (btn) btn.textContent = until ? 'Cancelled — access until ' + until : 'Subscription cancelled';
+    showToast('Subscription cancelled. You won\'t be charged again.', 4000);
+  } else {
+    if (btn) { btn.disabled = false; btn.textContent = 'Cancel subscription'; }
+    showToast((result && result.error) || 'Could not cancel. Please contact support.', 5000);
+  }
 }
 
 function closePaywall() {

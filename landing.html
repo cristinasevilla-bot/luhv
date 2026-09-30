@@ -1552,14 +1552,14 @@
   <!-- Toggle monthly/annual -->
   <div style="display:inline-flex;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:30px;padding:4px;margin-bottom:48px;gap:4px;">
     <button id="btn-monthly" onclick="setPricing('monthly')" style="padding:8px 20px;border-radius:24px;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;background:linear-gradient(135deg,#06d6a0,#0ea5e9);color:#07111b;transition:all .2s;">Monthly</button>
-    <button id="btn-annual" onclick="setPricing('annual')" style="padding:8px 20px;border-radius:24px;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;background:transparent;color:rgba(255,255,255,.4);transition:all .2s;">Annual <span style="font-size:10px;background:rgba(6,214,160,.15);color:#06d6a0;padding:2px 7px;border-radius:10px;margin-left:4px;">Save 30%</span></button>
+    <button id="btn-annual" onclick="setPricing('annual')" style="padding:8px 20px;border-radius:24px;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;background:transparent;color:rgba(255,255,255,.4);transition:all .2s;">Annual <span style="font-size:10px;background:rgba(6,214,160,.15);color:#06d6a0;padding:2px 7px;border-radius:10px;margin-left:4px;">Save 17%</span></button>
   </div>
 
   <!-- 7 day trial banner -->
   <div style="max-width:900px;margin:0 auto 32px;background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2);border-radius:16px;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
     <div style="text-align:left;">
       <div style="font-size:12px;color:#fbbf24;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">🔥 Try before you commit</div>
-      <div style="font-size:14px;color:rgba(255,255,255,.8);">7-day full MVP trial for just <strong style="color:#fbbf24;">€2</strong> — cancel anytime</div>
+      <div style="font-size:14px;color:rgba(255,255,255,.8);">7-day full MVP trial for just <strong style="color:#fbbf24;">$2</strong> — cancel anytime</div>
     </div>
     <a href="https://square.link/u/Oj9nU0MG" target="_blank" style="padding:10px 22px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.35);border-radius:12px;color:#fbbf24;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap;">Start Trial →</a>
   </div>
@@ -1589,7 +1589,7 @@
       <div style="position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#06d6a0,#0ea5e9);color:#07111b;font-size:11px;font-weight:800;padding:5px 16px;border-radius:20px;white-space:nowrap;">MOST POPULAR</div>
       <div style="font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#06d6a0;margin-bottom:12px;">MVP</div>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:52px;letter-spacing:1px;color:#fff;line-height:1;">
-        <span class="price-mvp">$29.99</span><span style="font-size:18px;color:rgba(255,255,255,.4)" class="period-mvp">/mo</span>
+        <span class="price-mvp">$19.99</span><span style="font-size:18px;color:rgba(255,255,255,.4)" class="period-mvp">/mo</span>
       </div>
       <div style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:28px;margin-top:4px;" class="billing-mvp">Billed monthly</div>
       <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:32px;">
@@ -1611,11 +1611,11 @@
   var pricing = {
     monthly: {
       starter: { price: "$9.99", period: "/mo", billing: "Billed monthly", link: "https://square.link/u/N1xNrkES" },
-      mvp:     { price: "$29.99", period: "/mo", billing: "Billed monthly", link: "https://square.link/u/prFufr1m" }
+      mvp:     { price: "$19.99", period: "/mo", billing: "Billed monthly", link: "https://square.link/u/prFufr1m" }
     },
     annual: {
-      starter: { price: "$99", period: "/yr", billing: "Billed annually — save $20", link: "https://square.link/u/VDdzk7Am" },
-      mvp:     { price: "$200", period: "/yr", billing: "Billed annually — save $160", link: "https://square.link/u/fdKovMff" }
+      starter: { price: "$99.99", period: "/yr", billing: "Billed annually — save $20", link: "https://square.link/u/VDdzk7Am" },
+      mvp:     { price: "$200", period: "/yr", billing: "Billed annually — save $40", link: "https://square.link/u/fdKovMff" }
     }
   };
   function setPricing(mode) {

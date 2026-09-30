@@ -855,6 +855,7 @@ body{background:
       <div class="auth-field"><label>Password</label><input type="password" id="login-pass" placeholder="••••••••"></div>
       <button class="auth-btn" onclick="login()" id="login-btn">Sign In 🏆</button>
       <div style="text-align:center;margin-top:10px"><a href="#" onclick="showForgot();return false" style="font-size:12px;color:rgba(255,255,255,.4);text-decoration:none;">Forgot your password?</a></div>
+      <div style="text-align:center;margin-top:6px"><a href="#" onclick="showCancelRequest();return false" style="font-size:12px;color:rgba(255,255,255,.3);text-decoration:none;">Cancel my subscription</a></div>
     </div>
 
     <!-- Register form -->
@@ -887,6 +888,21 @@ body{background:
       <div class="auth-field"><label>Nueva contraseña (mín. 8 caracteres)</label><input type="password" id="rp-newpass" placeholder="••••••••" autocomplete="new-password"></div>
       <button class="auth-btn" onclick="submitReset()">Guardar contraseña 🔒</button>
       <div style="text-align:center;margin-top:10px"><a href="#" onclick="hideReset();return false" style="font-size:12px;color:rgba(255,255,255,.35);text-decoration:none;">← Back to Sign In</a></div>
+    </div>
+
+    <!-- Cancel subscription without signing in — step 1: ask for the email -->
+    <div id="cancel-request-form" style="display:none">
+      <div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:14px;text-align:center">Enter the email you paid with. We'll send you<br>a link to cancel your subscription.</div>
+      <div class="auth-field"><label>Email</label><input type="email" id="cr-email" placeholder="you@email.com" autocomplete="email"></div>
+      <button class="auth-btn" onclick="requestCancel()">Send cancellation link 📧</button>
+      <div style="text-align:center;margin-top:10px"><a href="#" onclick="hideCancelForms();return false" style="font-size:12px;color:rgba(255,255,255,.35);text-decoration:none;">← Back to Sign In</a></div>
+    </div>
+
+    <!-- Cancel subscription — step 2: shown when arriving from the emailed link -->
+    <div id="cancel-confirm-form" style="display:none">
+      <div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:14px;text-align:center">Cancel your MELTOS subscription?<br>You keep access until the end of the period you already paid for, and you won't be charged again.</div>
+      <button class="auth-btn" onclick="confirmCancel()">Yes, cancel my subscription</button>
+      <div style="text-align:center;margin-top:10px"><a href="#" onclick="hideCancelForms();return false" style="font-size:12px;color:rgba(255,255,255,.35);text-decoration:none;">← Keep my subscription</a></div>
     </div>
     <div class="auth-error" id="auth-error"></div>
     <div style="text-align:center;margin-top:18px;font-size:12px;color:rgba(255,255,255,.5)">Having trouble? <a href="mailto:meltosluhv@gmail.com" style="color:#06d6a0;text-decoration:none;font-weight:600;">Contact support</a></div>
@@ -1915,8 +1931,11 @@ const PRICING_URL = 'https://meltosbyluhv.netlify.app/landing.html#pricing';
 // account, so a 403 right after paying is expected and worth retrying. A 403
 // that persists past this budget means there is no active plan — send the user
 // to pricing rather than retrying forever.
-const PAYMENT_POLL_MAX_ATTEMPTS = 5;
-const PAYMENT_POLL_DELAY_MS = 3000;
+// About a minute in total. 5 x 3s gave up after ~12s — less than the server's
+// own "up to 30 seconds" hint, and far less than a Render cold start plus the
+// Square order lookup — then sent the buyer to pricing, where some paid twice.
+const PAYMENT_POLL_MAX_ATTEMPTS = 12;
+const PAYMENT_POLL_DELAY_MS = 5000;
 
 // initApp fires a dozen requests at once, so a lapsed plan surfaces as a burst
 // of 403s. Redirect on the first and ignore the rest.
@@ -1968,10 +1987,18 @@ var userTier = 'basic';
 var tokenBalance = 0;
 var tokenPacks = [];
 
-async function loadBillingStatus() {
+async function loadBillingStatus(_retry) {
   try {
     var data = await api('/api/billing/status');
-    if (!data || data.error || data.expired || data.tier === 'basic') {
+    // No answer or an error (network, 429, 500) says nothing about the plan.
+    // Treating it as "unpaid" showed paying customers a red "Payment required"
+    // banner and hid the coach — the "my account is frozen" reports. Keep the
+    // current state and ask again shortly.
+    if (!data || data.error) {
+      if (!_retry) setTimeout(function() { loadBillingStatus(1); }, 5000);
+      return;
+    }
+    if (data.expired || data.tier === 'basic') {
       userTier = 'basic';
       tokenBalance = 0;
       updateTierUI();
@@ -1991,9 +2018,7 @@ async function loadBillingStatus() {
       }
     }
   } catch(e) {
-    userTier = 'basic';
-    tokenBalance = 0;
-    updateTierUI();
+    console.warn('loadBillingStatus failed:', e);
   }
 }
 
@@ -2065,7 +2090,7 @@ function openPaywall(type) {
     '<div style="font-size:12px;color:rgba(255,255,255,.6);margin-bottom:12px;line-height:1.6">Dashboard · Roadmap · Tasks · Inspire · Ranking — No AI Coach</div>' +
     '<div style="display:flex;gap:8px">' +
       '<a href="https://square.link/u/N1xNrkES" target="_blank" style="flex:1;text-decoration:none;padding:10px;border:1px solid rgba(14,165,233,.3);border-radius:10px;background:rgba(14,165,233,.08);color:var(--blue);font-size:12px;font-weight:700;text-align:center;display:block">$9.99 / month</a>' +
-      '<a href="https://square.link/u/VDdzk7Am" target="_blank" style="flex:1;text-decoration:none;padding:10px;border:1px solid rgba(14,165,233,.2);border-radius:10px;background:rgba(14,165,233,.05);color:var(--blue);font-size:12px;font-weight:700;text-align:center;display:block">$99 / year <span style="font-size:10px;opacity:.6">save $20</span></a>' +
+      '<a href="https://square.link/u/VDdzk7Am" target="_blank" style="flex:1;text-decoration:none;padding:10px;border:1px solid rgba(14,165,233,.2);border-radius:10px;background:rgba(14,165,233,.05);color:var(--blue);font-size:12px;font-weight:700;text-align:center;display:block">$99.99 / year <span style="font-size:10px;opacity:.6">save $20</span></a>' +
     '</div></div>';
 
   // MVP
@@ -2078,10 +2103,33 @@ function openPaywall(type) {
       '<a href="https://square.link/u/fdKovMff" target="_blank" style="flex:1;text-decoration:none;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--purple),var(--blue));color:#fff;font-size:12px;font-weight:700;text-align:center;display:block">$200 / year <span style="font-size:10px;opacity:.8">save $40</span></a>' +
     '</div></div>';
 
+  // Starter and MVP renew automatically at Square — let paying users stop that.
+  var cancelHtml = isManage && currentTier !== 'basic'
+    ? '<div style="text-align:center;margin-top:16px"><button id="cancel-sub-btn" onclick="cancelSubscription()" style="background:none;border:none;color:rgba(255,255,255,.45);font-size:12px;text-decoration:underline;cursor:pointer;font-family:inherit">Cancel subscription</button></div>'
+    : '';
+
   content.innerHTML = header + trialHtml + starterHtml + mvpHtml +
-    '<p style="font-size:11px;color:rgba(255,255,255,.25);text-align:center;margin-top:14px;line-height:1.6;">After payment, your plan activates automatically using the email you paid with.</p>';
+    '<p style="font-size:11px;color:rgba(255,255,255,.25);text-align:center;margin-top:14px;line-height:1.6;">After payment, your plan activates automatically using the email you paid with.</p>' +
+    cancelHtml;
 
   modal.style.display = 'flex';
+}
+
+async function cancelSubscription() {
+  if (!confirm('Cancel your subscription? You keep access until the end of the period you already paid for, and you will not be charged again.')) return;
+  var btn = document.getElementById('cancel-sub-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Cancelling…'; }
+  var result = await api('/api/billing/cancel', { method: 'POST' });
+  if (result && result.success) {
+    var until = result.access_until
+      ? new Date(result.access_until).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+      : null;
+    if (btn) btn.textContent = until ? 'Cancelled — access until ' + until : 'Subscription cancelled';
+    showToast('Subscription cancelled. You won\'t be charged again.', 4000);
+  } else {
+    if (btn) { btn.disabled = false; btn.textContent = 'Cancel subscription'; }
+    showToast((result && result.error) || 'Could not cancel. Please contact support.', 5000);
+  }
 }
 
 function closePaywall() {
@@ -2180,6 +2228,11 @@ function setTab(t) {
   document.querySelectorAll('.auth-tab').forEach((el, i) => el.classList.toggle('active', (i === 0) === (t === 'login')));
   document.getElementById('login-form').style.display    = t === 'login'    ? 'block' : 'none';
   document.getElementById('register-form').style.display = t === 'register' ? 'block' : 'none';
+  // Leave no side form (forgot / reset / cancel) open under the tab just picked.
+  ['forgot-form', 'reset-form', 'cancel-request-form', 'cancel-confirm-form'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
   document.getElementById('auth-error').textContent = '';
 }
 
@@ -2287,6 +2340,97 @@ async function submitReset() {
     btn.disabled = false; btn.textContent = 'Guardar contraseña 🔒';
   }
 }
+// ── CANCEL SUBSCRIPTION WITHOUT SIGNING IN ─────────────────────────────────
+// Same two steps as the password reset: ask for a link, then confirm from it.
+var CANCEL_TOKEN = null;
+var AUTH_FORMS = ['login-form', 'register-form', 'forgot-form', 'reset-form', 'cancel-request-form', 'cancel-confirm-form'];
+
+function showAuthForm(id) {
+  AUTH_FORMS.forEach(function(f) {
+    var el = document.getElementById(f);
+    if (el) el.style.display = f === id ? 'block' : 'none';
+  });
+  var errEl = document.getElementById('auth-error');
+  errEl.textContent = '';
+  errEl.style.color = '';
+}
+
+function showCancelRequest() { showAuthForm('cancel-request-form'); }
+
+function showCancelConfirm(token) {
+  CANCEL_TOKEN = token;
+  showAuthForm('cancel-confirm-form');
+}
+
+function hideCancelForms() {
+  CANCEL_TOKEN = null;
+  try { history.replaceState(null, '', window.location.pathname); } catch(e) {}
+  showAuthForm(null);
+  setTab('login');
+}
+
+// The reply is the same whether or not the address is a customer.
+async function requestCancel() {
+  var email = document.getElementById('cr-email').value.trim();
+  var errEl = document.getElementById('auth-error');
+  errEl.style.color = '';
+  errEl.textContent = '';
+  if (!email) { errEl.textContent = 'Please enter your email.'; return; }
+  var btn = document.querySelector('#cancel-request-form .auth-btn');
+  btn.disabled = true; btn.textContent = 'Sending...';
+  try {
+    var r = await fetch(API + '/api/billing/cancel-request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email })
+    });
+    var data = await r.json().catch(function() { return {}; });
+    if (r.ok) {
+      errEl.style.color = '#06d6a0';
+      errEl.textContent = data.message || 'If that email has a subscription, we have sent you a link.';
+      document.getElementById('cr-email').value = '';
+    } else {
+      errEl.textContent = data.error || 'Could not send the link. Please contact support.';
+    }
+  } catch(e) {
+    errEl.textContent = 'Network error. Please try again.';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Send cancellation link 📧';
+  }
+}
+
+async function confirmCancel() {
+  var errEl = document.getElementById('auth-error');
+  errEl.style.color = '';
+  errEl.textContent = '';
+  var btn = document.querySelector('#cancel-confirm-form .auth-btn');
+  btn.disabled = true; btn.textContent = 'Cancelling...';
+  try {
+    var r = await fetch(API + '/api/billing/cancel-confirm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: CANCEL_TOKEN })
+    });
+    var data = await r.json().catch(function() { return {}; });
+    if (r.ok && data.success) {
+      var until = data.access_until
+        ? new Date(data.access_until).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+        : null;
+      errEl.style.color = '#06d6a0';
+      errEl.textContent = 'Your subscription is cancelled. You won\'t be charged again.' + (until ? ' Access continues until ' + until + '.' : '');
+      btn.style.display = 'none';
+      try { history.replaceState(null, '', window.location.pathname); } catch(e) {}
+      return;
+    }
+    errEl.textContent = data.code === 'no_subscription'
+      ? 'There is no active subscription on this email — you will not be charged again.'
+      : (data.error || 'Could not cancel. Please contact support.');
+  } catch(e) {
+    errEl.textContent = 'Network error. Please try again.';
+  }
+  btn.disabled = false; btn.textContent = 'Yes, cancel my subscription';
+}
+
 function login() {
   startPaymentPolling(document.getElementById('login-email').value.toLowerCase().trim());
 }
@@ -2364,6 +2508,20 @@ async function startPaymentPolling(email, attempt = 0) {
       localStorage.setItem('luhv_user', JSON.stringify(USER));
 
       initApp();
+      return;
+    }
+
+    // Paid, but never created a password. Sign In is the default tab, so this
+    // is where new buyers land — and they used to get "Invalid credentials".
+    if (data?.code === 'not_registered') {
+      btn.disabled = false;
+      btn.innerHTML = 'Sign In 🏆';
+      setTab('register');
+      var regEmail = document.getElementById('reg-email');
+      if (regEmail) regEmail.value = email;
+      document.getElementById('auth-error').style.color = '#06d6a0';
+      document.getElementById('auth-error').textContent =
+        'Your payment is confirmed ✅ Create your password to finish setting up your account.';
       return;
     }
 
@@ -2447,7 +2605,13 @@ async function register(attempt = 0) {
         return;
       }
 
-      redirectToPricing('No encontramos un plan activo para este correo. Te llevamos a los planes...');
+      // Don't send someone who may have just paid to the pricing page — that is
+      // how people ended up paying twice. Tell them what to check instead.
+      document.getElementById('auth-error').innerHTML =
+        'We can\'t find a payment for this email yet. Make sure it is the same email you used at checkout, ' +
+        'wait a minute and try again, or <a href="mailto:meltosluhv@gmail.com" style="color:#06d6a0">contact support</a>.';
+      btn.disabled = false;
+      btn.innerHTML = "Let's Go 🔥";
       return;
     }
 
@@ -5604,6 +5768,9 @@ function skipGoalLink() {
   var resetToken = null;
   try { resetToken = new URLSearchParams(window.location.search).get('reset'); } catch (e) {}
   if (resetToken) { showResetForm(resetToken); return; }
+  var cancelToken = null;
+  try { cancelToken = new URLSearchParams(window.location.search).get('cancel'); } catch (e) {}
+  if (cancelToken) { showCancelConfirm(cancelToken); return; }
   if (TOKEN && USER) initApp();
 })();
 </script>
@@ -6437,10 +6604,13 @@ async function registerPushNotifications(userId, peakHour) {
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
       });
     }
-    await api('POST', '/push/subscribe', {
-      subscription: sub.toJSON(),
-      userId,
-      peakHour
+    // api(path, opts) — this was called as api('POST', path, body), which
+    // requested "<API>POST" and showed "Connecting to server..." after retries.
+    // Note: the server does not mount routes/push.js yet, so this still 404s
+    // quietly until push is switched on.
+    await api('/push/subscribe', {
+      method: 'POST',
+      body: JSON.stringify({ subscription: sub.toJSON(), userId, peakHour })
     });
     console.log('[MELTOS] Push subscription saved ✅');
   } catch (err) {
@@ -6452,7 +6622,7 @@ async function unsubscribeFromPush(userId) {
   const reg = await navigator.serviceWorker.ready;
   const sub = await reg.pushManager.getSubscription();
   if (sub) await sub.unsubscribe();
-  await api('POST', '/push/unsubscribe', { userId });
+  await api('/push/unsubscribe', { method: 'POST', body: JSON.stringify({ userId }) });
 }
 
 function showPushPermissionBanner(userId, peakHour) {

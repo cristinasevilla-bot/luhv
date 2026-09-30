@@ -343,7 +343,7 @@ async function adminResetPassword() {
   try {
     var r = await fetch(API + '/api/admin/reset-password', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + adminToken },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN },
       body: JSON.stringify({ email: email, new_password: newPass })
     });
     var data = await r.json();
@@ -408,13 +408,14 @@ function renderTable(users) {
         <td style="color:${u.expired?'#f43f5e':'rgba(255,255,255,.45)'};font-size:12px">${exp}</td>
         <td style="color:rgba(255,255,255,.4)">${u.streak||0}d</td>
         <td style="color:rgba(255,255,255,.3);font-size:12px">${joined}</td>
-        <td><div class="actions">
-          <button class="ab ab-trial" onclick="setTier(${u.id},'mvp',7,'${em}',true)">🔥 Trial 7d</button>
-          <button class="ab ab-mvp" onclick="setTier(${u.id},'mvp',30,'${em}')">MVP mo</button>
-          <button class="ab ab-mvp" onclick="setTier(${u.id},'mvp',365,'${em}')">MVP yr</button>
-          <button class="ab ab-str" onclick="setTier(${u.id},'starter',30,'${em}')">Starter mo</button>
-          <button class="ab ab-str" onclick="setTier(${u.id},'starter',365,'${em}')">Starter yr</button>
-          <button class="ab ab-cut" onclick="setTier(${u.id},'basic',0,'${em}')">✂️ Cut</button>
+        <td><div class="actions" data-email="${em}">
+          <button class="ab ab-trial" onclick="setTier(${u.id},'mvp',7,this.parentNode.dataset.email,true)">🔥 Trial 7d</button>
+          <button class="ab ab-mvp" onclick="setTier(${u.id},'mvp',30,this.parentNode.dataset.email)">MVP mo</button>
+          <button class="ab ab-mvp" onclick="setTier(${u.id},'mvp',365,this.parentNode.dataset.email)">MVP yr</button>
+          <button class="ab ab-str" onclick="setTier(${u.id},'starter',30,this.parentNode.dataset.email)">Starter mo</button>
+          <button class="ab ab-str" onclick="setTier(${u.id},'starter',365,this.parentNode.dataset.email)">Starter yr</button>
+          <button class="ab ab-cut" onclick="setTier(${u.id},'basic',0,this.parentNode.dataset.email)">✂️ Cut</button>
+          <button class="ab ab-cut" onclick="cancelSub(${u.id},this.parentNode.dataset.email)">🛑 Cancel sub</button>
         </div></td>
       </tr>`;
     }).join('')}</tbody>
@@ -429,12 +430,26 @@ function filterUsers(q) {
 async function setTier(userId, tier, days, email, isTrial) {
   if (!confirm(tier==='basic'?`Cut access for ${email}?`:`Set ${tier.toUpperCase()} (${days}d) for ${email}?`)) return;
   const result = await apiReq(`/api/admin/users/${userId}/tier`,{method:'POST',body:JSON.stringify({tier,days,is_trial:isTrial})});
-  // result can be the user object or null — both can mean success for basic tier
-  if (result !== undefined) {
+  // apiReq returns null on failure and {error} on a rejected request; this used
+  // to test `!== undefined`, which is always true, so failures showed "✅ activated".
+  if (result && !result.error && result.id) {
     showToast(tier==='basic'?`✂️ Access cut — ${email}`:`✅ ${tier.toUpperCase()} activated — ${email}`);
     setTimeout(loadUsers, 500); // slight delay to let DB settle
   } else {
     showToast('Failed — check Render logs', true);
+  }
+}
+
+// Stops future Square charges. Access is left alone — use ✂️ Cut for that.
+async function cancelSub(userId, email) {
+  if (!confirm(`Cancel the Square subscription for ${email}? They will not be charged again.`)) return;
+  const result = await apiReq(`/api/admin/users/${userId}/cancel-subscription`,{method:'POST'});
+  if (result && result.success) {
+    const ends = result.cancelled.map(c=>c.ends).filter(Boolean).join(', ');
+    showToast(`🛑 Subscription cancelled — ${email}${ends?` (ends ${ends})`:''}`);
+    setTimeout(loadUsers, 500);
+  } else {
+    showToast((result && result.error) || 'Failed — check Render logs', true);
   }
 }
 

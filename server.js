@@ -198,24 +198,7 @@ async function cancelUserSubscription(userIdOrEmail) {
   };
 }
 
-// ── SQUARE PRODUCT CATALOGUE ─────────────────────────────────────────────────
-// Keyed by charge amount in the smallest currency unit.
-//
-// The amount is the only reliable signal for which product was bought: Square's
-// payment.* events carry the payment object alone, never the order, so
-// line_items[0].name — which the previous plan detection relied on — is always
-// undefined. That left every purchase falling through to a starter/30d default,
-// so MVP buyers silently lost coach access and annual buyers lost 11 months.
-//
-// Keep in sync with the pricing table in landing.html. An amount that is not
-// listed here is NOT guessed at — see the webhook handler.
-const SQUARE_PRODUCTS = {
-  200:   { tier: 'mvp',     days: 7,   is_trial: true,  label: '7-day trial (€2)' },
-  999:   { tier: 'starter', days: 30,  is_trial: false, label: 'Starter monthly ($9.99)' },
-  2999:  { tier: 'mvp',     days: 30,  is_trial: false, label: 'MVP monthly ($29.99)' },
-  9900:  { tier: 'starter', days: 365, is_trial: false, label: 'Starter annual ($99)' },
-  20000: { tier: 'mvp',     days: 365, is_trial: false, label: 'MVP annual ($200)' },
-};
+const { SQUARE_PRODUCTS } = require('./square-products');
 
 // ── TIER CONFIG ──────────────────────────────────────────────────────────────
 const TIERS = {
@@ -465,8 +448,41 @@ app.post('/api/webhooks/square', express.raw({ type: 'application/json' }), asyn
       if (buyerEmail) {
         const email = buyerEmail;
         const name = email.split('@')[0];
+        const cleanEmail = email.toLowerCase().trim();
 
-        await db.query(
+        // Match an existing account case-insensitively FIRST. ON CONFLICT (email)
+        // alone compares exactly, so a returning customer stored as 'Ann@x.com'
+        // never matched the lowercase insert: the INSERT then hit
+        // users_email_lower_idx, threw, and the renewal was never applied (or,
+        // before that index existed, a duplicate account was created).
+        // If duplicates still exist, every one of them gets the plan, so the
+        // customer has access whichever row login picks.
+        const { rowCount: renewed } = await db.query(
+          `UPDATE users SET
+            tier = $2,
+            token_balance = $3,
+            billing_period_end = $4,
+            is_trial = $5,
+            square_customer_id = $6,
+            square_order_id = $7,
+            subscription_status = 'active',
+            payment_provider = 'square'
+          WHERE LOWER(TRIM(email)) = $1`,
+          [
+            cleanEmail,
+            tier,
+            tier === 'mvp' ? 999999 : 0,
+            billingEnd.toISOString(),
+            isTrial,
+            squareCustomerId || null,
+            squareOrderId || null
+          ]
+        );
+
+        // New customer. ON CONFLICT stays for the case where Square's
+        // payment.created and payment.updated both arrive at once for a first
+        // purchase and both find no row above.
+        if (!renewed) await db.query(
           `INSERT INTO users (
             name,
             email,
@@ -493,7 +509,7 @@ app.post('/api/webhooks/square', express.raw({ type: 'application/json' }), asyn
             payment_provider = 'square'`,
           [
             name,
-            email.toLowerCase().trim(),
+            cleanEmail,
             tier,
             tier === 'mvp' ? 999999 : 0,
             billingEnd.toISOString(),
